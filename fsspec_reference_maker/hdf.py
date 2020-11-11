@@ -1,13 +1,12 @@
 import logging
-from urllib.parse import urlparse, urlunparse
 import numpy as np
 import h5py
+import json
 import zarr
 from zarr.meta import encode_fill_value
 from zarr.storage import _path_to_prefix
 from numcodecs import Zlib
 import fsspec
-from zarr.util import json_dumps
 
 lggr = logging.getLogger('h5-to-zarr')
 chunks_meta_key = ".zchunkstore"
@@ -26,12 +25,12 @@ class Hdf5ToZarr:
     store : MutableMapping
         Zarr store.
     xarray : bool, optional
-        Produce atributes required by the `xarray <http://xarray.pydata.org>`_
+        Produce attributes required by the `xarray <http://xarray.pydata.org>`_
         package to correctly identify dimensions (HDF5 dimension scales) of a
         Zarr array. Default is ``False``.
     """
 
-    def __init__(self, h5f, xarray=False):
+    def __init__(self, h5f, url, xarray=False):
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
         lggr.debug(f'xarray: {xarray}')
@@ -41,14 +40,7 @@ class Hdf5ToZarr:
         self.store = {}
         self._zroot = zarr.group(store=self.store, overwrite=True)
 
-        # Figure out HDF5 file's URI...
-        if hasattr(h5f, 'name'):
-            self._uri = h5f.name
-        elif hasattr(h5f, 'url'):
-            parts = urlparse(h5f.url())
-            self._uri = urlunparse(parts[:3] + ('',) * 3)
-        else:
-            self._uri = None
+        self._uri = url
         lggr.debug(f'Source URI: {self._uri}')
 
     def translate(self):
@@ -56,9 +48,20 @@ class Hdf5ToZarr:
 
         No data is copied out of the HDF5 file.
         """
+        import json
         lggr.debug('Translation begins')
         self.transfer_attrs(self._h5f, self._zroot)
         self._h5f.visititems(self.translator)
+        ref = {}
+        for key, value in self.store.items():
+            if key.endswith(".zchunkstore"):
+                value = json.loads(value)
+                source = value.pop("source")["uri"]
+                for k, v in value.items():
+                    ref[k] = (source, v["offset"], v["offset"] + v["size"])
+            else:
+                ref[key] = value.decode()
+        return ref
 
     def transfer_attrs(self, h5obj, zobj):
         """Transfer attributes from an HDF5 object to its equivalent Zarr object.
@@ -73,7 +76,7 @@ class Hdf5ToZarr:
         """
         for n, v in h5obj.attrs.items():
             if n in ('REFERENCE_LIST', 'DIMENSION_LIST'):
-                    continue
+                continue
 
             # Fix some attribute values to avoid JSON encoding exceptions...
             if isinstance(v, bytes):
@@ -249,19 +252,26 @@ def chunks_info(zarray, chunks_loc):
         chunks_meta[k] = v
 
     # Store Zarr array chunk location metadata...
-    zarray.store[key] = json_dumps(chunks_meta)
+    zarray.store[key] = json.dumps(chunks_meta)
 
 
-def run():
+def run(url, **storage_options):
     lggr.setLevel(logging.DEBUG)
     lggr_handler = logging.StreamHandler()
     lggr_handler.setFormatter(logging.Formatter(
-        '%(levelname)s:%(name)s:%(funcName)s:%(message)s'))
+        '%(levelname)s:%(name)s:%(funcName)s:%(message)s')
+    )
+    lggr.handlers.clear()
     lggr.addHandler(lggr_handler)
 
-    with fsspec.open('s3://pangeo-data-uswest2/esip/adcirc/adcirc_01d.nc',
-                     mode='rb', anon=False, requester_pays=True,
-                     default_fill_cache=False, default_cache_type='none') as f:
-        h5chunks = Hdf5ToZarr(f, xarray=True)
-        h5chunks.translate()
-    return h5chunks.store
+    with fsspec.open(url, **storage_options) as f:
+        h5chunks = Hdf5ToZarr(f, url, xarray=True)
+        return h5chunks.translate()
+
+
+def example():
+    return run(
+        's3://pangeo-data-uswest2/esip/adcirc/adcirc_01d.nc',
+        mode='rb', anon=False, requester_pays=True,
+        default_fill_cache=False, default_cache_type='none'
+    )
