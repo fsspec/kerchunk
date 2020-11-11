@@ -3,14 +3,15 @@ from urllib.parse import urlparse, urlunparse
 import numpy as np
 import h5py
 import zarr
-from zarr.storage import FileChunkStore
+import json
 from zarr.meta import encode_fill_value
+from zarr.storage import _path_to_prefix
 from numcodecs import Zlib
 import fsspec
 
 
 lggr = logging.getLogger('h5-to-zarr')
-lggr.addHandler(logging.NullHandler())
+chunks_meta_key = ".zchunkstore"
 
 
 class Hdf5ToZarr:
@@ -29,16 +30,15 @@ class Hdf5ToZarr:
         Zarr array. Default is ``False``.
     """
 
-    def __init__(self, h5f, store, xarray=False):
+    def __init__(self, h5f, xarray=False):
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
-        lggr.debug(f'Zarr store: {store}')
         lggr.debug(f'xarray: {xarray}')
         self._h5f = h5py.File(h5f, mode='r')
         self._xr = xarray
 
-        # Create Zarr store's root group...
-        self._zroot = zarr.group(store=store, overwrite=True)
+        self.store = {}
+        self._zroot = zarr.group(store=self.store, overwrite=True)
 
         # Figure out HDF5 file's URI...
         if hasattr(h5f, 'name'):
@@ -128,7 +128,7 @@ class Hdf5ToZarr:
             if cinfo:
                 cinfo['source'] = {'uri': self._uri,
                                    'array_name': h5obj.name}
-                FileChunkStore.chunks_info(za, cinfo)
+                chunks_info(za, cinfo)
 
         elif isinstance(h5obj, h5py.Group):
             lggr.debug(f'Group: {h5obj.name}')
@@ -213,7 +213,36 @@ class Hdf5ToZarr:
             return stinfo
 
 
-if __name__ == '__main__':
+def chunks_info(zarray, chunks_loc):
+    """Store chunks location information for a Zarr array.
+    Parameters
+    ----------
+    zarray : zarr.core.Array
+        Zarr array that will use the chunk data.
+    chunks_loc : dict
+        File storage information for the chunks belonging to the Zarr array.
+    """
+    if 'source' not in chunks_loc:
+        raise ValueError('Chunk source information missing')
+    if any([k not in chunks_loc['source'] for k in ('uri', 'array_name')]):
+        raise ValueError(
+            f'{chunks_loc["source"]}: Chunk source information incomplete')
+
+    key = _path_to_prefix(zarray.path) + chunks_meta_key
+    chunks_meta = dict()
+    for k, v in chunks_loc.items():
+        if k != 'source':
+            k = zarray._chunk_key(k)
+            if any([a not in v for a in ('offset', 'size')]):
+                raise ValueError(
+                    f'{k}: Incomplete chunk location information')
+        chunks_meta[k] = v
+
+    # Store Zarr array chunk location metadata...
+    zarray.store[key] = json.dumps(chunks_meta)
+
+
+def run():
     lggr.setLevel(logging.DEBUG)
     lggr_handler = logging.StreamHandler()
     lggr_handler.setFormatter(logging.Formatter(
@@ -222,12 +251,7 @@ if __name__ == '__main__':
 
     with fsspec.open('s3://pangeo-data-uswest2/esip/adcirc/adcirc_01d.nc',
                      mode='rb', anon=False, requester_pays=True,
-                     default_fill_cache=False) as f:
-        store = zarr.DirectoryStore('../adcirc_01d.nc.chunkstore')
-        h5chunks = Hdf5ToZarr(f, store, xarray=True)
+                     default_fill_cache=False, default_cache_type='none') as f:
+        h5chunks = Hdf5ToZarr(f, xarray=True)
         h5chunks.translate()
-
-# Consolidate Zarr metadata...
-lggr.info('Consolidating Zarr dataset metadata')
-zarr.convenience.consolidate_metadata(store)
-lggr.info('Done')
+    return h5chunks.store
