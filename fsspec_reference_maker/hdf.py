@@ -3,55 +3,15 @@ from urllib.parse import urlparse, urlunparse
 import numpy as np
 import h5py
 import zarr
-import json
 from zarr.meta import encode_fill_value
 from zarr.storage import _path_to_prefix
 from numcodecs import Zlib
 import fsspec
 from zarr.util import json_dumps
 
-chunks_meta_key = '.zchunkstore'
-
 lggr = logging.getLogger('h5-to-zarr')
 chunks_meta_key = ".zchunkstore"
 
-def _path_to_prefix(path):
-    # assume path already normalized
-    if path:
-        prefix = path + '/'
-    else:
-        prefix = ''
-    return prefix
-
-def chunks_info(zarray, chunks_loc):
-    """Store chunks location information for a Zarr array.
-
-    Parameters
-    ----------
-    zarray : zarr.core.Array
-        Zarr array that will use the chunk data.
-    chunks_loc : dict
-        File storage information for the chunks belonging to the Zarr array.
-    """
-    if 'source' not in chunks_loc:
-        raise ValueError('Chunk source information missing')
-    if any([k not in chunks_loc['source'] for k in ('uri', 'array_name')]):
-        raise ValueError(
-            f'{chunks_loc["source"]}: Chunk source information incomplete')
-
-
-    key = _path_to_prefix(zarray.path) + chunks_meta_key
-    chunks_meta = dict()
-    for k, v in chunks_loc.items():
-        if k != 'source':
-            k = zarray._chunk_key(k)
-            if any([a not in v for a in ('offset', 'size')]):
-                raise ValueError(
-                    f'{k}: Incomplete chunk location information')
-        chunks_meta[k] = v
-
-    # Store Zarr array chunk location metadata...
-    zarray.store[key] = json_dumps(chunks_meta)
 
 class Hdf5ToZarr:
     """Translate the content of one HDF5 file into Zarr metadata.
@@ -264,6 +224,7 @@ class Hdf5ToZarr:
 
 def chunks_info(zarray, chunks_loc):
     """Store chunks location information for a Zarr array.
+
     Parameters
     ----------
     zarray : zarr.core.Array
@@ -288,7 +249,7 @@ def chunks_info(zarray, chunks_loc):
         chunks_meta[k] = v
 
     # Store Zarr array chunk location metadata...
-    zarray.store[key] = json.dumps(chunks_meta)
+    zarray.store[key] = json_dumps(chunks_meta)
 
 
 def run():
