@@ -2,7 +2,7 @@
 Functions to make reference descriptions for ReferenceFileSystem
 
 
-Spec for the structure required by ReferenceFileSystem:
+Proposed spec for the structure required by ReferenceFileSystem:
 
 ```json
 {
@@ -12,10 +12,11 @@ Spec for the structure required by ReferenceFileSystem:
   }
 }
 ```
+where:
+* `key0` includes data as-is (stored as text)
+* `key1` refers to a data file URL, the offset within the file (in bytes), and the length of the data item (in bytes).
 
-where "key0" includes data as-is (stored as text), and "key1" refers to the given remote URL, the offset within the file (in bytes), and the length of the data item (in bytes).
-
-For example, zarr data might be stored like
+For example, Zarr data might be represented as:
 
 ```json
 {
