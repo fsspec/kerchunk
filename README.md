@@ -16,7 +16,7 @@ where:
 * `key0` includes data as-is (stored as text)
 * `key1` refers to a data file URL, the offset within the file (in bytes), and the length of the data item (in bytes).
 
-For example, Zarr data might be represented as:
+For example, Zarr data in this proposed spec might be represented as:
 
 ```json
 {
