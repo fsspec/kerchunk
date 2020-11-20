@@ -8,7 +8,7 @@ Proposed spec for the structure required by ReferenceFileSystem:
 {
   "key0": "data",
   "key1": {
-    ["protocol://target_url", 100, 100]
+    ["protocol://target_url", 10000, 100]
   }
 }
 ```
