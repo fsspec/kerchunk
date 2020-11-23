@@ -4,7 +4,7 @@ Functions to make reference descriptions for ReferenceFileSystem
 
 Proposed spec for the structure required by ReferenceFileSystem:
 
-```json
+```
 {
   "key0": "data",
   "key1": {
@@ -18,7 +18,7 @@ where:
 
 For example, Zarr data in this proposed spec might be represented as:
 
-```json
+```
 {
   ".zgroup": "{\n    \"zarr_format\": 2\n"},
   ".zattrs": "{\n    \"Conventions\": \"UGRID-0.9.0\n\"},
