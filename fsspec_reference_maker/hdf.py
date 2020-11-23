@@ -58,7 +58,7 @@ class Hdf5ToZarr:
                 value = json.loads(value)
                 source = value.pop("source")["uri"]
                 for k, v in value.items():
-                    ref[k] = (source, v["offset"], v["offset"] + v["size"])
+                    ref[k] = (source, v["offset"], v["size"])
             else:
                 ref[key] = value.decode()
         return ref
