@@ -25,5 +25,5 @@ For example, zarr data might be stored like
   "x/.zattrs": "{\n    \"_ARRAY_DIMENSIONS\": [\n        \"node\"\n ...",
   "x/.zarray": "{\n    \"chunks\": [\n        9228245\n    ],\n    \"compressor\": null,\n    \"dtype\": \"<f8\",\n  ...",
   "x/0": ["s3://bucket/path/file.nc", 294094376, 367920336]
-},
+}
 ```
