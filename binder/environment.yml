@@ -1,0 +1,15 @@
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - xarray
+  - fsspec
+  - zarr
+  - s3fs
+  - intake
+  - intake-xarray
+  - pip
+  - pip:
+      - "git+https://github.com/intake/filesystem_spec"
+      - "git+https://github.com/dask/s3fs"
