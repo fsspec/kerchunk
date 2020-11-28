@@ -27,3 +27,6 @@ For example, Zarr data in this proposed spec might be represented as:
   "x/0": ["s3://bucket/path/file.nc", 294094376, 73825960]
 },
 ```
+
+
+[![Binder](https://aws-uswest2-binder.pangeo.io/badge_logo.svg)](https://aws-uswest2-binder.pangeo.io/v2/gh/rsignell-usgs/fsspec-reference-maker/example?filepath=examples%2Fike_intake.ipynb)
