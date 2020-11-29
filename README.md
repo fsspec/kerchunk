@@ -29,5 +29,5 @@ For example, Zarr data in this proposed spec might be represented as:
 ```
 
 
-Run a notebook example comparing reading HDF5 using this approach vs. native Zarr format:
-[![Binder](https://aws-uswest2-binder.pangeo.io/badge_logo.svg)](https://aws-uswest2-binder.pangeo.io/v2/gh/rsignell-usgs/fsspec-reference-maker/example?filepath=examples%2Fike_intake.ipynb)
+
+[![Binder](https://aws-uswest2-binder.pangeo.io/badge_logo.svg)](https://aws-uswest2-binder.pangeo.io/v2/gh/rsignell-usgs/fsspec-reference-maker/example?filepath=examples%2Fike_intake.ipynb): Run a notebook example comparing reading HDF5 using this approach vs. native Zarr format
