@@ -3,13 +3,15 @@ channels:
   - defaults
 dependencies:
   - python=3.8
-  - xarray
+  - dask
+  - dask-gateway
   - fsspec
-  - zarr
-  - s3fs
   - intake
   - intake-xarray
   - pip
+  - s3fs
+  - xarray
+  - zarr
   - pip:
       - "git+https://github.com/intake/filesystem_spec"
       - "git+https://github.com/dask/s3fs"
