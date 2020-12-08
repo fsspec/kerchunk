@@ -8,6 +8,8 @@ dependencies:
   - fsspec
   - intake
   - intake-xarray
+  - ipywidgets
+  - dask-labextension
   - pip
   - s3fs
   - xarray
