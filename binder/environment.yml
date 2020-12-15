@@ -2,7 +2,6 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
   - dask
   - dask-gateway
   - fsspec
@@ -14,6 +13,3 @@ dependencies:
   - s3fs
   - xarray
   - zarr
-  - pip:
-      - "git+https://github.com/intake/filesystem_spec"
-      - "git+https://github.com/dask/s3fs"
