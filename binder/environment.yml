@@ -1,0 +1,15 @@
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - dask
+  - dask-gateway
+  - fsspec
+  - intake
+  - intake-xarray
+  - ipywidgets
+  - dask-labextension
+  - pip
+  - s3fs
+  - xarray
+  - zarr

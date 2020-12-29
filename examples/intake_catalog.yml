@@ -1,0 +1,22 @@
+sources:
+  ike-hdf5:
+    driver: intake_xarray.xzarr.ZarrSource
+    description: 'Hurricane Ike simulation in NetCDF4/HDF5 format'
+    args:
+      urlpath: "reference://"
+      storage_options:
+        ref_storage_args:
+          requester_pays: true
+        references: "s3://pangeo-data-uswest2/esip/adcirc/adcirc_01d_offsets.json"
+        target_options:
+          requester_pays: true
+        target_protocol: s3
+
+  ike-zarr:
+    driver: zarr
+    description: "Hurricane Ike simulation in Zarr format"
+    args:
+      urlpath: s3://pangeo-data-uswest2/esip/adcirc/adcirc_01d
+      consolidated: true
+      storage_options:
+        requester_pays: true
