@@ -98,8 +98,8 @@ class Hdf5ToZarr:
                 source = value.pop("source")["uri"]
                 for k, v in value.items():
                     ref[k] = (source, v["offset"], v["size"])
-            else:
-                ref[key] = value.decode()
+            # else:
+            #     ref[key] = value.decode()
         return ref
 
     def transfer_attrs(self, h5obj: Union[h5py.Dataset, h5py.Group],
@@ -176,9 +176,8 @@ class Hdf5ToZarr:
             if self._xr:
                 # Do this for xarray...
                 adims = self._get_array_dims(h5obj)
-                if adims:
-                    za.attrs['_ARRAY_DIMENSIONS'] = adims
-                    lggr.debug(f'_ARRAY_DIMENSIONS = {adims}')
+                za.attrs['_ARRAY_DIMENSIONS'] = adims
+                lggr.debug(f'_ARRAY_DIMENSIONS = {adims}')
 
             # Store chunk location metadata...
             if cinfo:
