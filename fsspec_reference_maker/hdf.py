@@ -76,7 +76,7 @@ class Hdf5ToZarr:
         self._h5f = h5py.File(h5f, mode='r')
         self._xr = xarray
 
-        self.store = zarr.MemoryStore()
+        self.store = {}
         self._zroot = zarr.group(store=self.store, overwrite=True)
 
         self._uri = url
@@ -135,8 +135,8 @@ class Hdf5ToZarr:
             try:
                 zobj.attrs[n] = v
             except TypeError:
-                print(f'Caught TypeError: {n}@{h5obj.name} = {v} ({type(v)})')
-                lggr.exception(' ')
+                lggr.exception(
+                    f'Caught TypeError: {n}@{h5obj.name} = {v} ({type(v)})')
 
     def translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file.
