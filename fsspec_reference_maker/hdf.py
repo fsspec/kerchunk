@@ -1,15 +1,53 @@
+from typing import Union, BinaryIO
 import logging
 import numpy as np
 import h5py
-import json
 import zarr
-from zarr.meta import encode_fill_value
-from zarr.storage import _path_to_prefix
+from zarr.meta import encode_fill_value, json_dumps
 from numcodecs import Zlib
 import fsspec
 
 lggr = logging.getLogger('h5-to-zarr')
 chunks_meta_key = ".zchunkstore"
+
+
+def _path_to_prefix(path):
+    # assume path already normalized
+    if path:
+        prefix = path + '/'
+    else:
+        prefix = ''
+    return prefix
+
+
+def chunks_info(zarray, chunks_loc):
+    """Store chunks location information for a Zarr array.
+
+    Parameters
+    ----------
+    zarray : zarr.core.Array
+        Zarr array that will use the chunk data.
+    chunks_loc : dict
+        File storage information for the chunks belonging to the Zarr array.
+    """
+    if 'source' not in chunks_loc:
+        raise ValueError('Chunk source information missing')
+    if any([k not in chunks_loc['source'] for k in ('uri', 'array_name')]):
+        raise ValueError(
+            f'{chunks_loc["source"]}: Chunk source information incomplete')
+
+    key = _path_to_prefix(zarray.path) + chunks_meta_key
+    chunks_meta = dict()
+    for k, v in chunks_loc.items():
+        if k != 'source':
+            k = zarray._chunk_key(k)
+            if any([a not in v for a in ('offset', 'size')]):
+                raise ValueError(
+                    f'{k}: Incomplete chunk location information')
+        chunks_meta[k] = v
+
+    # Store Zarr array chunk location metadata...
+    zarray.store[key] = json_dumps(chunks_meta)
 
 
 class Hdf5ToZarr:
@@ -22,15 +60,16 @@ class Hdf5ToZarr:
     ----------
     h5f : file-like or str
         Input HDF5 file as a string or file-like Python object.
-    store : MutableMapping
-        Zarr store.
+    url : str
+        URI of the HDF5 file.
     xarray : bool, optional
         Produce attributes required by the `xarray <http://xarray.pydata.org>`_
         package to correctly identify dimensions (HDF5 dimension scales) of a
         Zarr array. Default is ``False``.
     """
 
-    def __init__(self, h5f, url, xarray=False):
+    def __init__(self, h5f: Union[str, BinaryIO], url: str,
+                 xarray: bool = False):
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
         lggr.debug(f'xarray: {xarray}')
@@ -41,7 +80,7 @@ class Hdf5ToZarr:
         self._zroot = zarr.group(store=self.store, overwrite=True)
 
         self._uri = url
-        lggr.debug(f'Source URI: {self._uri}')
+        lggr.debug(f'HDF5 file URI: {self._uri}')
 
     def translate(self):
         """Translate content of one HDF5 file into Zarr storage format.
@@ -59,11 +98,12 @@ class Hdf5ToZarr:
                 source = value.pop("source")["uri"]
                 for k, v in value.items():
                     ref[k] = (source, v["offset"], v["size"])
-            else:
-                ref[key] = value.decode()
+            # else:
+            #     ref[key] = value.decode()
         return ref
 
-    def transfer_attrs(self, h5obj, zobj):
+    def transfer_attrs(self, h5obj: Union[h5py.Dataset, h5py.Group],
+                       zobj: Union[zarr.Array, zarr.Group]):
         """Transfer attributes from an HDF5 object to its equivalent Zarr object.
 
         Parameters
@@ -82,6 +122,8 @@ class Hdf5ToZarr:
             if isinstance(v, bytes):
                 v = v.decode('utf-8')
             elif isinstance(v, (np.ndarray, np.number)):
+                if v.dtype.kind == 'S':
+                    v = v.astype(str)
                 if n == '_FillValue':
                     v = encode_fill_value(v, v.dtype)
                 elif v.size == 1:
@@ -93,13 +135,20 @@ class Hdf5ToZarr:
             try:
                 zobj.attrs[n] = v
             except TypeError:
-                print(f'Caught TypeError: {n}@{h5obj.name} = {v} ({type(v)})')
+                lggr.exception(
+                    f'Caught TypeError: {n}@{h5obj.name} = {v} ({type(v)})')
 
-    def translator(self, name, h5obj):
+    def translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file.
         """
         if isinstance(h5obj, h5py.Dataset):
-            lggr.debug(f'Dataset: {h5obj.name}')
+            lggr.debug(f'HDF5 dataset: {h5obj.name}')
+            if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
+                RuntimeError(
+                    f'Compact HDF5 datasets not yet supported: <{h5obj.name} '
+                    f'{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>')
+                return
+
             if (h5obj.scaleoffset or h5obj.fletcher32 or h5obj.shuffle or
                     h5obj.compression in ('szip', 'lzf')):
                 raise RuntimeError(
@@ -137,7 +186,7 @@ class Hdf5ToZarr:
                 chunks_info(za, cinfo)
 
         elif isinstance(h5obj, h5py.Group):
-            lggr.debug(f'Group: {h5obj.name}')
+            lggr.debug(f'HDF5 group: {h5obj.name}')
             zgrp = self._zroot.create_group(h5obj.name)
             self.transfer_attrs(h5obj, zgrp)
 
@@ -174,7 +223,7 @@ class Hdf5ToZarr:
                         f'dimension scales attached to dimension #{n}')
         return dims
 
-    def storage_info(self, dset):
+    def storage_info(self, dset: h5py.Dataset) -> dict:
         """Get storage information of an HDF5 dataset in the HDF5 file.
 
         Storage information consists of file offset and size (length) for every
@@ -220,39 +269,8 @@ class Hdf5ToZarr:
                 blob = dsid.get_chunk_info(index)
                 key = tuple(
                     [a // b for a, b in zip(blob.chunk_offset, chunk_size)])
-                stinfo[key] = {'offset': blob.byte_offset,
-                               'size': blob.size}
+                stinfo[key] = {'offset': blob.byte_offset, 'size': blob.size}
             return stinfo
-
-
-def chunks_info(zarray, chunks_loc):
-    """Store chunks location information for a Zarr array.
-
-    Parameters
-    ----------
-    zarray : zarr.core.Array
-        Zarr array that will use the chunk data.
-    chunks_loc : dict
-        File storage information for the chunks belonging to the Zarr array.
-    """
-    if 'source' not in chunks_loc:
-        raise ValueError('Chunk source information missing')
-    if any([k not in chunks_loc['source'] for k in ('uri', 'array_name')]):
-        raise ValueError(
-            f'{chunks_loc["source"]}: Chunk source information incomplete')
-
-    key = _path_to_prefix(zarray.path) + chunks_meta_key
-    chunks_meta = dict()
-    for k, v in chunks_loc.items():
-        if k != 'source':
-            k = zarray._chunk_key(k)
-            if any([a not in v for a in ('offset', 'size')]):
-                raise ValueError(
-                    f'{k}: Incomplete chunk location information')
-        chunks_meta[k] = v
-
-    # Store Zarr array chunk location metadata...
-    zarray.store[key] = json.dumps(chunks_meta)
 
 
 def run(url, **storage_options):
