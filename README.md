@@ -49,7 +49,7 @@ this new enhanced spec into Version 0 format.
             "url": "protocol://{u}_{i}",
             "offset": "{(i + 1) * 1000}",
             "length": "1000",
-            "i": "range(10)"
+            "i": "range(9)"
         }   
     ],
     "refs": {
@@ -78,8 +78,8 @@ Explanation of fields follows. Only "version" and "refs" are required:
   "{" and "}".
 
 In the example, "key2" becomes ["protocol://long_text_template", ..] and "key3" becomes ["protocol://text", ..].
-Also contained will be keys "gen_ref0": ["protocol://long_text_template_0", 10000, 1000] to "gen_ref9":
-["protocol://long_text_template_9", 100000, 1000].
+Also contained will be keys "gen_ref0": ["protocol://long_text_template_0", 1000, 1000] to "gen_ref8":
+["protocol://long_text_template_9", 9000, 1000].
 
 
 ## Examples
