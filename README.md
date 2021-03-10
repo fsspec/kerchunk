@@ -84,7 +84,7 @@ Here is an example
         {
             "key": "gen_key{{i}}",
             "url": "http://{{u}}_{{i}}",
-            "offset": "{(i + 1) * 1000}",
+            "offset": "{{(i + 1) * 1000}}",
             "length": "1000",
             "dimensions": 
               {
