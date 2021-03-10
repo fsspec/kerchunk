@@ -56,7 +56,7 @@ this new enhanced spec into Version 0 format.
     }
   ],
   "refs": (optional, zero or more arbiritary keys) {
-    "key_name": (required) str OR [url(jinja-str), offset(int), length(int)]
+    "key_name": (required) str OR [url(jinja-str)] OR [url(jinja-str), offset(int), length(int)]
   }
 }
 ```
@@ -70,6 +70,8 @@ Where:
 - the `str` format of a reference value may be
   - a string starting "base64:", which will be decoded to binary
   - any other string, interpreted as ascii data
+- the str version of ref values indicates data, the one-element array a whole url, and the three-element version
+  a binary section of a url
 
 Here is an example 
 
