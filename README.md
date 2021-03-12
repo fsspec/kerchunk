@@ -112,11 +112,11 @@ This example evaluates to the Version 0 equivalent
   "key1": ["http://target_url", 10000, 100],
   "key2": ["http://server.domain/path", 10000, 100],
   "key3": ["http://text", 10000, 100],
-  "key_get0": ["http://server.domain/path_0", 1000, 1000],
-  "key_get1": ["http://server.domain/path_1", 2000, 1000],
-  "key_get2": ["http://server.domain/path_2", 3000, 1000],
-  "key_get3": ["http://server.domain/path_3", 4000, 1000],
-  "key_get4": ["http://server.domain/path_4", 5000, 1000],
+  "gen_key0": ["http://server.domain/path_0", 1000, 1000],
+  "gen_key1": ["http://server.domain/path_1", 2000, 1000],
+  "gen_key2": ["http://server.domain/path_2", 3000, 1000],
+  "gen_key3": ["http://server.domain/path_3", 4000, 1000],
+  "gen_key4": ["http://server.domain/path_4", 5000, 1000],
 }
 ```
 such that accessing, for instance, "key0" returns `b"data"` and accessing "key_get0" returns 1000 bytes
