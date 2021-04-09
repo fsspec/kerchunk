@@ -46,8 +46,8 @@ this new enhanced spec into Version 0 format.
   "gen": (optional, zero or more items) [
     "key": (required) jinja-str,
     "url": (required) jinja-str,
-    "offset": (required) jinja-str,
-    "length": (required) jinja-str,
+    "offset": (optional, required with "length") jinja-str,
+    "length": (optional, required with "offset") jinja-str,
     "dimensions": (required, one or more arbitrary keys) {
       "variable_name": (required) 
         {"start": (optional) int, "stop": (required) int, "step": (optional) int}
