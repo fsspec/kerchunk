@@ -1,23 +1,20 @@
+import base64
+from collections import Counter
+import zipfile
 from typing import Union, BinaryIO
 import logging
+import os
+import json
 import numpy as np
 import h5py
 import zarr
-from zarr.meta import encode_fill_value, json_dumps
+from zarr.meta import encode_fill_value
 from numcodecs import Zlib
 import fsspec
 import fsspec.utils
+import fsspec.core
 
 lggr = logging.getLogger('h5-to-zarr')
-
-
-def _path_to_prefix(path):
-    # assume path already normalized
-    if path:
-        prefix = path + '/'
-    else:
-        prefix = ''
-    return prefix
 
 
 class SingleHdf5ToZarr:
@@ -28,22 +25,30 @@ class SingleHdf5ToZarr:
 
     Parameters
     ----------
-    h5f : file-like or str
-        Input HDF5 file as a string or file-like Python object.
+    h5f : file-like
+        Input HDF5 file as a binary Python file-like object (duck-typed, adhering
+        to BinaryIO is optional)
     url : str
         URI of the HDF5 file.
     xarray : bool, optional
         Produce attributes required by the `xarray <http://xarray.pydata.org>`_
         package to correctly identify dimensions (HDF5 dimension scales) of a
         Zarr array. Default is ``False``.
+    spec : int
+        The version of output to produce (see README of this repo)
+    inline_threshold : int
+        Include chunks smaller than this value directly in the output. Zero or negative
+        to disable
     """
 
-    def __init__(self, h5f: Union[str, BinaryIO], url: str,
-                 xarray: bool = False, spec=1):
+    def __init__(self, h5f: BinaryIO, url: str,
+                 xarray: bool = False, spec=1, inline_threshold=0):
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
+        self.input_file = h5f
         lggr.debug(f'xarray: {xarray}')
         self.spec = spec
+        self.inline = inline_threshold
         self._h5f = h5py.File(h5f, mode='r')
         self._xr = xarray
 
@@ -67,6 +72,8 @@ class SingleHdf5ToZarr:
         lggr.debug('Translation begins')
         self._transfer_attrs(self._h5f, self._zroot)
         self._h5f.visititems(self._translator)
+        if self.inline > 0:
+            self._do_inline(self.inline)
         if self.spec < 1:
             return self.store
         else:
@@ -83,8 +90,25 @@ class SingleHdf5ToZarr:
                 "refs": self.store
             }
 
+    def _do_inline(self, threshold):
+        """Replace short chunks with the value of that chunk
+
+        The chunk may need encoding with base64 if not ascii, so actual
+        length may be larger than threshold.
+        """
+        for k, v in self.store.copy().items():
+            if isinstance(v, list) and v[2] < threshold:
+                self.input_file.seek(v[1])
+                data = self.input_file.read(v[2])
+                try:
+                    # easiest way to test if data is ascii
+                    data.decode('ascii')
+                except UnicodeDecodeError:
+                    data = b"base64:" + base64.b64encode(data)
+                self.store[k] = data
+
     def _transfer_attrs(self, h5obj: Union[h5py.Dataset, h5py.Group],
-                       zobj: Union[zarr.Array, zarr.Group]):
+                        zobj: Union[zarr.Array, zarr.Group]):
         """Transfer attributes from an HDF5 object to its equivalent Zarr object.
 
         Parameters
@@ -254,16 +278,172 @@ class SingleHdf5ToZarr:
             return stinfo
 
 
-def run(url, **storage_options):
+class MultiZarrToZarr:
+
+    def __init__(self, path, remote_protocol,
+                 remote_options=None, xarray_kwargs=None, storage_options=None):
+        """
+
+        :param path: a URL containing multiple JSONs
+        :param xarray_kwargs:
+        :param storage_options:
+        """
+        xarray_kwargs = xarray_kwargs or {}
+        self.path = path
+        self.xr_kwargs = xarray_kwargs
+        self.storage_options = storage_options or {}
+        self.remote_protocol = remote_protocol
+        self.remote_options = remote_options or {}
+
+    def translate(self):
+        return self._determine_dims()
+
+    def _consolidate(self, mapping, inline_threashold=100, template_count=5):
+        import string
+        counts = Counter(v[0] for v in mapping.values() if isinstance(v, list))
+        # potential IndexError when more than 52 templates
+        templates = {f"{string.ascii_letters[i]}": u for i, (u, v) in enumerate(counts.items())
+                     if v > template_count}
+        inv = {v: k for k, v in templates.items()}
+
+        out = {}
+        for k, v in mapping.items():
+            if isinstance(v, list) and v[2] < inline_threashold:
+                print("inline", k)
+                v = self.fs.cat_file(v[0], v[1], v[1] + v[2])
+            if isinstance(v, bytes):
+                try:
+                    # easiest way to test if data is ascii
+                    out[k] = v.decode('ascii')
+                except UnicodeDecodeError:
+                    out[k] = (b"base64:" + base64.b64encode(v)).decode()
+            else:
+                if v[0] in inv:
+                    out[k] = ["{{" + inv[v[0]] + "}}"] + v[1:]
+                else:
+                    out[k] = v
+        return {"version": 1, "templates": templates, "refs": out}
+
+    def _build_output(self, ds, ds0, fss):
+        import zarr
+        out = {}
+        ds.to_zarr(out, chunk_store={}, compute=False)  # fills in metadata&coords
+        z = zarr.open_group(out, mode='a')
+        for dim in self.extra_dims.union(self.concat_dims):
+            print("Concat dim", dim)
+            # derived and concatenated dims stored as absolute data
+            z[dim][:] = ds[dim].values
+        for dim in self.same_dims:
+            # duplicated coordinates stored as references just once
+            print("Same dim", dim)
+            out.update({k: v for k, v in fss[0].references.items() if k.startswith(dim)})
+        for variable in ds.variables:
+            if variable in ds.dims:
+                # already handled
+                continue
+            print("variable", variable)
+            var, var0 = ds[variable], ds0[variable]
+            assert var.dims[-len(var0.dims):] == var0.dims
+
+            concats = {d: 0 for d in self.concat_dims}
+            for i, fs in enumerate(fss):
+                for k, v in fs.references.items():
+                    start, part = os.path.split(k)
+                    if start != variable or part in ['.zgroup', '.zarray', '.zattrs']:
+                        # OK, so we go through all the keys multiple times
+                        continue
+                    if var.shape == var0.shape:
+                        out[k] = v  # copy
+                    else:
+                        out[f"{start}/{i}.{part}"] = v
+        return out
+
+    def _determine_dims(self):
+        import xarray as xr
+        with fsspec.open_files(self.path, **self.storage_options) as ofs:
+            fss = [
+                fsspec.filesystem(
+                    "reference", fo=json.load(of),
+                    remote_protocol=self.remote_protocol,
+                    remote_options=self.remote_options
+                ) for of in ofs
+            ]
+            self.fs = fss[0].fs
+            mappers = [fs.get_mapper("") for fs in fss]
+
+        ds = xr.open_mfdataset(mappers, engine="zarr", chunks={}, **self.xr_kwargs)
+        ds0 = xr.open_mfdataset(mappers[:1], engine="zarr", chunks={}, **self.xr_kwargs)
+        self.extra_dims = set(ds.dims) - set(ds0.dims)
+        self.concat_dims = set(k for k, v in ds.dims.items() if v / ds0.dims[k] == len(mappers))
+        self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
+        return ds, ds0, fss
+
+
+def example_single():
+    """Scans the given file and returns a dict of references"""
+    url = 's3://pangeo-data-uswest2/esip/adcirc/adcirc_01d.nc'
+    so = dict(
+        mode='rb', anon=False, requester_pays=True,
+        default_fill_cache=False, default_cache_type='none'
+    )
     fsspec.utils.setup_logging(logger=lggr)
-    with fsspec.open(url, **storage_options) as f:
+    with fsspec.open(url, **so) as f:
         h5chunks = SingleHdf5ToZarr(f, url, xarray=True)
         return h5chunks.translate()
 
 
-def example():
-    return run(
-        's3://pangeo-data-uswest2/esip/adcirc/adcirc_01d.nc',
-        mode='rb', anon=False, requester_pays=True,
-        default_fill_cache=False, default_cache_type='none'
+def example_multiple():
+    """Scans the set of URLs and writes a reference JSON file
+
+    In this prototype, the outputs are wrapped in a single ZIP archive
+    "out.zip".
+    """
+    urls = ["s3://" + p for p in [
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010100.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010200.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010300.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010400.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010500.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010600.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010700.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010800.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010900.CHRTOUT_DOMAIN1.comp'
+    ]]
+    so = dict(
+        anon=True, default_fill_cache=False, default_cache_type='first'
     )
+    zf = zipfile.ZipFile("out.zip", mode="w")
+    for u in urls:
+        with fsspec.open(u, **so) as inf:
+            h5chunks = SingleHdf5ToZarr(inf, u, xarray=True, inline_threshold=100)
+            with zf.open(os.path.basename(u) + ".json", 'w') as outf:
+                outf.write(json.dumps(h5chunks.translate()).encode())
+
+
+def example_ensamble():
+    """Scan the set of URLs and create a single reference output
+
+    This example uses the output of example_multiple
+    """
+    def drop_coords(ds):
+        ds = ds.drop(['reference_time', 'crs'])
+        return ds.reset_coords(drop=True)
+
+    mzz = MultiZarrToZarr(
+        "zip://*.json::out.zip",
+        remote_protocol="s3",
+        remote_options={'anon': True},
+        xarray_kwargs={
+            "preprocess": drop_coords,
+            "decode_cf": False,
+            "mask_and_scale": False,
+            "decode_times": False,
+            "decode_timedelta": False,
+            "use_cftime": False,
+            "decode_coords": False
+        }
+    )
+    ds, ds0, fss = mzz._determine_dims()
+    out = mzz._build_output(ds, ds0, fss)
+    out2 = mzz._consolidate(out)
