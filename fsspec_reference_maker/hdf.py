@@ -295,8 +295,53 @@ class MultiZarrToZarr:
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
 
-    def translate(self):
-        return self._determine_dims()
+    def translate(self, outpath):
+        ds, ds0, fss = self._determine_dims()
+        out = self._build_output(ds, ds0, fss)
+        self.output = self._consolidate(out)
+        self._write(self.output, outpath)
+
+    @staticmethod
+    def _write(refs, outpath, filetype=None):
+        types = {
+            "json": "json",
+            "parquet": "parquet",
+            "zarr": "zarr"
+        }
+        if filetype is None:
+            ext = os.path.splitext(outpath)[1].lstrip(".")
+            filetype = types[ext]
+        elif filetype not in types:
+            raise KeyError
+        if filetype == "json":
+            with open(outpath, "w") as f:
+                json.dump(refs, f)
+            return
+        import pandas as pd
+        references2 = {
+            k: {"data": v.encode('ascii') if not isinstance(v, list) else None,
+                "url": v[0] if isinstance(v, list) else None,
+                "offset": v[1] if isinstance(v, list) else None,
+                "size": v[2] if isinstance(v, list) else None}
+            for k, v in refs['refs'].items()}
+        # use pandas for sorting
+        df = pd.DataFrame(references2.values(), index=list(references2)).sort_values("offset")
+
+        if filetype == "zarr":
+            import zarr
+            import numcodecs
+            # compression should be NONE, if intent is to store in single zip
+            g = zarr.open_group(outpath, mode='w')
+            g.attrs.update({k: v for k, v in refs.items() if k in ['version', "templates", "gen"]})
+            g.array(name="key", data=df.index.values, dtype="object", compression="zstd",
+                    object_codec=numcodecs.VLenUTF8())
+            g.array(name="offset", data=df.offset.values, dtype="uint32", compression="zstd")
+            g.array(name="size", data=df['size'].values, dtype="uint32", compression="zstd")
+            g.array(name="data", data=df.url.values, dtype="object",
+                    object_codec=numcodecs.VLenUTF8(), compression="gzip")
+            # may be better as fixed length
+            g.array(name="url", data=df.url.values, dtype="object",
+                    object_codec=numcodecs.VLenUTF8(), compression='gzip')
 
     def _consolidate(self, mapping, inline_threashold=100, template_count=5):
         import string
@@ -309,7 +354,6 @@ class MultiZarrToZarr:
         out = {}
         for k, v in mapping.items():
             if isinstance(v, list) and v[2] < inline_threashold:
-                print("inline", k)
                 v = self.fs.cat_file(v[0], v[1], v[1] + v[2])
             if isinstance(v, bytes):
                 try:
@@ -330,18 +374,15 @@ class MultiZarrToZarr:
         ds.to_zarr(out, chunk_store={}, compute=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
         for dim in self.extra_dims.union(self.concat_dims):
-            print("Concat dim", dim)
             # derived and concatenated dims stored as absolute data
             z[dim][:] = ds[dim].values
         for dim in self.same_dims:
             # duplicated coordinates stored as references just once
-            print("Same dim", dim)
             out.update({k: v for k, v in fss[0].references.items() if k.startswith(dim)})
         for variable in ds.variables:
             if variable in ds.dims:
                 # already handled
                 continue
-            print("variable", variable)
             var, var0 = ds[variable], ds0[variable]
             assert var.dims[-len(var0.dims):] == var0.dims
 
@@ -442,8 +483,7 @@ def example_ensamble():
             "decode_timedelta": False,
             "use_cftime": False,
             "decode_coords": False
-        }
+        },
     )
-    ds, ds0, fss = mzz._determine_dims()
-    out = mzz._build_output(ds, ds0, fss)
-    out2 = mzz._consolidate(out)
+    mzz.translate("output.zarr")
+
