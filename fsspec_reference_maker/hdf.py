@@ -132,7 +132,9 @@ class SingleHdf5ToZarr:
                 if n == '_FillValue':
                     v = encode_fill_value(v, v.dtype)
                 elif v.size == 1:
-                    v = v.flatten()[0].tolist()
+                    v = v.flatten()[0]
+                    if isinstance(v, (np.ndarray, np.number)):
+                        v = v.tolist()
                 else:
                     v = v.tolist()
             if self._xr and v == 'DIMENSION_SCALE':
@@ -342,6 +344,16 @@ class MultiZarrToZarr:
             # may be better as fixed length
             g.array(name="url", data=df.url.values, dtype="object",
                     object_codec=numcodecs.VLenUTF8(), compression='gzip')
+        if filetype == "parquet":
+            import fastparquet
+            metadata = json.dumps(
+                {k: v for k, v in refs.items() if k in ['version', "templates", "gen"]}
+            )
+            fastparquet.write(
+                outpath,
+                custom_metadata=metadata,
+                compression="ZSTD"
+            )
 
     def _consolidate(self, mapping, inline_threashold=100, template_count=5):
         import string
