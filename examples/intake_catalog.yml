@@ -5,12 +5,12 @@ sources:
     args:
       urlpath: "reference://"
       storage_options:
-        ref_storage_args:
-          requester_pays: true
-        references: "s3://pangeo-data-uswest2/esip/adcirc/adcirc_01d_offsets.json"
         target_options:
           requester_pays: true
-        target_protocol: s3
+        fo: "s3://pangeo-data-uswest2/esip/adcirc/adcirc_01d_offsets.json"
+        remote_options:
+          requester_pays: true
+        remote_protocol: s3
 
   ike-zarr:
     driver: zarr
