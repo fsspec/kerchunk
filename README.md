@@ -21,12 +21,12 @@ For example, Zarr data in this proposed spec might be represented as:
 
 ```json
 {
-  ".zgroup": "{\n    \"zarr_format\": 2\n"},
-  ".zattrs": "{\n    \"Conventions\": \"UGRID-0.9.0\n\"},
+  ".zgroup": "{\n    \"zarr_format\": 2\n}",
+  ".zattrs": "{\n    \"Conventions\": \"UGRID-0.9.0\n\"}",
   "x/.zattrs": "{\n    \"_ARRAY_DIMENSIONS\": [\n        \"node\"\n ...",
   "x/.zarray": "{\n    \"chunks\": [\n        9228245\n    ],\n    \"compressor\": null,\n    \"dtype\": \"<f8\",\n  ...",
   "x/0": ["s3://bucket/path/file.nc", 294094376, 73825960]
-},
+}
 ```
 
 ### Version 1
@@ -116,7 +116,7 @@ This example evaluates to the Version 0 equivalent
   "gen_key1": ["http://server.domain/path_1", 2000, 1000],
   "gen_key2": ["http://server.domain/path_2", 3000, 1000],
   "gen_key3": ["http://server.domain/path_3", 4000, 1000],
-  "gen_key4": ["http://server.domain/path_4", 5000, 1000],
+  "gen_key4": ["http://server.domain/path_4", 5000, 1000]
 }
 ```
 such that accessing, for instance, "key0" returns `b"data"` and accessing "key_get0" returns 1000 bytes
