@@ -339,7 +339,7 @@ class MultiZarrToZarr:
                     object_codec=numcodecs.VLenUTF8())
             g.array(name="offset", data=df.offset.values, dtype="uint32", compression="zstd")
             g.array(name="size", data=df['size'].values, dtype="uint32", compression="zstd")
-            g.array(name="data", data=df.url.values, dtype="object",
+            g.array(name="data", data=df.data.values, dtype="object",
                     object_codec=numcodecs.VLenUTF8(), compression="gzip")
             # may be better as fixed length
             g.array(name="url", data=df.url.values, dtype="object",
