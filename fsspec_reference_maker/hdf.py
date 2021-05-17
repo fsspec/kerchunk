@@ -346,11 +346,10 @@ class MultiZarrToZarr:
                     object_codec=numcodecs.VLenUTF8(), compression='gzip')
         if filetype == "parquet":
             import fastparquet
-            metadata = json.dumps(
-                {k: v for k, v in refs.items() if k in ['version', "templates", "gen"]}
-            )
+            metadata = {k: v for k, v in refs.items() if k in ['version', "templates", "gen"]}
             fastparquet.write(
                 outpath,
+                df,
                 custom_metadata=metadata,
                 compression="ZSTD"
             )
