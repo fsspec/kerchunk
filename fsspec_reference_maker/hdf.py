@@ -9,7 +9,7 @@ import numpy as np
 import h5py
 import zarr
 from zarr.meta import encode_fill_value
-from numcodecs import Zlib
+from numcodecs import Zlib, Shuffle
 import fsspec
 import fsspec.utils
 import fsspec.core
@@ -157,7 +157,7 @@ class SingleHdf5ToZarr:
                     f'{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>')
                 return
 
-            if (h5obj.scaleoffset or h5obj.fletcher32 or h5obj.shuffle or
+            if (h5obj.scaleoffset or h5obj.fletcher32 or
                     h5obj.compression in ('szip', 'lzf')):
                 raise RuntimeError(
                     f'{h5obj.name} uses unsupported HDF5 filters')
@@ -165,6 +165,11 @@ class SingleHdf5ToZarr:
                 compression = Zlib(level=h5obj.compression_opts)
             else:
                 compression = None
+            
+            # Add filter for shuffle
+            filters = []
+            if h5obj.shuffle:
+                filters.append(Shuffle(elementsize=h5obj.dtype.itemsize))
 
             # Get storage info of this HDF5 dataset...
             cinfo = self._storage_info(h5obj)
@@ -177,6 +182,7 @@ class SingleHdf5ToZarr:
                                             chunks=h5obj.chunks or False,
                                             fill_value=h5obj.fillvalue,
                                             compression=compression,
+                                            filters=filters,
                                             overwrite=True)
             lggr.debug(f'Created Zarr array: {za}')
             self._transfer_attrs(h5obj, za)
