@@ -436,7 +436,7 @@ def example_single():
     url = 's3://pangeo-data-uswest2/esip/adcirc/adcirc_01d.nc'
     so = dict(
         mode='rb', anon=False, requester_pays=True,
-        default_fill_cache=False, default_cache_type='none'
+        default_fill_cache=False, default_cache_type='first'
     )
     fsspec.utils.setup_logging(logger=lggr)
     with fsspec.open(url, **so) as f:
