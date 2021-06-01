@@ -283,7 +283,8 @@ class SingleHdf5ToZarr:
 class MultiZarrToZarr:
 
     def __init__(self, path, remote_protocol,
-                 remote_options=None, xarray_kwargs=None, storage_options=None):
+                 remote_options=None, xarray_kwargs=None, storage_options=None,
+                 with_mf=True):
         """
 
         :param path: a URL containing multiple JSONs
@@ -292,6 +293,7 @@ class MultiZarrToZarr:
         """
         xarray_kwargs = xarray_kwargs or {}
         self.path = path
+        self.with_mf = with_mf
         self.xr_kwargs = xarray_kwargs
         self.storage_options = storage_options or {}
         self.remote_protocol = remote_protocol
@@ -395,9 +397,9 @@ class MultiZarrToZarr:
                 # already handled
                 continue
             var, var0 = ds[variable], ds0[variable]
-            assert var.dims[-len(var0.dims):] == var0.dims
+            #assert var.dims[-len(var0.dims):] == var0.dims
 
-            concats = {d: 0 for d in self.concat_dims}
+            #concats = {d: 0 for d in self.concat_dims}
             for i, fs in enumerate(fss):
                 for k, v in fs.references.items():
                     start, part = os.path.split(k)
@@ -423,10 +425,15 @@ class MultiZarrToZarr:
             self.fs = fss[0].fs
             mappers = [fs.get_mapper("") for fs in fss]
 
-        ds = xr.open_mfdataset(mappers, engine="zarr", chunks={}, **self.xr_kwargs)
-        ds0 = xr.open_mfdataset(mappers[:1], engine="zarr", chunks={}, **self.xr_kwargs)
+        if self.with_mf:
+            ds = xr.open_mfdataset(mappers, engine="zarr", chunks={}, **self.xr_kwargs)
+            ds0 = xr.open_mfdataset(mappers[:1], engine="zarr", chunks={}, **self.xr_kwargs)
+        else:
+            dss = [xr.open_dataset(m, engine="zarr", chunks={}, **self.xr_kwargs) for m in mappers]
+            ds = xr.concat(dss, dim="time")
+            ds0 = dss[0]
         self.extra_dims = set(ds.dims) - set(ds0.dims)
-        self.concat_dims = set(k for k, v in ds.dims.items() if v / ds0.dims[k] == len(mappers))
+        self.concat_dims = set(k for k, v in ds.dims.items() if k in ds0.dims and v / ds0.dims[k] == len(mappers))
         self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
         return ds, ds0, fss
 
