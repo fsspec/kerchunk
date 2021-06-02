@@ -358,10 +358,18 @@ class MultiZarrToZarr:
             )
 
     def _consolidate(self, mapping, inline_threashold=100, template_count=5):
-        import string
         counts = Counter(v[0] for v in mapping.values() if isinstance(v, list))
-        # potential IndexError when more than 52 templates
-        templates = {f"{string.ascii_letters[i]}": u for i, (u, v) in enumerate(counts.items())
+
+        def letter_sets():
+            import string
+            import itertools
+            yield from string.ascii_letters
+            for a, b in itertools.combinations(string.ascii_letters, 2):
+                yield a + b
+            for a, b, c in itertools.combinations(string.ascii_letters, 3):
+                yield a + b + c
+
+        templates = {i: u for i, (u, v) in zip(letter_sets(), counts.items())
                      if v > template_count}
         inv = {v: k for k, v in templates.items()}
 
