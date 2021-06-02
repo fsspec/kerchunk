@@ -303,6 +303,7 @@ class MultiZarrToZarr:
         ds, ds0, fss = self._determine_dims()
         out = self._build_output(ds, ds0, fss)
         self.output = self._consolidate(out)
+
         self._write(self.output, outpath)
 
     @staticmethod
@@ -386,20 +387,17 @@ class MultiZarrToZarr:
         out = {}
         ds.to_zarr(out, chunk_store={}, compute=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
-        for dim in self.extra_dims.union(self.concat_dims):
-            # derived and concatenated dims stored as absolute data
+        for dim in self.concat_dims:
+            # concatenated dims stored as absolute data
             z[dim][:] = ds[dim].values
         for dim in self.same_dims:
             # duplicated coordinates stored as references just once
             out.update({k: v for k, v in fss[0].references.items() if k.startswith(dim)})
         for variable in ds.variables:
             if variable in ds.dims:
-                # already handled
+                # already handled above
                 continue
             var, var0 = ds[variable], ds0[variable]
-            #assert var.dims[-len(var0.dims):] == var0.dims
-
-            #concats = {d: 0 for d in self.concat_dims}
             for i, fs in enumerate(fss):
                 for k, v in fs.references.items():
                     start, part = os.path.split(k)
@@ -425,12 +423,12 @@ class MultiZarrToZarr:
             self.fs = fss[0].fs
             mappers = [fs.get_mapper("") for fs in fss]
 
-        if self.with_mf:
+        if self.with_mf is True:
             ds = xr.open_mfdataset(mappers, engine="zarr", chunks={}, **self.xr_kwargs)
             ds0 = xr.open_mfdataset(mappers[:1], engine="zarr", chunks={}, **self.xr_kwargs)
         else:
             dss = [xr.open_dataset(m, engine="zarr", chunks={}, **self.xr_kwargs) for m in mappers]
-            ds = xr.concat(dss, dim="time")
+            ds = xr.concat(dss, dim=self.with_mf)
             ds0 = dss[0]
         self.extra_dims = set(ds.dims) - set(ds0.dims)
         self.concat_dims = set(k for k, v in ds.dims.items() if k in ds0.dims and v / ds0.dims[k] == len(mappers))

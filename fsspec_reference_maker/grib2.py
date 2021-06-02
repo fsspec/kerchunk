@@ -184,5 +184,14 @@ def example_multi():
             json.dump(out, f)
 
     # stitch with
-    # mzz = MultiZarrToZarr("hrrr.*.json", remote_protocol="s3", remote_options={"anon": True}, with_mf=False)
+    # files = ['hrrr.t22z.wrfsfcf01.json',
+    #  'hrrr.t23z.wrfsfcf01.json',
+    #  'hrrr.t00z.wrfsfcf01.json',
+    #  'hrrr.t01z.wrfsfcf01.json',
+    #  'hrrr.t02z.wrfsfcf01.json',
+    #  'hrrr.t03z.wrfsfcf01.json',
+    #  'hrrr.t04z.wrfsfcf01.json',
+    #  'hrrr.t05z.wrfsfcf01.json',
+    #  'hrrr.t06z.wrfsfcf01.json']
+    # mzz = MultiZarrToZarr(files, remote_protocol="s3", remote_options={"anon": True}, with_mf='time')
     # mzz.translate("hrrr.total.json")
