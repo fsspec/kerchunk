@@ -23,7 +23,7 @@ def _split_file(f, skip=0):
     part = 0
 
     while f.tell() < size:
-        logger.debug(f"extract part {part}")
+        logger.debug(f"extract part {part + 1}")
         start = f.tell()
         f.seek(12, 1)
         part_size = int.from_bytes(f.read(4), "big")
@@ -83,7 +83,8 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
 
 def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, filter={}):
     if filter:
-        assert "typeOfLevel" in filter and "level" in filter
+        assert "typeOfLevel" in filter
+        coords = []
     logger.debug(f"Open {url}")
 
     store = {}
@@ -97,29 +98,33 @@ def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, 
                 var = filter["typeOfLevel"]
                 if var not in ds.variables:
                     continue
-                if ds.variables[var].data != filter["level"]:
+                if "level" in filter and ds.variables[var].data != filter["level"]:
                     continue
-                if common is False:
-                    # done for first valid message
-                    logger.debug("Common variables")
-                    z.attrs.update(ds.attributes)
-                    for var in common_vars:
-                        # assume grid, etc is the same across all messages
-                        attr = ds.variables[var].attributes or {}
-                        attr['_ARRAY_DIMENSIONS'] = ds.variables[var].dimensions
-                        _store_array(store, z, ds.variables[var].data, var, inline_threashold, offset, size,
-                                     attr)
-                    common = True
+                attrL = ds.variables[var].attributes or {}
+                attrL['_ARRAY_DIMENSIONS'] = []
                 if var not in z:
+                    _store_array(store, z, np.array(ds.variables[var].data), var, 100000, 0, 0,
+                                 attrL)
+            if common is False:
+                # done for first valid message
+                logger.debug("Common variables")
+                z.attrs.update(ds.attributes)
+                for var in common_vars:
+                    # assume grid, etc is the same across all messages
                     attr = ds.variables[var].attributes or {}
-                    attr['_ARRAY_DIMENSIONS'] = []
-                    _store_array(store, z, np.array(filter["level"]), var, 100000, 0, 0,
+                    attr['_ARRAY_DIMENSIONS'] = ds.variables[var].dimensions
+                    _store_array(store, z, ds.variables[var].data, var, inline_threashold, offset, size,
                                  attr)
+                common = True
 
             for var in ds.variables:
                 if var not in common_vars and getattr(ds.variables[var].data, "shape", None):
 
                     attr = ds.variables[var].attributes or {}
+                    if "(deprecated)" in attr.get("GRIB_name", ""):
+                        continue
+                    if var == "sdwe":
+                        print(attr, ds.variables[var])
                     attr['_ARRAY_DIMENSIONS'] = ds.variables[var].dimensions
                     _store_array(store, z, ds.variables[var].data, var, inline_threashold, offset, size,
                          attr)
@@ -163,7 +168,7 @@ class GRIBCodec(numcodecs.abc.Codec):
 numcodecs.register_codec(GRIBCodec, "grib")
 
 
-def example_multi():
+def example_multi(filter={'typeOfLevel': 'heightAboveGround', 'level': 2}):
     import json
     # 1GB of data files, forming a time-series
     files = ['s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t22z.wrfsfcf01.grib2',
@@ -177,7 +182,6 @@ def example_multi():
              's3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t06z.wrfsfcf01.grib2']
     so = {"anon": True, "default_cache_type": "readahead"}
     common = ['time', 'step', 'latitude', 'longitude', 'valid_time']
-    filter = {'typeOfLevel': 'heightAboveGround', 'level': 2}
     for url in files:
         out = scan_grib(url, common, so, inline_threashold=100, filter=filter)
         with open(os.path.basename(url).replace("grib2", "json"), "w") as f:
