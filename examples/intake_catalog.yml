@@ -20,3 +20,21 @@ sources:
       consolidated: true
       storage_options:
         requester_pays: true
+        
+        sources:
+
+  ike-hdf5-30:
+    driver: intake_xarray.xzarr.ZarrSource
+    description: 'Hurricane Ike simulation in NetCDF4/HDF5 format with chunks=30 in time '
+    args:
+      chunks:
+        time: 30
+      urlpath: "reference://"
+      storage_options:
+        target_options:
+          requester_pays: true
+        fo: "s3://pangeo-data-uswest2/esip/adcirc/adcirc_01d_offsets.json"
+        remote_options:
+          requester_pays: true
+        remote_protocol: s3
+
