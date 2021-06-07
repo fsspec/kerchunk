@@ -84,7 +84,6 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
 def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, filter={}):
     if filter:
         assert "typeOfLevel" in filter
-        coords = []
     logger.debug(f"Open {url}")
 
     store = {}
@@ -98,13 +97,13 @@ def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, 
                 var = filter["typeOfLevel"]
                 if var not in ds.variables:
                     continue
-                if "level" in filter and ds.variables[var].data != filter["level"]:
+                if "level" in filter and ds.variables[var].data in np.array(filter["level"]):
                     continue
-                attrL = ds.variables[var].attributes or {}
-                attrL['_ARRAY_DIMENSIONS'] = []
+                attr = ds.variables[var].attributes or {}
+                attr['_ARRAY_DIMENSIONS'] = []
                 if var not in z:
                     _store_array(store, z, np.array(ds.variables[var].data), var, 100000, 0, 0,
-                                 attrL)
+                                 attr)
             if common is False:
                 # done for first valid message
                 logger.debug("Common variables")
@@ -118,13 +117,14 @@ def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, 
                 common = True
 
             for var in ds.variables:
-                if var not in common_vars and getattr(ds.variables[var].data, "shape", None):
+                if (
+                    var not in common_vars and getattr(ds.variables[var].data, "shape", None)
+                    and var != filter.get("typeOfLevel", "")
+                ):
 
                     attr = ds.variables[var].attributes or {}
                     if "(deprecated)" in attr.get("GRIB_name", ""):
                         continue
-                    if var == "sdwe":
-                        print(attr, ds.variables[var])
                     attr['_ARRAY_DIMENSIONS'] = ds.variables[var].dimensions
                     _store_array(store, z, ds.variables[var].data, var, inline_threashold, offset, size,
                          attr)
