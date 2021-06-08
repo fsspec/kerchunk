@@ -402,7 +402,7 @@ class MultiZarrToZarr:
             # duplicated coordinates stored as references just once
             out.update({k: v for k, v in fss[0].references.items() if k.startswith(dim)})
         for variable in ds.variables:
-            if variable in ds.dims:
+            if variable in ds.dims or variable in self.same_dims or variable in self.concat_dims:
                 # already handled above
                 continue
             var, var0 = ds[variable], ds0[variable]
