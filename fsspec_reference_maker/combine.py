@@ -105,7 +105,7 @@ class MultiZarrToZarr:
         out = {}
         for k, v in mapping.items():
             if isinstance(v, list) and v[2] < inline_threashold:
-                v = self.fs.cat_file(v[0], v[1], v[1] + v[2])
+                v = self.fs.cat_file(v[0], start=v[1], end=v[1] + v[2])
             if isinstance(v, bytes):
                 try:
                     # easiest way to test if data is ascii
