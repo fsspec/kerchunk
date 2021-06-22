@@ -8,7 +8,7 @@ import numpy as np
 import h5py
 import zarr
 from zarr.meta import encode_fill_value
-from numcodecs import Zlib, Shuffle
+import numcodecs
 import fsspec
 import fsspec.utils
 import fsspec.core
@@ -160,14 +160,14 @@ class SingleHdf5ToZarr:
                 raise RuntimeError(
                     f'{h5obj.name} uses unsupported HDF5 filters')
             if h5obj.compression == 'gzip':
-                compression = Zlib(level=h5obj.compression_opts)
+                compression = numcodecs.Zlib(level=h5obj.compression_opts)
             else:
                 compression = None
             
             # Add filter for shuffle
             filters = []
             if h5obj.shuffle:
-                filters.append(Shuffle(elementsize=h5obj.dtype.itemsize))
+                filters.append(numcodecs.Shuffle(elementsize=h5obj.dtype.itemsize))
 
             # Get storage info of this HDF5 dataset...
             cinfo = self._storage_info(h5obj)
