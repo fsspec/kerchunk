@@ -45,7 +45,6 @@ class SingleHdf5ToZarr:
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
         self.input_file = h5f
-#         lggr.debug(f'xarray: {xarray}')
         self.spec = spec
         self.inline = inline_threshold
         self._h5f = h5py.File(h5f, mode='r')
