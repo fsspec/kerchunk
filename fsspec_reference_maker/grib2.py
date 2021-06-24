@@ -197,5 +197,6 @@ def example_multi(filter={'typeOfLevel': 'heightAboveGround', 'level': 2}):
     #  'hrrr.t04z.wrfsfcf01.json',
     #  'hrrr.t05z.wrfsfcf01.json',
     #  'hrrr.t06z.wrfsfcf01.json']
-    # mzz = MultiZarrToZarr(files, remote_protocol="s3", remote_options={"anon": True}, with_mf='time')
+    # mzz = MultiZarrToZarr(files, remote_protocol="s3", remote_options={"anon": True}
+    #                       concat_kwargs={"dim": 'time'})
     # mzz.translate("hrrr.total.json")
