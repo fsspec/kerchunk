@@ -1,0 +1,9 @@
+sphinx-rtd-theme
+numpydoc
+autodoc
+numpy
+fsspec
+h5py
+numcodecs
+xarray
+zarr

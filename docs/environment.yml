@@ -1,0 +1,10 @@
+name: fsspec
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - sphinx-rtd-theme
+  - numpydoc
+  - autodoc
+  - numpy
+  - fsspec
