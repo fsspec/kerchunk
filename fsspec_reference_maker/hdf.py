@@ -290,7 +290,7 @@ def example_single():
     )
     fsspec.utils.setup_logging(logger=lggr)
     with fsspec.open(url, **so) as f:
-        h5chunks = SingleHdf5ToZarr(f, url, xarray=True)
+        h5chunks = SingleHdf5ToZarr(f, url)
         return h5chunks.translate()
 
 
