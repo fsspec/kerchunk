@@ -174,6 +174,10 @@ class SingleHdf5ToZarr:
                 return
 
             # Create a Zarr array equivalent to this HDF5 dataset...
+
+            if h5obj.dtype == "O" and h5obj.id.get_storage_size() / len(h5obj) == 16:
+                filters.append(_make_string_dict(h5obj, self.input_file))
+
             za = self._zroot.create_dataset(h5obj.name, shape=h5obj.shape,
                                             dtype=h5obj.dtype,
                                             chunks=h5obj.chunks or False,
@@ -279,6 +283,20 @@ class SingleHdf5ToZarr:
                     [a // b for a, b in zip(blob.chunk_offset, chunk_size)])
                 stinfo[key] = {'offset': blob.byte_offset, 'size': blob.size}
             return stinfo
+
+
+def _make_string_dict(h5obj, of):
+    import base64
+    from .codecs import StringDictCodec
+    loc = of.tell()
+    of.seek(h5obj.id.get_offset())
+    ids = np.fromfile(of, count=len(h5obj), dtype="S16")
+    of.seek(loc)
+    vals = list(h5obj[:])
+    d = {}
+    for val in set(vals):
+        d[ids[vals.index(val)]] = val
+    return StringDictCodec(d)
 
 
 def example_single():

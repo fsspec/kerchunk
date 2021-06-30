@@ -3,12 +3,10 @@ import logging
 import os
 import tempfile
 
-import cfgrib
-import numcodecs.abc
-from numcodecs.compat import ndarray_copy, ensure_contiguous_ndarray
 import fsspec
 import zarr
 import numpy as np
+from .codecs import GRIBCodec
 
 logger = logging.getLogger("grib2-to-zarr")
 
@@ -82,6 +80,7 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
 
 
 def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, filter={}):
+    import cfgrib
     if filter:
         assert "typeOfLevel" in filter
     logger.debug(f"Open {url}")
@@ -132,40 +131,6 @@ def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, 
     return {"version": 1,
             "refs": {k: v.decode() if isinstance(v, bytes) else v for k, v in store.items()},
             "templates": {"u": url}}
-
-
-class GRIBCodec(numcodecs.abc.Codec):
-    """
-    Read GRIB stream of bytes by writing to a temp file and calling cfgrib
-    """
-
-    codec_id = 'grib'
-
-    def __init__(self, var):
-        self.var = var
-
-    def encode(self, buf):
-        # on encode, pass through
-        return buf
-
-    def decode(self, buf, out=None):
-        buf = ensure_contiguous_ndarray(buf)
-        fn = tempfile.mktemp(suffix="grib2")
-        buf.tofile(fn)
-
-        # do decode
-        ds = cfgrib.open_file(fn)
-        data = ds.variables[self.var].data
-        if hasattr(data, "build_array"):
-            data = data.build_array()
-
-        if out is not None:
-            return ndarray_copy(data, out)
-        else:
-            return data
-
-
-numcodecs.register_codec(GRIBCodec, "grib")
 
 
 def example_multi(filter={'typeOfLevel': 'heightAboveGround', 'level': 2}):
