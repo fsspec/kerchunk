@@ -58,3 +58,4 @@ class GRIBCodec(numcodecs.abc.Codec):
 
 
 numcodecs.register_codec(GRIBCodec, "grib")
+numcodecs.register_codec(StringDictCodec, "dict_string")
