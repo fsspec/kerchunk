@@ -154,10 +154,18 @@ class SingleHdf5ToZarr:
                     f'{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>')
                 return
 
-            if (h5obj.scaleoffset or h5obj.fletcher32 or
-                    h5obj.compression in ('szip', 'lzf')):
+            #
+            # check for unsupported dataset properties
+            #
+            if h5obj.scaleoffset:
                 raise RuntimeError(
-                    f'{h5obj.name} uses unsupported HDF5 filters')
+                    f'{h5obj.name} uses HDF5 scaleoffset filter - not supported by reference-maker')
+            if h5obj.fletcher32:
+                raise RuntimeError(
+                    f'{h5obj.name} uses fletcher32 checksum - not supported by reference-maker')
+            if h5obj.compression in ('szip', 'lzf'):
+                raise RuntimeError(
+                    f'{h5obj.name} uses szip or lzf compression - not supported by reference-maker')
             if h5obj.compression == 'gzip':
                 compression = numcodecs.Zlib(level=h5obj.compression_opts)
             else:
