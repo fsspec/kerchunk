@@ -175,16 +175,23 @@ class SingleHdf5ToZarr:
 
             # Create a Zarr array equivalent to this HDF5 dataset...
 
+            kwargs = dict(
+                shape=h5obj.shape,
+                dtype=h5obj.dtype,
+                chunks=h5obj.chunks or False,
+                fill_value=h5obj.fillvalue,
+                compression=compression,
+                filters=filters,
+                overwrite=True
+            )
             if h5obj.dtype == "O" and h5obj.id.get_storage_size() / len(h5obj) == 16:
-                filters.append(_make_string_dict(h5obj, self.input_file))
+                print(h5obj)
+                f = _make_string_dict(h5obj, self.input_file)
+                kwargs['object_codec'] = f
+                kwargs['dtype'] = np.object_
+                kwargs['fill_value'] = ""
 
-            za = self._zroot.create_dataset(h5obj.name, shape=h5obj.shape,
-                                            dtype=h5obj.dtype,
-                                            chunks=h5obj.chunks or False,
-                                            fill_value=h5obj.fillvalue,
-                                            compression=compression,
-                                            filters=filters,
-                                            overwrite=True)
+            za = self._zroot.create_dataset(h5obj.name, **kwargs)
             lggr.debug(f'Created Zarr array: {za}')
             self._transfer_attrs(h5obj, za)
 
@@ -295,7 +302,7 @@ def _make_string_dict(h5obj, of):
     vals = list(h5obj[:])
     d = {}
     for val in set(vals):
-        d[ids[vals.index(val)]] = val
+        d[base64.b64encode(ids[vals.index(val)]).decode()] = base64.b64encode(val).decode()
     return StringDictCodec(d)
 
 

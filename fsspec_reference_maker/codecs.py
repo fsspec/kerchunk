@@ -1,3 +1,4 @@
+import base64
 import numcodecs.abc
 from numcodecs.compat import ndarray_copy, ensure_contiguous_ndarray
 import numpy as np
@@ -10,7 +11,7 @@ class StringDictCodec(numcodecs.abc.Codec):
     def __init__(self, d):
         """
 
-        :param d: dict(16-byte-string, bytestring)
+        :param d: dict(b64(16-byte-string), b64(bytestring))
         """
         self.d = d
 
@@ -19,9 +20,11 @@ class StringDictCodec(numcodecs.abc.Codec):
         return buf
 
     def decode(self, buf, out=None):
+        d = {base64.b64decode(k.encode()): base64.b64decode(v.encode())
+             for k, v in self.d.items()}
         out = ensure_contiguous_ndarray(out)
         ids = np.frombuffer(buf, dtype="S16")
-        out[:] = [self.d[i] for i in ids]
+        out[:] = [d[i] for i in ids]
         return out
 
 
