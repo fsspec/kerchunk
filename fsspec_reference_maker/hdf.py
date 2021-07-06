@@ -154,10 +154,15 @@ class SingleHdf5ToZarr:
                     f'{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>')
                 return
 
-            if (h5obj.scaleoffset or h5obj.fletcher32 or
-                    h5obj.compression in ('szip', 'lzf')):
+            #
+            # check for unsupported HDF encoding/filters
+            #
+            if h5obj.scaleoffset:
                 raise RuntimeError(
-                    f'{h5obj.name} uses unsupported HDF5 filters')
+                    f'{h5obj.name} uses HDF5 scaleoffset filter - not supported by reference-maker')
+            if h5obj.compression in ('szip', 'lzf'):
+                raise RuntimeError(
+                    f'{h5obj.name} uses szip or lzf compression - not supported by reference-maker')
             if h5obj.compression == 'gzip':
                 compression = numcodecs.Zlib(level=h5obj.compression_opts)
             else:
@@ -202,6 +207,9 @@ class SingleHdf5ToZarr:
             # Store chunk location metadata...
             if cinfo:
                 for k, v in cinfo.items():
+                    if h5obj.fletcher32:
+                        logging.info("Discarding fletcher32 checksum")
+                        v['size'] -= 4
                     self.store[za._chunk_key(k)] = [self._uri, v['offset'], v['size']]
 
         elif isinstance(h5obj, h5py.Group):
