@@ -237,6 +237,13 @@ class SingleHdf5ToZarr:
                     raise RuntimeError(
                         f'{dset.name}: {len(dset.dims[n])} '
                         f'dimension scales attached to dimension #{n}')
+                elif num_scales == 0:
+                    # Some HDF5 files do not have dimension scales. 
+                    # If this is the case, `num_scales` will be 0.
+                    # In this case, we mimic netCDF4 and assign phony dimension names.
+                    # See https://github.com/intake/fsspec-reference-maker/issues/41
+
+                    dims.append(f"phony_dim_{n}")
         return dims
 
     def _storage_info(self, dset: h5py.Dataset) -> dict:
