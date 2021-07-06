@@ -2,6 +2,7 @@ import base64
 import zipfile
 from typing import Union, BinaryIO
 import logging
+import gc
 import os
 import json
 import numpy as np
@@ -189,12 +190,18 @@ class SingleHdf5ToZarr:
                 filters=filters,
                 overwrite=True
             )
-            if h5obj.dtype == "O" and h5obj.id.get_storage_size() / len(h5obj) == 16:
-                print(h5obj)
+            if False: #h5obj.dtype == "O" and h5obj.id.get_storage_size() / len(h5obj) == 16:
                 f = _make_string_dict(h5obj, self.input_file)
                 kwargs['object_codec'] = f
                 kwargs['dtype'] = np.object_
                 kwargs['fill_value'] = ""
+                cinfo = False
+            if h5obj.dtype == "O":
+                kwargs['object_codec'] = numcodecs.VLenBytes()
+                kwargs['dtype'] = np.object_
+                kwargs['fill_value'] = ""
+                kwargs['data'] = h5obj[:].copy()
+                cinfo = False
 
             za = self._zroot.create_dataset(h5obj.name, **kwargs)
             lggr.debug(f'Created Zarr array: {za}')
@@ -211,6 +218,8 @@ class SingleHdf5ToZarr:
                         logging.info("Discarding fletcher32 checksum")
                         v['size'] -= 4
                     self.store[za._chunk_key(k)] = [self._uri, v['offset'], v['size']]
+            del h5obj
+            gc.collect()
 
         elif isinstance(h5obj, h5py.Group):
             lggr.debug(f'HDF5 group: {h5obj.name}')
