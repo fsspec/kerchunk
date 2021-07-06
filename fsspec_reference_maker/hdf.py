@@ -155,7 +155,7 @@ class SingleHdf5ToZarr:
                 return
 
             #
-            # check for unsupported dataset properties
+            # check for unsupported HDF encoding/filters
             #
             if h5obj.scaleoffset:
                 raise RuntimeError(
