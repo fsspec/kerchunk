@@ -15,7 +15,6 @@ import fsspec.core
 
 lggr = logging.getLogger('h5-to-zarr')
 
-
 class SingleHdf5ToZarr:
     """Translate the content of one HDF5 file into Zarr metadata.
 
@@ -147,13 +146,21 @@ class SingleHdf5ToZarr:
         """
         refs = {}
         if isinstance(h5obj, h5py.Dataset):
-            lggr.debug(f'HDF5 dataset: {h5obj.name}')
+            lggr.debug(f'HDF5 dataset: {h5obj.name} dataType: {h5obj.dtype}')
             if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
                 RuntimeError(
                     f'Compact HDF5 datasets not yet supported: <{h5obj.name} '
                     f'{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>')
                 return
-
+            #
+            # check for unsupported HDF DataTypes
+            #
+            if h5obj.dtype == 'object':
+                lggr.warning(f'HDF5 variable length strings are not yet supported: <{h5obj.name} ')
+                lggr.warning(f'shape: {h5obj.shape} type: {h5obj.dtype} bytes: {h5obj.nbytes} bytes>')
+                RuntimeError(
+                    f'{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>')
+                return
             #
             # check for unsupported HDF encoding/filters
             #
