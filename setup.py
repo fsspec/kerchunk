@@ -1,9 +1,11 @@
 from os.path import exists
 from setuptools import setup
+import versioneer
 
 setup(
     name='fsspec-reference-maker',
-    version='0.0.1',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     packages=['fsspec_reference_maker'],
     url='https://github.com/intake/fsspec-reference-maker',
     license='MIT',

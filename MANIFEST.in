@@ -1,0 +1,2 @@
+include versioneer.py
+include fsspec_reference_maker/_version.py
