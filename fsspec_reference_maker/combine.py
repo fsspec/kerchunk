@@ -143,7 +143,15 @@ class MultiZarrToZarr:
                         continue
                     if var.shape == var0.shape:
                         out[k] = v  # copy
+                    elif var.dims == var0.dims:
+                        # concat only
+                        parts = {d: c for d, c in zip(var.dims, part.split("."))}
+                        parts = [parts[d] if d in self.same_dims else str(i)
+                                 for d in var.dims]
+                        out[f"{start}/{'.'.join(parts)}"] = v
                     else:
+                        # merge with new coordinate
+                        # i.e., self.extra_dims applies
                         out[f"{start}/{i}.{part}"] = v
         return out
 
