@@ -148,7 +148,7 @@ class MultiZarrToZarr:
                     accum[variable].append(zz[...])
                 attr = dict(z[variable].attrs)
                 arr = z.create_dataset(name=variable,
-                                       data=np.array(sorted(accum[variable])),
+                                       data=np.array(sorted(accum[variable])).squeeze(),
                                        mode='w', overwrite=True)
                 arr.attrs.update(attr)
                 continue
@@ -207,13 +207,13 @@ class MultiZarrToZarr:
         self.extra_dims = set(ds.dims) - set(ds0.dims)
         self.concat_dims = set(
             k for k, v in ds.dims.items()
-           if k in ds0.dims and v / ds0.dims[k] == len(mappers)
+           if k in ds0.dims and v / ds0.dims[k] == 2
         )
         self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
         return ds, ds0, fss
 
 
-def example_ensamble():
+def example_ensemble():
     """Scan the set of URLs and create a single reference output
 
     This example uses the output of hdf.example_multiple
@@ -231,11 +231,6 @@ def example_ensamble():
         "decode_coords": False
     }
     concat_kwargs = {
-        "data_vars": "minimal",
-        "coords": "minimal",
-        "compat": "override",
-        "join": "override",
-        "combine_attrs": "override",
         "dim": "time"
     }
     mzz = MultiZarrToZarr(
