@@ -3,7 +3,7 @@ import zipfile
 from typing import Union, BinaryIO
 import logging
 import os
-import json
+import ujson as json
 import numpy as np
 import h5py
 import zarr

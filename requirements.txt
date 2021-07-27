@@ -1,1 +1,2 @@
 fsspec
+ujson

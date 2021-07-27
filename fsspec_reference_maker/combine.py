@@ -1,11 +1,12 @@
 import base64
 from collections import Counter
-import json
+import ujson as json
 import logging
 import os
 
 import fsspec
 import numcodecs
+import numpy as np
 import xarray as xr
 import zarr
 logger = logging.getLogger('reference-combine')
@@ -111,6 +112,11 @@ class MultiZarrToZarr:
                 try:
                     # easiest way to test if data is ascii
                     out[k] = v.decode('ascii')
+                    try:
+                        # minify json
+                        out[k] = json.dumps(json.loads(out[k]))
+                    except:
+                        pass
                 except UnicodeDecodeError:
                     out[k] = (b"base64:" + base64.b64encode(v)).decode()
             else:
@@ -124,25 +130,50 @@ class MultiZarrToZarr:
         out = {}
         ds.to_zarr(out, chunk_store={}, compute=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
-        for dim in self.concat_dims:
-            # concatenated dims stored as absolute data
-            z[dim][:] = ds[dim].values
-        for dim in self.same_dims:
-            # duplicated coordinates stored as references just once
-            out.update({k: v for k, v in fss[0].references.items() if k.startswith(dim)})
+
+        accum = {v: [] for v in self.concat_dims.union(self.extra_dims)}
+        accum_dim = list(accum)[0]  # only ever one dim for now
+
         for variable in ds.variables:
-            if variable in ds.dims or variable in self.same_dims or variable in self.concat_dims:
-                # already handled above
+
+            # cases
+            # a) this is accum_dim -> note values, deal with it later
+            # b) this is a dimension that didn't change -> copy (once)
+            # c) this is a normal var, without accum_dim, var.shape == var0.shape -> copy (once)
+            # d) this is var needing reshape -> each dataset's keys get new names, update shape
+            if variable == accum_dim:
+                # a)
+                for fs in fss:
+                    zz = zarr.open_array(fs.get_mapper(variable))
+                    accum[variable].append(zz[...])
+                attr = dict(z[variable].attrs)
+                arr = z.create_dataset(name=variable,
+                                       data=np.array(sorted(accum[variable])),
+                                       mode='w', overwrite=True)
+                arr.attrs.update(attr)
                 continue
+
             var, var0 = ds[variable], ds0[variable]
+            if variable in ds.dims or accum_dim not in var.dims:
+                # b) and c)
+                out.update({k: v for k, v in fss[0].references.items() if k.startswith(variable + "/")})
+                continue
+
+            # d)
+            # update shape
+            shape = list(var.shape)
+            bit = json.loads(out[f"{variable}/.zarray"])
+            shape[var.dims.index(accum_dim)] = len(fss)
+            bit["shape"] = shape
+            out[f"{variable}/.zarray"] = json.dumps(bit)
+
+            # handle components chunks
             for i, fs in enumerate(fss):
                 for k, v in fs.references.items():
                     start, part = os.path.split(k)
                     if start != variable or part in ['.zgroup', '.zarray', '.zattrs']:
                         # OK, so we go through all the keys multiple times
                         continue
-                    if var.shape == var0.shape:
-                        out[k] = v  # copy
                     elif var.dims == var0.dims:
                         # concat only
                         parts = {d: c for d, c in zip(var.dims, part.split("."))}
@@ -168,7 +199,7 @@ class MultiZarrToZarr:
             mappers = [fs.get_mapper("") for fs in fss]
 
         dss = [xr.open_dataset(m, engine="zarr", chunks={}, **self.xr_kwargs)
-               for m in mappers]
+               for m in mappers][:2]
         if self.preprocess:
             dss = [self.preprocess(d) for d in dss]
         ds = xr.concat(dss, **self.concat_kwargs)
