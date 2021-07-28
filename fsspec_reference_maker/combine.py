@@ -134,23 +134,38 @@ class MultiZarrToZarr:
         accum = {v: [] for v in self.concat_dims.union(self.extra_dims)}
         accum_dim = list(accum)[0]  # only ever one dim for now
 
+        # a)
+        times = False
+        for fs in fss:
+            zz = zarr.open_array(fs.get_mapper(accum_dim))
+
+            try:
+                import cftime
+                zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
+                                       calendar=zz.attrs.get("calendar"))
+                times = True
+            except:
+                pass
+            accum[accum_dim].append(zz[...].copy())
+        attr = dict(z[accum_dim].attrs)
+        if times:
+            accum[accum_dim] = [np.array(a, dtype="M8") for a in accum[accum_dim]]
+            attr.pop('units')
+            attr.pop('calendar')
+        acc = np.concatenate(accum[accum_dim]).squeeze()
+        acc_len = len(acc)
+        arr = z.create_dataset(name=accum_dim,
+                               data=acc,
+                               mode='w', overwrite=True)
+        arr.attrs.update(attr)
         for variable in ds.variables:
 
             # cases
-            # a) this is accum_dim -> note values, deal with it later
+            # a) this is accum_dim -> note values, dealt with above
             # b) this is a dimension that didn't change -> copy (once)
             # c) this is a normal var, without accum_dim, var.shape == var0.shape -> copy (once)
             # d) this is var needing reshape -> each dataset's keys get new names, update shape
             if variable == accum_dim:
-                # a)
-                for fs in fss:
-                    zz = zarr.open_array(fs.get_mapper(variable))
-                    accum[variable].append(zz[...])
-                attr = dict(z[variable].attrs)
-                arr = z.create_dataset(name=variable,
-                                       data=np.array(sorted(accum[variable])).squeeze(),
-                                       mode='w', overwrite=True)
-                arr.attrs.update(attr)
                 continue
 
             var, var0 = ds[variable], ds0[variable]
@@ -163,7 +178,11 @@ class MultiZarrToZarr:
             # update shape
             shape = list(var.shape)
             bit = json.loads(out[f"{variable}/.zarray"])
-            shape[var.dims.index(accum_dim)] = len(fss)
+            if accum_dim in var0.dims:
+                chunks_per_part = len(var0.chunks[var.dims.index(accum_dim)])
+            else:
+                chunks_per_part = 1
+            shape[var.dims.index(accum_dim)] = acc_len
             bit["shape"] = shape
             out[f"{variable}/.zarray"] = json.dumps(bit)
 
@@ -177,7 +196,7 @@ class MultiZarrToZarr:
                     elif var.dims == var0.dims:
                         # concat only
                         parts = {d: c for d, c in zip(var.dims, part.split("."))}
-                        parts = [parts[d] if d in self.same_dims else str(i)
+                        parts = [parts[d] if d in self.same_dims else str(i * chunks_per_part + int(parts[d]))
                                  for d in var.dims]
                         out[f"{start}/{'.'.join(parts)}"] = v
                     else:
