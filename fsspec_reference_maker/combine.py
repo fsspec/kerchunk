@@ -166,8 +166,14 @@ class MultiZarrToZarr:
             ]
             self.fs = fss[0].fs
             mappers = [fs.get_mapper("") for fs in fss]
+        
+        xr_kwargs_copy = self.xr_kwargs.copy()
+        
+        # Add consolidated=False to xr kwargs if not explictly given by user
+        if 'consolidated' not in xr_kwargs_copy:
+            xr_kwargs_copy['consolidated'] = False
 
-        dss = [xr.open_dataset(m, engine="zarr", chunks={}, **self.xr_kwargs)
+        dss = [xr.open_dataset(m, engine="zarr", chunks={},  **xr_kwargs_copy)
                for m in mappers]
         if self.preprocess:
             dss = [self.preprocess(d) for d in dss]
