@@ -225,8 +225,15 @@ class MultiZarrToZarr:
             mappers = [fs.get_mapper("") for fs in fss]
 
         logger.debug("open first two datasets")
-        dss = [xr.open_dataset(m, engine="zarr", chunks={}, **self.xr_kwargs)
+        xr_kwargs_copy = self.xr_kwargs.copy()
+        
+        # Add consolidated=False to xr kwargs if not explictly given by user
+        if 'consolidated' not in xr_kwargs_copy:
+            xr_kwargs_copy['consolidated'] = False
+
+        dss = [xr.open_dataset(m, engine="zarr", chunks={},  **xr_kwargs_copy)
                for m in mappers[:2]]
+
         if self.preprocess:
             logger.debug("preprocess")
             dss = [self.preprocess(d) for d in dss]
