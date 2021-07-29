@@ -167,7 +167,7 @@ class MultiZarrToZarr:
             self.fs = fss[0].fs
             mappers = [fs.get_mapper("") for fs in fss]
 
-        dss = [xr.open_dataset(m, engine="zarr", chunks={}, **self.xr_kwargs)
+        dss = [xr.open_dataset(m, engine="zarr", chunks={}, consolidated=False, **self.xr_kwargs)
                for m in mappers]
         if self.preprocess:
             dss = [self.preprocess(d) for d in dss]
