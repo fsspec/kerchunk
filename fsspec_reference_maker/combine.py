@@ -128,6 +128,7 @@ class MultiZarrToZarr:
 
     def _build_output(self, ds, ds0, fss):
         out = {}
+        logger.debug("write zarr metadata")
         ds.to_zarr(out, chunk_store={}, compute=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
 
@@ -135,6 +136,7 @@ class MultiZarrToZarr:
         accum_dim = list(accum)[0]  # only ever one dim for now
 
         # a)
+        logger.debug("accumulate coords array")
         times = False
         for fs in fss:
             zz = zarr.open_array(fs.get_mapper(accum_dim))
@@ -144,6 +146,7 @@ class MultiZarrToZarr:
                 zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
                                        calendar=zz.attrs.get("calendar"))
                 times = True
+                logger.debug("converted times")
             except:
                 pass
             accum[accum_dim].append(zz[...].copy())
@@ -154,6 +157,7 @@ class MultiZarrToZarr:
             attr.pop('calendar')
         acc = np.concatenate(accum[accum_dim]).squeeze()
         acc_len = len(acc)
+        logger.debug("write coords array")
         arr = z.create_dataset(name=accum_dim,
                                data=acc,
                                mode='w', overwrite=True)
@@ -171,9 +175,11 @@ class MultiZarrToZarr:
             var, var0 = ds[variable], ds0[variable]
             if variable in ds.dims or accum_dim not in var.dims:
                 # b) and c)
+                logger.debug(f"copy variable: {variable}")
                 out.update({k: v for k, v in fss[0].references.items() if k.startswith(variable + "/")})
                 continue
 
+            logger.debug(f"process variable: {variable}")
             # d)
             # update shape
             shape = list(var.shape)
@@ -206,6 +212,7 @@ class MultiZarrToZarr:
         return out
 
     def _determine_dims(self):
+        logger.debug("open mappers")
         with fsspec.open_files(self.path, **self.storage_options) as ofs:
             fss = [
                 fsspec.filesystem(
@@ -217,10 +224,13 @@ class MultiZarrToZarr:
             self.fs = fss[0].fs
             mappers = [fs.get_mapper("") for fs in fss]
 
+        logger.debug("open first two datasets")
         dss = [xr.open_dataset(m, engine="zarr", chunks={}, **self.xr_kwargs)
-               for m in mappers][:2]
+               for m in mappers[:2]]
         if self.preprocess:
+            logger.debug("preprocess")
             dss = [self.preprocess(d) for d in dss]
+        logger.debug("concat")
         ds = xr.concat(dss, **self.concat_kwargs)
         ds0 = dss[0]
         self.extra_dims = set(ds.dims) - set(ds0.dims)
