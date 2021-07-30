@@ -1,6 +1,7 @@
 import base64
 from collections import Counter
 import ujson as json
+from packaging import version
 import logging
 import os
 
@@ -228,7 +229,9 @@ class MultiZarrToZarr:
         xr_kwargs_copy = self.xr_kwargs.copy()
         
         # Add consolidated=False to xr kwargs if not explictly given by user
-        if 'consolidated' not in xr_kwargs_copy:
+        # needed to suppress zarr open warnings
+        if (version.parse(xr.__version__) >= version.parse("0.19.0")
+                and 'consolidated' not in xr_kwargs_copy):
             xr_kwargs_copy['consolidated'] = False
 
         dss = [xr.open_dataset(m, engine="zarr", chunks={},  **xr_kwargs_copy)
