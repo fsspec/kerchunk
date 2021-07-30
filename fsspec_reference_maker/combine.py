@@ -1,11 +1,13 @@
 import base64
 from collections import Counter
-import json
+import ujson as json
+from packaging import version
 import logging
 import os
 
 import fsspec
 import numcodecs
+import numpy as np
 import xarray as xr
 import zarr
 logger = logging.getLogger('reference-combine')
@@ -111,6 +113,11 @@ class MultiZarrToZarr:
                 try:
                     # easiest way to test if data is ascii
                     out[k] = v.decode('ascii')
+                    try:
+                        # minify json
+                        out[k] = json.dumps(json.loads(out[k]))
+                    except:
+                        pass
                 except UnicodeDecodeError:
                     out[k] = (b"base64:" + base64.b64encode(v)).decode()
             else:
@@ -122,31 +129,81 @@ class MultiZarrToZarr:
 
     def _build_output(self, ds, ds0, fss):
         out = {}
+        logger.debug("write zarr metadata")
         ds.to_zarr(out, chunk_store={}, compute=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
-        for dim in self.concat_dims:
-            # concatenated dims stored as absolute data
-            z[dim][:] = ds[dim].values
-        for dim in self.same_dims:
-            # duplicated coordinates stored as references just once
-            out.update({k: v for k, v in fss[0].references.items() if k.startswith(dim)})
+
+        accum = {v: [] for v in self.concat_dims.union(self.extra_dims)}
+        accum_dim = list(accum)[0]  # only ever one dim for now
+
+        # a)
+        logger.debug("accumulate coords array")
+        times = False
+        for fs in fss:
+            zz = zarr.open_array(fs.get_mapper(accum_dim))
+
+            try:
+                import cftime
+                zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
+                                       calendar=zz.attrs.get("calendar"))
+                times = True
+                logger.debug("converted times")
+            except:
+                pass
+            accum[accum_dim].append(zz[...].copy())
+        attr = dict(z[accum_dim].attrs)
+        if times:
+            accum[accum_dim] = [np.array(a, dtype="M8") for a in accum[accum_dim]]
+            attr.pop('units')
+            attr.pop('calendar')
+        acc = np.concatenate(accum[accum_dim]).squeeze()
+        acc_len = len(acc)
+        logger.debug("write coords array")
+        arr = z.create_dataset(name=accum_dim,
+                               data=acc,
+                               mode='w', overwrite=True)
+        arr.attrs.update(attr)
         for variable in ds.variables:
-            if variable in ds.dims or variable in self.same_dims or variable in self.concat_dims:
-                # already handled above
+
+            # cases
+            # a) this is accum_dim -> note values, dealt with above
+            # b) this is a dimension that didn't change -> copy (once)
+            # c) this is a normal var, without accum_dim, var.shape == var0.shape -> copy (once)
+            # d) this is var needing reshape -> each dataset's keys get new names, update shape
+            if variable == accum_dim:
                 continue
+
             var, var0 = ds[variable], ds0[variable]
+            if variable in ds.dims or accum_dim not in var.dims:
+                # b) and c)
+                logger.debug(f"copy variable: {variable}")
+                out.update({k: v for k, v in fss[0].references.items() if k.startswith(variable + "/")})
+                continue
+
+            logger.debug(f"process variable: {variable}")
+            # d)
+            # update shape
+            shape = list(var.shape)
+            bit = json.loads(out[f"{variable}/.zarray"])
+            if accum_dim in var0.dims:
+                chunks_per_part = len(var0.chunks[var.dims.index(accum_dim)])
+            else:
+                chunks_per_part = 1
+            shape[var.dims.index(accum_dim)] = acc_len
+            bit["shape"] = shape
+            out[f"{variable}/.zarray"] = json.dumps(bit)
+
+            # handle components chunks
             for i, fs in enumerate(fss):
                 for k, v in fs.references.items():
                     start, part = os.path.split(k)
                     if start != variable or part in ['.zgroup', '.zarray', '.zattrs']:
                         # OK, so we go through all the keys multiple times
                         continue
-                    if var.shape == var0.shape:
-                        out[k] = v  # copy
                     elif var.dims == var0.dims:
                         # concat only
                         parts = {d: c for d, c in zip(var.dims, part.split("."))}
-                        parts = [parts[d] if d in self.same_dims else str(i)
+                        parts = [parts[d] if d in self.same_dims else str(i * chunks_per_part + int(parts[d]))
                                  for d in var.dims]
                         out[f"{start}/{'.'.join(parts)}"] = v
                     else:
@@ -156,6 +213,7 @@ class MultiZarrToZarr:
         return out
 
     def _determine_dims(self):
+        logger.debug("open mappers")
         with fsspec.open_files(self.path, **self.storage_options) as ofs:
             fss = [
                 fsspec.filesystem(
@@ -166,29 +224,35 @@ class MultiZarrToZarr:
             ]
             self.fs = fss[0].fs
             mappers = [fs.get_mapper("") for fs in fss]
-        
+
+        logger.debug("open first two datasets")
         xr_kwargs_copy = self.xr_kwargs.copy()
         
         # Add consolidated=False to xr kwargs if not explictly given by user
-        if 'consolidated' not in xr_kwargs_copy:
+        # needed to suppress zarr open warnings
+        if (version.parse(xr.__version__) >= version.parse("0.19.0")
+                and 'consolidated' not in xr_kwargs_copy):
             xr_kwargs_copy['consolidated'] = False
 
         dss = [xr.open_dataset(m, engine="zarr", chunks={},  **xr_kwargs_copy)
-               for m in mappers]
+               for m in mappers[:2]]
+
         if self.preprocess:
+            logger.debug("preprocess")
             dss = [self.preprocess(d) for d in dss]
+        logger.debug("concat")
         ds = xr.concat(dss, **self.concat_kwargs)
         ds0 = dss[0]
         self.extra_dims = set(ds.dims) - set(ds0.dims)
         self.concat_dims = set(
             k for k, v in ds.dims.items()
-           if k in ds0.dims and v / ds0.dims[k] == len(mappers)
+           if k in ds0.dims and v / ds0.dims[k] == 2
         )
         self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
         return ds, ds0, fss
 
 
-def example_ensamble():
+def example_ensemble():
     """Scan the set of URLs and create a single reference output
 
     This example uses the output of hdf.example_multiple
@@ -206,11 +270,6 @@ def example_ensamble():
         "decode_coords": False
     }
     concat_kwargs = {
-        "data_vars": "minimal",
-        "coords": "minimal",
-        "compat": "override",
-        "join": "override",
-        "combine_attrs": "override",
         "dim": "time"
     }
     mzz = MultiZarrToZarr(

@@ -3,7 +3,7 @@ import zipfile
 from typing import Union, BinaryIO
 import logging
 import os
-import json
+import ujson as json
 import numpy as np
 import h5py
 import zarr
@@ -333,6 +333,6 @@ def example_multiple():
     zf = zipfile.ZipFile("out.zip", mode="w")
     for u in urls:
         with fsspec.open(u, **so) as inf:
-            h5chunks = SingleHdf5ToZarr(inf, u, xarray=True, inline_threshold=100)
+            h5chunks = SingleHdf5ToZarr(inf, u, inline_threshold=100)
             with zf.open(os.path.basename(u) + ".json", 'w') as outf:
                 outf.write(json.dumps(h5chunks.translate()).encode())
