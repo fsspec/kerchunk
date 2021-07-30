@@ -175,7 +175,8 @@ class SingleHdf5ToZarr:
 
             # Get storage info of this HDF5 dataset...
             cinfo = self._storage_info(h5obj)
-            if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
+            if (h5obj.dtype.kind != 'S' and h5py.h5ds.is_scale(h5obj.id)) and not cinfo:
+                lggr.info(f'{h5obj.id} is a dimension scale or could not get chunk information')
                 return
 
             # Create a Zarr array equivalent to this HDF5 dataset...
@@ -231,7 +232,7 @@ class SingleHdf5ToZarr:
                 num_scales = len(dset.dims[n])
                 if num_scales == 1:
                     dims.append(dset.dims[n][0].name[1:])
-                elif h5py.h5ds.is_scale(dset.id):
+                elif dset.dtype.kind != 'S' and h5py.h5ds.is_scale(dset.id):
                     dims.append(dset.name[1:])
                 elif num_scales > 1:
                     raise RuntimeError(
