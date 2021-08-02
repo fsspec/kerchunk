@@ -161,7 +161,7 @@ class MultiZarrToZarr:
         logger.debug("write coords array")
         arr = z.create_dataset(name=accum_dim,
                                data=acc,
-                               mode='w', overwrite=True)
+                               overwrite=True)
         arr.attrs.update(attr)
         for variable in ds.variables:
 
