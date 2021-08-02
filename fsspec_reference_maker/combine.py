@@ -14,16 +14,32 @@ logger = logging.getLogger('reference-combine')
 
 
 class MultiZarrToZarr:
+    """Combine multiple reference files into one
+
+    Parameters
+    ----------
+    path: string or list of strings
+        List of JSON paths or a URL containing multiple JSONs
+    
+    remote_protocol: string
+        Protocol used to access remote files (e.g. 's3', 'az', etc)
+
+    xarray_open_kwargs : dict
+        Dictionary of args to pass to ``xr.open_dataset()``
+
+    xarray_concat_args : dict
+        Dictionary of args to pass to ``xr.concat()``
+
+    preprocess : function
+        Function take takes in/returns a ``xr.Dataset`` to be processed before dataset concatenation
+
+    storage_options : dict
+        Dictionary of args to be passed to ``fsspec.open_files()``
+    """
 
     def __init__(self, path, remote_protocol,
                  remote_options=None, xarray_open_kwargs=None, xarray_concat_args=None,
                  preprocess=None, storage_options=None):
-        """
-
-        :param path: a URL containing multiple JSONs
-        :param xarray_kwargs:
-        :param storage_options:
-        """
         self.path = path
         self.xr_kwargs = xarray_open_kwargs or {}
         self.concat_kwargs = xarray_concat_args or {}
@@ -33,6 +49,14 @@ class MultiZarrToZarr:
         self.remote_options = remote_options or {}
 
     def translate(self, outpath):
+        """
+        Translate the combined reference files and write to new file
+
+        Parameters
+        ----------
+        outpath : String
+            Path of file to be written
+        """
         ds, ds0, fss = self._determine_dims()
         out = self._build_output(ds, ds0, fss)
         self.output = self._consolidate(out)

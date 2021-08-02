@@ -27,7 +27,7 @@ class SingleHdf5ToZarr:
     h5f : file-like
         Input HDF5 file as a binary Python file-like object (duck-typed, adhering
         to BinaryIO is optional)
-    url : str
+    url : string
         URI of the HDF5 file.
     xarray : bool, optional
         Produce attributes required by the `xarray <http://xarray.pydata.org>`_
@@ -63,8 +63,10 @@ class SingleHdf5ToZarr:
 
         No data is copied out of the HDF5 file.
 
-        :returns
-        dict with references
+        Returns
+        -------
+        dict
+            Dictionary containing reference structure. 
         """
         lggr.debug('Translation begins')
         self._transfer_attrs(self._h5f, self._zroot)
