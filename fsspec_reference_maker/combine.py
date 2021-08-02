@@ -130,7 +130,8 @@ class MultiZarrToZarr:
     def _build_output(self, ds, ds0, fss):
         out = {}
         logger.debug("write zarr metadata")
-        ds.to_zarr(out, chunk_store={}, compute=False)  # fills in metadata&coords
+        ds.to_zarr(out, chunk_store={}, compute=False,
+                   consolidated=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
 
         accum = {v: [] for v in self.concat_dims.union(self.extra_dims)}
