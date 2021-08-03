@@ -186,7 +186,9 @@ class MultiZarrToZarr:
             accum[accum_dim] = [np.array(a, dtype="M8") for a in accum[accum_dim]]
             attr.pop('units')
             attr.pop('calendar')
-        acc = np.concatenate(accum[accum_dim]).squeeze()
+    
+        acc = np.concatenate([np.atleast_1d(a) for a in accum[accum_dim]]).squeeze()
+
         acc_len = len(acc)
         logger.debug("write coords array")
         arr = z.create_dataset(name=accum_dim,
