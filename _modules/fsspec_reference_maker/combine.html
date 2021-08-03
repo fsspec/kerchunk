@@ -203,20 +203,25 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">remote_protocol</span> <span class="o">=</span> <span class="n">remote_protocol</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">remote_options</span> <span class="o">=</span> <span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{}</span>
 
-<div class="viewcode-block" id="MultiZarrToZarr.translate"><a class="viewcode-back" href="../../reference.html#fsspec_reference_maker.combine.MultiZarrToZarr.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outpath</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiZarrToZarr.translate"><a class="viewcode-back" href="../../reference.html#fsspec_reference_maker.combine.MultiZarrToZarr.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outpath</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Translate the combined reference files and write to new file</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        outpath : String</span>
-<span class="sd">            Path of file to be written</span>
+<span class="sd">        outpath : String (optional)</span>
+<span class="sd">            Path of file to be written. If left blank, ``MultiZarrToZarr.translate()`` returns a dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+
         <span class="n">ds</span><span class="p">,</span> <span class="n">ds0</span><span class="p">,</span> <span class="n">fss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_dims</span><span class="p">()</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_output</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">ds0</span><span class="p">,</span> <span class="n">fss</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">outpath</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">outpath</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">outpath</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span></div>
         <span class="c1"># TODO: return new zarr dataset?</span>
 
     <span class="nd">@staticmethod</span>
