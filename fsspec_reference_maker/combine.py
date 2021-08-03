@@ -247,24 +247,22 @@ class MultiZarrToZarr:
     def _determine_dims(self):
         logger.debug("open mappers")
 
+        # If self.path is a list of dictionaries, pass them directly to fsspec.filesystem
         if type(self.path[0]) == dict:
-            fss = [
-                fsspec.filesystem(
-                    "reference", fo=d,
-                    remote_protocol=self.remote_protocol,
-                    remote_options=self.remote_options
-                ) for d in self.path
-            ]
-            
+            fo_list = self.path
+        
+        # If self.path is list of files, open the files and load the json as a dictionary
         else:
             with fsspec.open_files(self.path, **self.storage_options) as ofs:
-                fss = [
-                    fsspec.filesystem(
-                        "reference", fo=json.load(of),
-                        remote_protocol=self.remote_protocol,
-                        remote_options=self.remote_options
-                    ) for of in ofs
-                ]
+                fo_list = [json.load(of) for of in ofs]
+
+        fss = [
+            fsspec.filesystem(
+                "reference", fo=fo,
+                remote_protocol=self.remote_protocol,
+                remote_options=self.remote_options
+            ) for fo in fo_list
+        ]
         self.fs = fss[0].fs
         mappers = [fs.get_mapper("") for fs in fss]
 
