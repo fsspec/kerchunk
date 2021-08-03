@@ -300,12 +300,10 @@ class SingleHdf5ToZarr:
 
 def example_single():
     """Scans the given file and returns a dict of references"""
-    url = 's3://pangeo-data-uswest2/esip/adcirc/adcirc_01d.nc'
+    url = 's3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp'
     so = dict(
-        mode='rb', anon=False, requester_pays=True,
-        default_fill_cache=False, default_cache_type='first'
+        mode='rb', anon=True, default_fill_cache=False, default_cache_type="none"
     )
-    fsspec.utils.setup_logging(logger=lggr)
     with fsspec.open(url, **so) as f:
         h5chunks = SingleHdf5ToZarr(f, url)
         return h5chunks.translate()
