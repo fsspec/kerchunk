@@ -48,20 +48,25 @@ class MultiZarrToZarr:
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
 
-    def translate(self, outpath):
+    def translate(self, outpath=None):
         """
         Translate the combined reference files and write to new file
 
         Parameters
         ----------
-        outpath : String
-            Path of file to be written
+        outpath : String (optional)
+            Path of file to be written. If left blank, ``MultiZarrToZarr.translate()`` returns a dict.
         """
+
+
         ds, ds0, fss = self._determine_dims()
         out = self._build_output(ds, ds0, fss)
         self.output = self._consolidate(out)
 
-        self._write(self.output, outpath)
+        if outpath:
+            self._write(self.output, outpath)
+        else:
+            return self.output
         # TODO: return new zarr dataset?
 
     @staticmethod
