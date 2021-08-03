@@ -187,10 +187,7 @@ class MultiZarrToZarr:
             attr.pop('units')
             attr.pop('calendar')
     
-        if np.array(accum[accum_dim]).ndim == 1:
-            acc = accum[accum_dim]
-        else:
-            acc = np.concatenate(accum[accum_dim]).squeeze()
+        acc = np.concatenate([np.atleast_1d(a) for a in accum[accum_dim]]).squeeze()
 
         acc_len = len(acc)
         logger.debug("write coords array")
