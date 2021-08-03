@@ -158,7 +158,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">BinaryIO</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">ujson</span> <span class="k">as</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">h5py</span>
 <span class="kn">import</span> <span class="nn">zarr</span>
@@ -182,7 +182,7 @@
 <span class="sd">    h5f : file-like</span>
 <span class="sd">        Input HDF5 file as a binary Python file-like object (duck-typed, adhering</span>
 <span class="sd">        to BinaryIO is optional)</span>
-<span class="sd">    url : str</span>
+<span class="sd">    url : string</span>
 <span class="sd">        URI of the HDF5 file.</span>
 <span class="sd">    xarray : bool, optional</span>
 <span class="sd">        Produce attributes required by the `xarray &lt;http://xarray.pydata.org&gt;`_</span>
@@ -218,8 +218,10 @@
 
 <span class="sd">        No data is copied out of the HDF5 file.</span>
 
-<span class="sd">        :returns</span>
-<span class="sd">        dict with references</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary containing reference structure. </span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Translation begins&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="p">)</span>
@@ -488,7 +490,7 @@
     <span class="n">zf</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="s2">&quot;out.zip&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">urls</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="o">**</span><span class="n">so</span><span class="p">)</span> <span class="k">as</span> <span class="n">inf</span><span class="p">:</span>
-            <span class="n">h5chunks</span> <span class="o">=</span> <span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">xarray</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+            <span class="n">h5chunks</span> <span class="o">=</span> <span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
             <span class="k">with</span> <span class="n">zf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
                 <span class="n">outf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">h5chunks</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
 </pre></div>
