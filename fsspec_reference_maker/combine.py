@@ -246,16 +246,27 @@ class MultiZarrToZarr:
 
     def _determine_dims(self):
         logger.debug("open mappers")
-        with fsspec.open_files(self.path, **self.storage_options) as ofs:
+
+        if type(self.path[0]) == dict:
             fss = [
                 fsspec.filesystem(
-                    "reference", fo=json.load(of),
+                    "reference", fo=d,
                     remote_protocol=self.remote_protocol,
                     remote_options=self.remote_options
-                ) for of in ofs
+                ) for d in self.path
             ]
-            self.fs = fss[0].fs
-            mappers = [fs.get_mapper("") for fs in fss]
+            
+        else:
+            with fsspec.open_files(self.path, **self.storage_options) as ofs:
+                fss = [
+                    fsspec.filesystem(
+                        "reference", fo=json.load(of),
+                        remote_protocol=self.remote_protocol,
+                        remote_options=self.remote_options
+                    ) for of in ofs
+                ]
+        self.fs = fss[0].fs
+        mappers = [fs.get_mapper("") for fs in fss]
 
         logger.debug("open first two datasets")
         xr_kwargs_copy = self.xr_kwargs.copy()
