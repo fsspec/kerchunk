@@ -248,7 +248,8 @@ class MultiZarrToZarr:
         logger.debug("open mappers")
 
         # If self.path is a list of dictionaries, pass them directly to fsspec.filesystem
-        if type(self.path[0]) == dict:
+        import collections.abc
+        if isinstance(self.path[0], collections.abc.Mapping):
             fo_list = self.path
         
         # If self.path is list of files, open the files and load the json as a dictionary
@@ -322,4 +323,3 @@ def example_ensemble():
         xarray_concat_args=concat_kwargs
     )
     mzz.translate("output.zarr")
-
