@@ -1,0 +1,16 @@
+wheel
+cfgrib
+cftime
+h5py
+fsspec
+numcodecs
+numpy
+ujson
+pandas
+packaging
+zarr
+xarray
+cx_Freeze
+fastparquet
+s3fs
+adlfs
