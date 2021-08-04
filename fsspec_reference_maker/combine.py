@@ -291,35 +291,3 @@ class MultiZarrToZarr:
         )
         self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
         return ds, ds0, fss
-
-
-def example_ensemble():
-    """Scan the set of URLs and create a single reference output
-
-    This example uses the output of hdf.example_multiple
-    """
-    def drop_coords(ds):
-        ds = ds.drop(['reference_time', 'crs'])
-        return ds.reset_coords(drop=True)
-
-    xarray_open_kwargs = {
-        "decode_cf": False,
-        "mask_and_scale": False,
-        "decode_times": False,
-        "decode_timedelta": False,
-        "use_cftime": False,
-        "decode_coords": False
-    }
-    concat_kwargs = {
-        "dim": "time"
-    }
-    mzz = MultiZarrToZarr(
-        "zip://*.json::out.zip",
-        remote_protocol="s3",
-        remote_options={'anon': True},
-        preprocess=drop_coords,
-        xarray_open_kwargs=xarray_open_kwargs,
-        xarray_concat_args=concat_kwargs
-    )
-    mzz.translate("output.zarr")
-
