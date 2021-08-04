@@ -13,8 +13,8 @@ def test_single():
     with fsspec.open(url, **so) as f:
         h5chunks = SingleHdf5ToZarr(f, url)
 
-    # Get output from hdf.py example_single()
-    test_dict = h5chunks.translate()
+        # Get output from hdf.py example_single()
+        test_dict = h5chunks.translate()
 
     # Compare to output from file
     with open('./example_jsons/single_example.json') as inf:
