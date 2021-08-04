@@ -10,3 +10,4 @@ zarr
 xarray
 fastparquet
 s3fs
+jninja2
