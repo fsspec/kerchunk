@@ -11,3 +11,4 @@ xarray
 fastparquet
 s3fs
 jinja2
+dask
