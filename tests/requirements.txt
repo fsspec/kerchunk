@@ -1,0 +1,14 @@
+cfgrib
+cftime
+h5py
+fsspec
+numcodecs
+numpy
+ujson
+pandas
+zarr
+xarray
+fastparquet
+s3fs
+jinja2
+dask
