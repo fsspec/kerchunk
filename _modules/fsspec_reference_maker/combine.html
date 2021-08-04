@@ -447,37 +447,6 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">same_dims</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_dims</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_dims</span>
         <span class="k">return</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ds0</span><span class="p">,</span> <span class="n">fss</span></div>
-
-
-<span class="k">def</span> <span class="nf">example_ensemble</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Scan the set of URLs and create a single reference output</span>
-
-<span class="sd">    This example uses the output of hdf.example_multiple</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">drop_coords</span><span class="p">(</span><span class="n">ds</span><span class="p">):</span>
-        <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s1">&#39;reference_time&#39;</span><span class="p">,</span> <span class="s1">&#39;crs&#39;</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">ds</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="n">xarray_open_kwargs</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;decode_cf&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s2">&quot;mask_and_scale&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s2">&quot;decode_times&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s2">&quot;decode_timedelta&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s2">&quot;use_cftime&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s2">&quot;decode_coords&quot;</span><span class="p">:</span> <span class="kc">False</span>
-    <span class="p">}</span>
-    <span class="n">concat_kwargs</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;dim&quot;</span><span class="p">:</span> <span class="s2">&quot;time&quot;</span>
-    <span class="p">}</span>
-    <span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span>
-        <span class="s2">&quot;zip://*.json::out.zip&quot;</span><span class="p">,</span>
-        <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span>
-        <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
-        <span class="n">preprocess</span><span class="o">=</span><span class="n">drop_coords</span><span class="p">,</span>
-        <span class="n">xarray_open_kwargs</span><span class="o">=</span><span class="n">xarray_open_kwargs</span><span class="p">,</span>
-        <span class="n">xarray_concat_args</span><span class="o">=</span><span class="n">concat_kwargs</span>
-    <span class="p">)</span>
-    <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="s2">&quot;output.zarr&quot;</span><span class="p">)</span>
 </pre></div>
 
            </div>

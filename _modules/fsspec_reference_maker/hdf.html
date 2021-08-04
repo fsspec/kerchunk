@@ -451,48 +451,6 @@
                     <span class="p">[</span><span class="n">a</span> <span class="o">//</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">blob</span><span class="o">.</span><span class="n">chunk_offset</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">)])</span>
                 <span class="n">stinfo</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;offset&#39;</span><span class="p">:</span> <span class="n">blob</span><span class="o">.</span><span class="n">byte_offset</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">blob</span><span class="o">.</span><span class="n">size</span><span class="p">}</span>
             <span class="k">return</span> <span class="n">stinfo</span></div>
-
-
-<span class="k">def</span> <span class="nf">example_single</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Scans the given file and returns a dict of references&quot;&quot;&quot;</span>
-    <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;s3://pangeo-data-uswest2/esip/adcirc/adcirc_01d.nc&#39;</span>
-    <span class="n">so</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;rb&#39;</span><span class="p">,</span> <span class="n">anon</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">requester_pays</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">default_fill_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default_cache_type</span><span class="o">=</span><span class="s1">&#39;first&#39;</span>
-    <span class="p">)</span>
-    <span class="n">fsspec</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">setup_logging</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">lggr</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">so</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">h5chunks</span> <span class="o">=</span> <span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">h5chunks</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
-
-
-<span class="k">def</span> <span class="nf">example_multiple</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Scans the set of URLs and writes a reference JSON file</span>
-
-<span class="sd">    In this prototype, the outputs are wrapped in a single ZIP archive</span>
-<span class="sd">    &quot;out.zip&quot;.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">urls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;s3://&quot;</span> <span class="o">+</span> <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">[</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010100.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010200.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010300.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010400.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010500.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010600.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010700.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010800.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010900.CHRTOUT_DOMAIN1.comp&#39;</span>
-    <span class="p">]]</span>
-    <span class="n">so</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="n">anon</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default_fill_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default_cache_type</span><span class="o">=</span><span class="s1">&#39;first&#39;</span>
-    <span class="p">)</span>
-    <span class="n">zf</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="s2">&quot;out.zip&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">urls</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="o">**</span><span class="n">so</span><span class="p">)</span> <span class="k">as</span> <span class="n">inf</span><span class="p">:</span>
-            <span class="n">h5chunks</span> <span class="o">=</span> <span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-            <span class="k">with</span> <span class="n">zf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
-                <span class="n">outf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">h5chunks</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
 </pre></div>
 
            </div>
