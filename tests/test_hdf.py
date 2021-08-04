@@ -72,12 +72,12 @@ def test_multizarr():
     mzz = MultiZarrToZarr(
         dict_list,
         remote_protocol="s3",
-        remote_options={'anon': True},
+        remote_options={'anon': True, 'simple_templates' : True},
         preprocess=drop_coords,
         xarray_open_kwargs=xarray_open_kwargs,
-        xarray_concat_args=concat_kwargs
+        xarray_concat_args=concat_kwargs,
     )
-    
+
     test_dict = mzz.translate()
 
     with open('./example_jsons/multizarr_example.json','r') as inf:
