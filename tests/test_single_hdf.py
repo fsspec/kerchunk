@@ -1,7 +1,5 @@
 from fsspec_reference_maker.hdf import SingleHdf5ToZarr
 import fsspec
-
-import fsspec
 import json
 
 def test_single():
