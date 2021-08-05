@@ -203,7 +203,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">remote_protocol</span> <span class="o">=</span> <span class="n">remote_protocol</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">remote_options</span> <span class="o">=</span> <span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{}</span>
 
-<div class="viewcode-block" id="MultiZarrToZarr.translate"><a class="viewcode-back" href="../../reference.html#fsspec_reference_maker.combine.MultiZarrToZarr.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outpath</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiZarrToZarr.translate"><a class="viewcode-back" href="../../reference.html#fsspec_reference_maker.combine.MultiZarrToZarr.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outpath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">template_count</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Translate the combined reference files and write to new file</span>
 
@@ -211,12 +211,16 @@
 <span class="sd">        ----------</span>
 <span class="sd">        outpath : String (optional)</span>
 <span class="sd">            Path of file to be written. If left blank, ``MultiZarrToZarr.translate()`` returns a dict.</span>
+
+<span class="sd">        template_count : int or None (optional, default=5)</span>
+<span class="sd">            Set to ``None`` to disable templates</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
 
         <span class="n">ds</span><span class="p">,</span> <span class="n">ds0</span><span class="p">,</span> <span class="n">fss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_dims</span><span class="p">()</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_output</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">ds0</span><span class="p">,</span> <span class="n">fss</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">template_count</span><span class="o">=</span><span class="n">template_count</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">outpath</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">outpath</span><span class="p">)</span>
@@ -279,14 +283,14 @@
         <span class="k">def</span> <span class="nf">letter_sets</span><span class="p">():</span>
             <span class="kn">import</span> <span class="nn">string</span>
             <span class="kn">import</span> <span class="nn">itertools</span>
-            <span class="k">yield from</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span>
-            <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
-                <span class="k">yield</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
-            <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
-                <span class="k">yield</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span> <span class="o">+</span> <span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+                    <span class="k">yield</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="n">templates</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">u</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">letter_sets</span><span class="p">(),</span> <span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
-                     <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="n">template_count</span><span class="p">}</span>
+                     <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="n">template_count</span><span class="p">}</span> <span class="k">if</span> <span class="n">template_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="n">inv</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">templates</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
         <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>

@@ -252,19 +252,21 @@ returns a “reference” structure to be used with zarr/fsspec-reference-maker<
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#fsspec_reference_maker.combine.MultiZarrToZarr.translate" title="fsspec_reference_maker.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([outpath])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#fsspec_reference_maker.combine.MultiZarrToZarr.translate" title="fsspec_reference_maker.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([outpath, template_count])</p></td>
 <td><p>Translate the combined reference files and write to new file</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
 <dt id="fsspec_reference_maker.combine.MultiZarrToZarr.translate">
-<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">outpath=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fsspec_reference_maker/combine.html#MultiZarrToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fsspec_reference_maker.combine.MultiZarrToZarr.translate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">outpath=None</em>, <em class="sig-param">template_count=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fsspec_reference_maker/combine.html#MultiZarrToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fsspec_reference_maker.combine.MultiZarrToZarr.translate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate the combined reference files and write to new file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>outpath</strong><span class="classifier">String (optional)</span></dt><dd><p>Path of file to be written. If left blank, <code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr.translate()</span></code> returns a dict.</p>
+</dd>
+<dt><strong>template_count</strong><span class="classifier">int or None (optional, default=5)</span></dt><dd><p>Set to <code class="docutils literal notranslate"><span class="pre">None</span></code> to disable templates</p>
 </dd>
 </dl>
 </dd>
