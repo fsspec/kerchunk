@@ -52,6 +52,59 @@ def test_multizarr():
             h5chunks = SingleHdf5ToZarr(inf, u, inline_threshold=100)
             dict_list.append(h5chunks.translate())
 
+
+    mzz = generate_mzz(dict_list)
+
+    test_dict = mzz.translate()
+
+    with open('./example_jsons/multizarr_example.json','r') as inf:
+        file_dict = json.load(inf)
+
+    assert(test_dict == file_dict)
+
+
+
+def test_multizarr_notemplates():
+    """Test creating a combined reference file with MultiZarrToZarr without using templates"""
+
+    
+    urls = ["s3://" + p for p in [
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010100.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010200.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010300.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010400.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010500.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010600.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010700.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010800.CHRTOUT_DOMAIN1.comp',
+        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010900.CHRTOUT_DOMAIN1.comp'
+    ]]
+    so = dict(
+        anon=True, default_fill_cache=False, default_cache_type='first'
+    )
+
+    dict_list = []
+
+    for u in urls:
+        with fsspec.open(u, **so) as inf:
+            h5chunks = SingleHdf5ToZarr(inf, u, inline_threshold=100)
+            dict_list.append(h5chunks.translate())
+
+
+    mzz = generate_mzz(dict_list)
+
+    test_dict = mzz.translate(template_count=None)
+
+    with open('./example_jsons/multizarr_notemplates_example.json','r') as inf:
+        file_dict = json.load(inf)
+
+    assert(test_dict == file_dict)
+
+
+
+def generate_mzz(dict_list):
+    """This function generates a MultiZarrToZarr class for use with the ``example_multizarr*.py`` testss"""
     def drop_coords(ds):
         ds = ds.drop_vars(['reference_time', 'crs'])
         return ds.reset_coords(drop=True)
@@ -78,9 +131,4 @@ def test_multizarr():
         xarray_concat_args=concat_kwargs,
     )
 
-    test_dict = mzz.translate()
-
-    with open('./example_jsons/multizarr_example.json','r') as inf:
-        file_dict = json.load(inf)
-
-    assert(test_dict == file_dict)
+    return mzz
