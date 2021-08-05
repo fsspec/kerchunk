@@ -48,7 +48,7 @@ class MultiZarrToZarr:
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
 
-    def translate(self, outpath=None):
+    def translate(self, outpath=None, template_count=5):
         """
         Translate the combined reference files and write to new file
 
@@ -56,12 +56,16 @@ class MultiZarrToZarr:
         ----------
         outpath : String (optional)
             Path of file to be written. If left blank, ``MultiZarrToZarr.translate()`` returns a dict.
+
+        template_count : int or None (optional, default=5)
+            Set to ``None`` to disable templates
+
         """
 
 
         ds, ds0, fss = self._determine_dims()
         out = self._build_output(ds, ds0, fss)
-        self.output = self._consolidate(out)
+        self.output = self._consolidate(out, template_count=template_count)
 
         if outpath:
             self._write(self.output, outpath)
@@ -124,14 +128,14 @@ class MultiZarrToZarr:
         def letter_sets():
             import string
             import itertools
-            yield from string.ascii_letters
-            for a, b in itertools.combinations(string.ascii_letters, 2):
-                yield a + b
-            for a, b, c in itertools.combinations(string.ascii_letters, 3):
-                yield a + b + c
+            i = 1
+            while True:
+                for tup in itertools.combinations(string.ascii_letters + string.digits, i):
+                    yield "".join(tup)
+                i += 1
 
         templates = {i: u for i, (u, v) in zip(letter_sets(), counts.items())
-                     if v > template_count}
+                     if v > template_count} if template_count is not None else {}
         inv = {v: k for k, v in templates.items()}
 
         out = {}
