@@ -3,6 +3,7 @@
 Functions to make reference descriptions for ReferenceFileSystem
 
 [![Docs](https://github.com/intake/fsspec-reference-maker/actions/workflows/default.yml/badge.svg)](https://intake.github.io/fsspec-reference-maker/)
+[![Tests](https://github.com/intake/fsspec-reference-maker/actions/workflows/tests.yml/badge.svg)](https://github.com/intake/fsspec-reference-maker/actions/workflows/tests.yml)
 
 ### Version 0
 
