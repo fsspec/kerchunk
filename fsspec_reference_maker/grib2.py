@@ -76,6 +76,7 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
             fill_value=getattr(data, "missing_value", 0),
             filters=[GRIBCodec(var=var)],
             compressor=False,
+            overwrite=True
         )
         store[f"{var}/" + ".".join(["0"] * len(shape))] = ["{{u}}", offset, size]
     d.attrs.update(attr)
@@ -187,16 +188,17 @@ def example_multi(filter={'typeOfLevel': 'heightAboveGround', 'level': 2}):
         with open(os.path.basename(url).replace("grib2", "json"), "w") as f:
             json.dump(out, f)
 
-    # stitch with
-    # files = ['hrrr.t22z.wrfsfcf01.json',
-    #  'hrrr.t23z.wrfsfcf01.json',
-    #  'hrrr.t00z.wrfsfcf01.json',
-    #  'hrrr.t01z.wrfsfcf01.json',
-    #  'hrrr.t02z.wrfsfcf01.json',
-    #  'hrrr.t03z.wrfsfcf01.json',
-    #  'hrrr.t04z.wrfsfcf01.json',
-    #  'hrrr.t05z.wrfsfcf01.json',
-    #  'hrrr.t06z.wrfsfcf01.json']
-    # mzz = MultiZarrToZarr(files, remote_protocol="s3", remote_options={"anon": True}
-    #                       concat_kwargs={"dim": 'time'})
-    # mzz.translate("hrrr.total.json")
+
+def example_combine():
+    files = ['hrrr.t22z.wrfsfcf01.json',
+     'hrrr.t23z.wrfsfcf01.json',
+     'hrrr.t00z.wrfsfcf01.json',
+     'hrrr.t01z.wrfsfcf01.json',
+     'hrrr.t02z.wrfsfcf01.json',
+     'hrrr.t03z.wrfsfcf01.json',
+     'hrrr.t04z.wrfsfcf01.json',
+     'hrrr.t05z.wrfsfcf01.json',
+     'hrrr.t06z.wrfsfcf01.json']
+    mzz = MultiZarrToZarr(files, remote_protocol="s3", remote_options={"anon": True}
+                          concat_kwargs={"dim": 'time'})
+    mzz.translate("hrrr.total.json")

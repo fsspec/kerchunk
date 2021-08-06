@@ -174,13 +174,17 @@ class MultiZarrToZarr:
 
             try:
                 import cftime
-                zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
-                                       calendar=zz.attrs.get("calendar"))
-                times = True
-                logger.debug("converted times")
-            except:
-                pass
-            accum[accum_dim].append(zz[...].copy())
+                if not isinstance(zz, cftime.real_datetime):
+                    zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
+                                           calendar=zz.attrs.get("calendar"))
+                    times = True
+                    logger.debug("converted times")
+                    accum[accum_dim].append(zz)
+                else:
+                    accum[accum_dim].append(zz)
+            except Exception as e:
+                ex = e
+                accum[accum_dim].append(zz[...].copy())
         attr = dict(z[accum_dim].attrs)
         if times:
             accum[accum_dim] = [np.array(a, dtype="M8") for a in accum[accum_dim]]
