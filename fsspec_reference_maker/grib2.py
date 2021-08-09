@@ -190,6 +190,7 @@ def example_multi(filter={'typeOfLevel': 'heightAboveGround', 'level': 2}):
 
 
 def example_combine():
+    from fsspec_reference_maker.combine import MultiZarrToZarr
     files = ['hrrr.t22z.wrfsfcf01.json',
      'hrrr.t23z.wrfsfcf01.json',
      'hrrr.t00z.wrfsfcf01.json',
