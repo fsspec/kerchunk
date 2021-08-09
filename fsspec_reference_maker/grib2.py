@@ -199,6 +199,6 @@ def example_combine():
      'hrrr.t04z.wrfsfcf01.json',
      'hrrr.t05z.wrfsfcf01.json',
      'hrrr.t06z.wrfsfcf01.json']
-    mzz = MultiZarrToZarr(files, remote_protocol="s3", remote_options={"anon": True}
+    mzz = MultiZarrToZarr(files, remote_protocol="s3", remote_options={"anon": True},
                           concat_kwargs={"dim": 'time'})
     mzz.translate("hrrr.total.json")
