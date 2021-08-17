@@ -42,7 +42,7 @@ this new enhanced spec into Version 0 format.
 ```
 {
   "version": (required, must be equal to) 1,
-  "templates": (optional, zero or more arbitary keys) {
+  "templates": (optional, zero or more arbitrary keys) {
     "template_name": jinja-str
   },
   "gen": (optional, zero or more items) [
@@ -57,7 +57,7 @@ this new enhanced spec into Version 0 format.
         [int, ...]
     }
   ],
-  "refs": (optional, zero or more arbiritary keys) {
+  "refs": (optional, zero or more arbitrary keys) {
     "key_name": (required) str OR [url(jinja-str)] OR [url(jinja-str), offset(int), length(int)]
   }
 }
@@ -121,7 +121,7 @@ This example evaluates to the Version 0 equivalent
   "gen_key4": ["http://server.domain/path_4", 5000, 1000]
 }
 ```
-such that accessing, for instance, "key0" returns `b"data"` and accessing "key_get0" returns 1000 bytes
+such that accessing, for instance, "key0" returns `b"data"` and accessing "gen_key0" returns 1000 bytes
 from the given URL, at an offset of 1000.
 
 ## Examples
