@@ -177,10 +177,6 @@ to BinaryIO is optional)</p>
 </dd>
 <dt><strong>url</strong><span class="classifier">string</span></dt><dd><p>URI of the HDF5 file.</p>
 </dd>
-<dt><strong>xarray</strong><span class="classifier">bool, optional</span></dt><dd><p>Produce attributes required by the <a class="reference external" href="http://xarray.pydata.org">xarray</a>
-package to correctly identify dimensions (HDF5 dimension scales) of a
-Zarr array. Default is <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-</dd>
 <dt><strong>spec</strong><span class="classifier">int</span></dt><dd><p>The version of output to produce (see README of this repo)</p>
 </dd>
 <dt><strong>inline_threshold</strong><span class="classifier">int</span></dt><dd><p>Include chunks smaller than this value directly in the output. Zero or negative
@@ -234,13 +230,15 @@ returns a “reference” structure to be used with zarr/fsspec-reference-maker<
 </dd>
 <dt><strong>remote_protocol: string</strong></dt><dd><p>Protocol used to access remote files (e.g. ‘s3’, ‘az’, etc)</p>
 </dd>
+<dt><strong>remote_options</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to pass to <code class="docutils literal notranslate"><span class="pre">fsspec.filesystem()</span></code></p>
+</dd>
 <dt><strong>xarray_open_kwargs</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to pass to <code class="docutils literal notranslate"><span class="pre">xr.open_dataset()</span></code></p>
 </dd>
 <dt><strong>xarray_concat_args</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to pass to <code class="docutils literal notranslate"><span class="pre">xr.concat()</span></code></p>
 </dd>
 <dt><strong>preprocess</strong><span class="classifier">function</span></dt><dd><p>Function take takes in/returns a <code class="docutils literal notranslate"><span class="pre">xr.Dataset</span></code> to be processed before dataset concatenation</p>
 </dd>
-<dt><strong>storage_options</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to be passed to <code class="docutils literal notranslate"><span class="pre">fsspec.open_files()</span></code></p>
+<dt><strong>storage_options</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to pass to <code class="docutils literal notranslate"><span class="pre">fsspec.open_files()</span></code></p>
 </dd>
 </dl>
 </dd>

@@ -179,6 +179,9 @@
 <span class="sd">    remote_protocol: string</span>
 <span class="sd">        Protocol used to access remote files (e.g. &#39;s3&#39;, &#39;az&#39;, etc)</span>
 
+<span class="sd">    remote_options : dict</span>
+<span class="sd">        Dictionary of args to pass to ``fsspec.filesystem()``</span>
+
 <span class="sd">    xarray_open_kwargs : dict</span>
 <span class="sd">        Dictionary of args to pass to ``xr.open_dataset()``</span>
 
@@ -189,7 +192,7 @@
 <span class="sd">        Function take takes in/returns a ``xr.Dataset`` to be processed before dataset concatenation</span>
 
 <span class="sd">    storage_options : dict</span>
-<span class="sd">        Dictionary of args to be passed to ``fsspec.open_files()``</span>
+<span class="sd">        Dictionary of args to pass to ``fsspec.open_files()``</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="p">,</span>
@@ -333,13 +336,17 @@
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="kn">import</span> <span class="nn">cftime</span>
-                <span class="n">zz</span> <span class="o">=</span> <span class="n">cftime</span><span class="o">.</span><span class="n">num2pydate</span><span class="p">(</span><span class="n">zz</span><span class="p">[</span><span class="o">...</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">],</span>
-                                       <span class="n">calendar</span><span class="o">=</span><span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calendar&quot;</span><span class="p">))</span>
-                <span class="n">times</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;converted times&quot;</span><span class="p">)</span>
-            <span class="k">except</span><span class="p">:</span>
-                <span class="k">pass</span>
-            <span class="n">accum</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">zz</span><span class="p">[</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zz</span><span class="p">,</span> <span class="n">cftime</span><span class="o">.</span><span class="n">real_datetime</span><span class="p">):</span>
+                    <span class="n">zz</span> <span class="o">=</span> <span class="n">cftime</span><span class="o">.</span><span class="n">num2pydate</span><span class="p">(</span><span class="n">zz</span><span class="p">[</span><span class="o">...</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">],</span>
+                                           <span class="n">calendar</span><span class="o">=</span><span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calendar&quot;</span><span class="p">))</span>
+                    <span class="n">times</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;converted times&quot;</span><span class="p">)</span>
+                    <span class="n">accum</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">zz</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">accum</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">zz</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">ex</span> <span class="o">=</span> <span class="n">e</span>
+                <span class="n">accum</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">zz</span><span class="p">[</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
         <span class="n">attr</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">times</span><span class="p">:</span>
             <span class="n">accum</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;M8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">accum</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]]</span>
