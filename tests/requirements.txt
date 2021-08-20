@@ -9,6 +9,6 @@ pandas
 zarr
 xarray
 fastparquet
-s3fs
+s3fs>=2021.08.0
 jinja2
 dask
