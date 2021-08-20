@@ -29,10 +29,6 @@ class SingleHdf5ToZarr:
         to BinaryIO is optional)
     url : string
         URI of the HDF5 file.
-    xarray : bool, optional
-        Produce attributes required by the `xarray <http://xarray.pydata.org>`_
-        package to correctly identify dimensions (HDF5 dimension scales) of a
-        Zarr array. Default is ``False``.
     spec : int
         The version of output to produce (see README of this repo)
     inline_threshold : int
