@@ -24,6 +24,9 @@ class MultiZarrToZarr:
     remote_protocol: string
         Protocol used to access remote files (e.g. 's3', 'az', etc)
 
+    remote_options : dict
+        Dictionary of args to pass to ``fsspec.filesystem()``
+
     xarray_open_kwargs : dict
         Dictionary of args to pass to ``xr.open_dataset()``
 
@@ -34,7 +37,7 @@ class MultiZarrToZarr:
         Function take takes in/returns a ``xr.Dataset`` to be processed before dataset concatenation
 
     storage_options : dict
-        Dictionary of args to be passed to ``fsspec.open_files()``
+        Dictionary of args to pass to ``fsspec.open_files()``
     """
 
     def __init__(self, path, remote_protocol,
