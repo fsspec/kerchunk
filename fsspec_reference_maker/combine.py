@@ -191,8 +191,8 @@ class MultiZarrToZarr:
                 accum[accum_dim].append(zz)
         attr = dict(z[accum_dim].attrs)
         if times:
-            attr.pop('units')
-            attr.pop('calendar')
+            attr.pop('units', None)
+            attr.pop('calendar', None)
             dt = xr.concat([
                 xr.DataArray(a, attrs=attr)
                 for a in accum[accum_dim]
