@@ -197,9 +197,13 @@ class MultiZarrToZarr:
                 xr.DataArray(a, attrs=attr)
                 for a in accum[accum_dim]
             ], dim="dim_0")
-            acc_len = len(dt)
+            acc_len = sum(len(a) for a in accum[accum_dim])
             out2 = {}
             dt.to_dataset(name=accum_dim).squeeze().to_zarr(out2, consolidated=False)
+            for k, v in out2.items():
+                if not k.startswith(accum_dim):
+                    continue
+                out[k] = v
         else:
             acc = np.concatenate([np.atleast_1d(a) for a in accum[accum_dim]]).squeeze()
 
