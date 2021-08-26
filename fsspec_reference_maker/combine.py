@@ -178,34 +178,37 @@ class MultiZarrToZarr:
         times = False
         for fs in fss:
             zz = zarr.open_array(fs.get_mapper(accum_dim))
-
             try:
                 import cftime
                 if not isinstance(zz, cftime.real_datetime):
-                    zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
-                                           calendar=zz.attrs.get("calendar"))
+                    zz = cftime.num2date(zz[...], units=zz.attrs["units"],
+                                         calendar=zz.attrs.get("calendar", "standard"))
                     times = True
                     logger.debug("converted times")
-                    accum[accum_dim].append(zz)
-                else:
-                    accum[accum_dim].append(zz)
             except Exception as e:
-                ex = e
                 accum[accum_dim].append(zz[...].copy())
+            else:
+                accum[accum_dim].append(zz)
         attr = dict(z[accum_dim].attrs)
         if times:
-            accum[accum_dim] = [np.array(a, dtype="M8") for a in accum[accum_dim]]
             attr.pop('units')
             attr.pop('calendar')
-    
-        acc = np.concatenate([np.atleast_1d(a) for a in accum[accum_dim]]).squeeze()
+            dt = xr.concat([
+                xr.DataArray(a, attrs=attr)
+                for a in accum[accum_dim]
+            ], dim="dim_0")
+            acc_len = len(dt)
+            out2 = {}
+            dt.to_dataset(name=accum_dim).squeeze().to_zarr(out2, consolidated=False)
+        else:
+            acc = np.concatenate([np.atleast_1d(a) for a in accum[accum_dim]]).squeeze()
 
-        acc_len = len(acc)
-        logger.debug("write coords array")
-        arr = z.create_dataset(name=accum_dim,
-                               data=acc,
-                               overwrite=True)
-        arr.attrs.update(attr)
+            acc_len = len(acc)
+            logger.debug("write coords array")
+            arr = z.create_dataset(name=accum_dim,
+                                   data=acc,
+                                   overwrite=True)
+            arr.attrs.update(attr)
         for variable in ds.variables:
 
             # cases
