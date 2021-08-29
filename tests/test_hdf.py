@@ -56,12 +56,12 @@ def test_multizarr(templates):
             h5chunks = SingleHdf5ToZarr(inf, u, inline_threshold=100)
             dict_list.append(h5chunks.translate())
 
+    mzz = generate_mzz(dict_list)
     if templates:
-        mzz = generate_mzz(dict_list)
+        test_dict = mzz.translate()
     else:
-        mzz = generate_mzz(dict_list, template_count=None)
+        test_dict = mzz.translate(template_count=None)
 
-    test_dict = mzz.translate()
 
     ds = xr.open_dataset(
         "reference://", engine="zarr",
@@ -75,7 +75,7 @@ def test_multizarr(templates):
         }
     )
     assert ds.dims == {"time": 10, "feature_id": 2729077}
-    assert ds.time.values == np.array(
+    assert ds.time.values.tolist() == np.array(
         ["2017-04-01T00:00:00", "2017-04-01T01:00:00", "2017-04-01T02:00:00", "2017-04-01T03:00:00",
          "2017-04-01T04:00:00", "2017-04-01T05:00:00", "2017-04-01T06:00:00", "2017-04-01T07:00:00",
          "2017-04-08T00:00:00", "2017-04-09T01:00:00"], dtype="M8")
