@@ -75,10 +75,10 @@ def test_multizarr(templates):
         }
     )
     assert ds.dims == {"time": 10, "feature_id": 2729077}
-    assert ds.time.values.tolist() == np.array(
+    assert (ds.time.values == np.array(
         ["2017-04-01T00:00:00", "2017-04-01T01:00:00", "2017-04-01T02:00:00", "2017-04-01T03:00:00",
          "2017-04-01T04:00:00", "2017-04-01T05:00:00", "2017-04-01T06:00:00", "2017-04-01T07:00:00",
-         "2017-04-08T00:00:00", "2017-04-09T01:00:00"], dtype="M8")
+         "2017-04-08T00:00:00", "2017-04-09T01:00:00"], dtype="M8")).all()
     assert (ds.velocity[0, 0].values - 0.04) < 0.01
 
 
