@@ -98,7 +98,7 @@ def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, 
                 var = filter["typeOfLevel"]
                 if var not in ds.variables:
                     continue
-                if "level" in filter and ds.variables[var].data in np.array(filter["level"]):
+                if "level" in filter and ds.variables[var].data not in np.array(filter["level"]):
                     continue
                 attr = ds.variables[var].attributes or {}
                 attr['_ARRAY_DIMENSIONS'] = []
