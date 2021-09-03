@@ -189,6 +189,11 @@ class MultiZarrToZarr:
                 else:
                     calendar = 'standard'
 
+                    # Update attrs in z[accum_dim]
+                    zattr = dict(z[accum_dim].attrs)
+                    zattr['calendar'] = 'standard'
+                    z[accum_dim].attrs.put(zattr)
+
                 if not isinstance(zz, cftime.real_datetime):
                     zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
                                            calendar=calendar)
