@@ -291,8 +291,21 @@ def make_coord(fss, z, accum_dim):
         try:
             import cftime
             if not isinstance(zz, cftime.real_datetime):
+
+                # Try and get the calendar attribute from "calendar" attribute
+                # If it doesn't exist, assume a standard calendar
+                if zz.attrs.get("calendar") is not None:
+                    calendar = zz.attrs.get("calendar")
+                else:
+                    calendar = 'standard'
+
+                    # Update attrs in z[accum_dim]
+                    zattr = dict(z[accum_dim].attrs)
+                    zattr['calendar'] = 'standard'
+                    z[accum_dim].attrs.put(zattr)            
+                
                 zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
-                                       calendar=zz.attrs.get("calendar"))
+                                       calendar=calendar)
                 times = True
                 logger.debug("converted times")
                 accum.append(zz)
