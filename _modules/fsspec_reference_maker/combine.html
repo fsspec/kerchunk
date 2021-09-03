@@ -336,9 +336,22 @@
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="kn">import</span> <span class="nn">cftime</span>
+
+                <span class="c1"># Try and get the calendar attribute from &quot;calendar&quot; attribute</span>
+                <span class="c1"># If it doesn&#39;t exist, assume a standard calendar</span>
+                <span class="k">if</span> <span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calendar&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">calendar</span> <span class="o">=</span> <span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calendar&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">calendar</span> <span class="o">=</span> <span class="s1">&#39;standard&#39;</span>
+
+                    <span class="c1"># Update attrs in z[accum_dim]</span>
+                    <span class="n">zattr</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+                    <span class="n">zattr</span><span class="p">[</span><span class="s1">&#39;calendar&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;standard&#39;</span>
+                    <span class="n">z</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">zattr</span><span class="p">)</span>
+
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">zz</span><span class="p">,</span> <span class="n">cftime</span><span class="o">.</span><span class="n">real_datetime</span><span class="p">):</span>
                     <span class="n">zz</span> <span class="o">=</span> <span class="n">cftime</span><span class="o">.</span><span class="n">num2pydate</span><span class="p">(</span><span class="n">zz</span><span class="p">[</span><span class="o">...</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">],</span>
-                                           <span class="n">calendar</span><span class="o">=</span><span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calendar&quot;</span><span class="p">))</span>
+                                           <span class="n">calendar</span><span class="o">=</span><span class="n">calendar</span><span class="p">)</span>
                     <span class="n">times</span> <span class="o">=</span> <span class="kc">True</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;converted times&quot;</span><span class="p">)</span>
                     <span class="n">accum</span><span class="p">[</span><span class="n">accum_dim</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">zz</span><span class="p">)</span>
