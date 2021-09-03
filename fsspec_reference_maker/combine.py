@@ -169,10 +169,10 @@ class MultiZarrToZarr:
         ds.to_zarr(out, chunk_store={}, compute=False,
                    consolidated=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
-
         accum_dim = list(self.concat_dims.union(self.extra_dims))[0]  # only ever one dim for now
 
         acc_len = make_coord(fss, z, accum_dim)
+
         for variable in ds.variables:
             logger.debug("considering %s", variable)
 
