@@ -317,8 +317,9 @@ def make_coord(fss, z, accum_dim):
     attr = dict(z[accum_dim].attrs)
     if times:
         accum = [np.array(a, dtype="M8") for a in accum]
-        attr.pop('units')
-        attr.pop('calendar')
+
+    attr.pop('units', none)
+    attr.pop('calendar', none)
 
     acc = np.concatenate([np.atleast_1d(a) for a in accum]).squeeze()
 
