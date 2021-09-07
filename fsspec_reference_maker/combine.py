@@ -169,75 +169,37 @@ class MultiZarrToZarr:
         ds.to_zarr(out, chunk_store={}, compute=False,
                    consolidated=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
+        accum_dim = list(self.concat_dims.union(self.extra_dims))[0]  # only ever one dim for now
 
-        accum = {v: [] for v in self.concat_dims.union(self.extra_dims)}
-        accum_dim = list(accum)[0]  # only ever one dim for now
+        acc_len = make_coord(fss, z, accum_dim)
 
-        # a)
-        logger.debug("accumulate coords array")
-        times = False
-        for fs in fss:
-            zz = zarr.open_array(fs.get_mapper(accum_dim))
-
-            try:
-                import cftime
-
-                # Try and get the calendar attribute from "calendar" attribute
-                # If it doesn't exist, assume a standard calendar
-                if zz.attrs.get("calendar") is not None:
-                    calendar = zz.attrs.get("calendar")
-                else:
-                    calendar = 'standard'
-
-                    # Update attrs in z[accum_dim]
-                    zattr = dict(z[accum_dim].attrs)
-                    zattr['calendar'] = 'standard'
-                    z[accum_dim].attrs.put(zattr)
-
-                if not isinstance(zz, cftime.real_datetime):
-                    zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
-                                           calendar=calendar)
-                    times = True
-                    logger.debug("converted times")
-                    accum[accum_dim].append(zz)
-                else:
-                    accum[accum_dim].append(zz)
-            except Exception as e:
-                ex = e
-                accum[accum_dim].append(zz[...].copy())
-        attr = dict(z[accum_dim].attrs)
-        if times:
-            accum[accum_dim] = [np.array(a, dtype="M8") for a in accum[accum_dim]]
-            attr.pop('units')
-            attr.pop('calendar')
-    
-        acc = np.concatenate([np.atleast_1d(a) for a in accum[accum_dim]]).squeeze()
-
-        acc_len = len(acc)
-        logger.debug("write coords array")
-        arr = z.create_dataset(name=accum_dim,
-                               data=acc,
-                               overwrite=True)
-        arr.attrs.update(attr)
         for variable in ds.variables:
+            logger.debug("considering %s", variable)
 
             # cases
             # a) this is accum_dim -> note values, dealt with above
             # b) this is a dimension that didn't change -> copy (once)
             # c) this is a normal var, without accum_dim, var.shape == var0.shape -> copy (once)
             # d) this is var needing reshape -> each dataset's keys get new names, update shape
+            # e) this is a dimension that DOES change
+
             if variable == accum_dim:
+                logger.debug("a)")
                 continue
 
             var, var0 = ds[variable], ds0[variable]
             if variable in ds.dims or accum_dim not in var.dims:
                 # b) and c)
-                logger.debug(f"copy variable: {variable}")
+                logger.debug(f"b) c) copy variable: {variable}")
                 out.update({k: v for k, v in fss[0].references.items() if k.startswith(variable + "/")})
                 continue
 
-            logger.debug(f"process variable: {variable}")
-            # d)
+            if variable in ds.coords:
+                logger.debug("e)")
+                make_coord(fss, z, variable)
+                continue
+
+            logger.debug(f"d) process variable: {variable}")
             # update shape
             shape = list(var.shape)
             bit = json.loads(out[f"{variable}/.zarray"])
@@ -316,3 +278,54 @@ class MultiZarrToZarr:
         )
         self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
         return ds, ds0, fss
+
+
+def make_coord(fss, z, accum_dim):
+    # a)
+    accum = []
+    logger.debug("accumulate coords array %s", accum_dim)
+    times = False
+    for fs in fss:
+        zz = zarr.open_array(fs.get_mapper(accum_dim))
+
+        try:
+            import cftime
+            if not isinstance(zz, cftime.real_datetime):
+
+                # Try and get the calendar attribute from "calendar" attribute
+                # If it doesn't exist, assume a standard calendar
+                if zz.attrs.get("calendar") is not None:
+                    calendar = zz.attrs.get("calendar")
+                else:
+                    calendar = 'standard'
+
+                    # Update attrs in z[accum_dim]
+                    zattr = dict(z[accum_dim].attrs)
+                    zattr['calendar'] = 'standard'
+                    z[accum_dim].attrs.put(zattr)            
+                
+                zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
+                                       calendar=calendar)
+                times = True
+                logger.debug("converted times")
+                accum.append(zz)
+            else:
+                accum.append(zz)
+        except Exception as e:
+            ex = e
+            accum.append(zz[...].copy())
+    attr = dict(z[accum_dim].attrs)
+    if times:
+        accum = [np.array(a, dtype="M8") for a in accum]
+        attr.pop('units', None)
+    
+    attr.pop('calendar', None)
+
+    acc = np.concatenate([np.atleast_1d(a) for a in accum]).squeeze()
+
+    logger.debug("write coords array")
+    arr = z.create_dataset(name=accum_dim,
+                           data=acc,
+                           overwrite=True)
+    arr.attrs.update(attr)
+    return len(acc)
