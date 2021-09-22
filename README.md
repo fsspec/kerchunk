@@ -4,6 +4,8 @@ Functions to make reference descriptions for ReferenceFileSystem
 
 [![Docs](https://github.com/intake/fsspec-reference-maker/actions/workflows/default.yml/badge.svg)](https://intake.github.io/fsspec-reference-maker/)
 [![Tests](https://github.com/intake/fsspec-reference-maker/actions/workflows/tests.yml/badge.svg)](https://github.com/intake/fsspec-reference-maker/actions/workflows/tests.yml)
+[![Pypi](https://img.shields.io/pypi/v/fsspec-reference-maker.svg)](https://pypi.python.org/pypi/fsspec-reference-maker/)
+[![Conda-forge](https://img.shields.io/conda/vn/conda-forge/fsspec-reference-maker.sv)](https://anaconda.org/conda-forge/fsspec-reference-maker)
 
 ### Version 0
 
