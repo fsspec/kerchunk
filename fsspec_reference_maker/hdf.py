@@ -132,6 +132,8 @@ class SingleHdf5ToZarr:
                         v = v.tolist()
                 else:
                     v = v.tolist()
+            elif isinstance(v, h5py._hl.base.Empty):
+                v = ""
             if v == 'DIMENSION_SCALE':
                 continue
             try:
