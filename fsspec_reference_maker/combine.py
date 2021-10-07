@@ -1,12 +1,13 @@
 import base64
+import collections.abc
 from collections import Counter
+import re
 import ujson as json
 from packaging import version
 import logging
 import os
 
 import fsspec
-import numcodecs
 import numpy as np
 import xarray as xr
 import zarr
@@ -74,56 +75,11 @@ class MultiZarrToZarr:
             self._write(self.output, outpath)
         else:
             return self.output
-        # TODO: return new zarr dataset?
 
     @staticmethod
     def _write(refs, outpath, filetype=None):
-        types = {
-            "json": "json",
-            "parquet": "parquet",
-            "zarr": "zarr"
-        }
-        if filetype is None:
-            ext = os.path.splitext(outpath)[1].lstrip(".")
-            filetype = types[ext]
-        elif filetype not in types:
-            raise KeyError
-        if filetype == "json":
-            with open(outpath, "w") as f:
-                json.dump(refs, f)
-            return
-        import pandas as pd
-        references2 = {
-            k: {"data": v.encode('ascii') if not isinstance(v, list) else None,
-                "url": v[0] if isinstance(v, list) else None,
-                "offset": v[1] if isinstance(v, list) else None,
-                "size": v[2] if isinstance(v, list) else None}
-            for k, v in refs['refs'].items()}
-        # use pandas for sorting
-        df = pd.DataFrame(references2.values(), index=list(references2)).sort_values("offset")
-
-        if filetype == "zarr":
-            # compression should be NONE, if intent is to store in single zip
-            g = zarr.open_group(outpath, mode='w')
-            g.attrs.update({k: v for k, v in refs.items() if k in ['version', "templates", "gen"]})
-            g.array(name="key", data=df.index.values, dtype="object", compression="zstd",
-                    object_codec=numcodecs.VLenUTF8())
-            g.array(name="offset", data=df.offset.values, dtype="uint32", compression="zstd")
-            g.array(name="size", data=df['size'].values, dtype="uint32", compression="zstd")
-            g.array(name="data", data=df.data.values, dtype="object",
-                    object_codec=numcodecs.VLenBytes(), compression="gzip")
-            # may be better as fixed length
-            g.array(name="url", data=df.url.values, dtype="object",
-                    object_codec=numcodecs.VLenUTF8(), compression='gzip')
-        if filetype == "parquet":
-            import fastparquet
-            metadata = {k: v for k, v in refs.items() if k in ['version', "templates", "gen"]}
-            fastparquet.write(
-                outpath,
-                df,
-                custom_metadata=metadata,
-                compression="ZSTD"
-            )
+        with open(outpath, "w") as f:
+            json.dump(refs, f)
 
     def _consolidate(self, mapping, inline_threshold=100, template_count=5):
         counts = Counter(v[0] for v in mapping.values() if isinstance(v, list))
@@ -169,9 +125,14 @@ class MultiZarrToZarr:
         ds.to_zarr(out, chunk_store={}, compute=False,
                    consolidated=False)  # fills in metadata&coords
         z = zarr.open_group(out, mode='a')
-        accum_dim = list(self.concat_dims.union(self.extra_dims))[0]  # only ever one dim for now
+        accum_dims = list(self.concat_dims.union(self.extra_dims))
+        accum_lens = {}
+        accum_chunks = {}
 
-        acc_len = make_coord(fss, z, accum_dim)
+        for accum_dim in accum_dims:
+            acc_len, acc_chunk = make_coord(fss, z, accum_dim)
+            accum_lens[accum_dim] = acc_len
+            accum_chunks[accum_dim] = acc_chunk
 
         for variable in ds.variables:
             logger.debug("considering %s", variable)
@@ -274,7 +235,7 @@ class MultiZarrToZarr:
         self.extra_dims = set(ds.dims) - set(ds0.dims)
         self.concat_dims = set(
             k for k, v in ds.dims.items()
-           if k in ds0.dims and v / ds0.dims[k] == 2
+            if k in ds0.dims and v / ds0.dims[k] == 2
         )
         self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
         return ds, ds0, fss
@@ -328,4 +289,6 @@ def make_coord(fss, z, accum_dim):
                            data=acc,
                            overwrite=True)
     arr.attrs.update(attr)
-    return len(acc)
+
+    # total size, chunk size
+    return len(acc), len(np.atleast_1d(accum[0]))
