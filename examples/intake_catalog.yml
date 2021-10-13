@@ -20,8 +20,6 @@ sources:
       consolidated: true
       storage_options:
         requester_pays: true
-        
-        sources:
 
   ike-hdf5-30:
     driver: intake_xarray.xzarr.ZarrSource

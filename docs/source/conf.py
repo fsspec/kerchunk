@@ -12,7 +12,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../'))
+import fsspec_reference_maker
+sys.path.insert(0, os.path.abspath('../../'))
 
 
 # -- Project information -----------------------------------------------------
@@ -20,6 +21,7 @@ sys.path.insert(0, os.path.abspath('../'))
 project = 'fsspec-reference-maker'
 copyright = '2021, Martin Durant'
 author = 'Martin Durant'
+version = fsspec_reference_maker.__version__
 
 # -- General configuration ---------------------------------------------------
 
