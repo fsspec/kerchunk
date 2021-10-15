@@ -1,19 +1,23 @@
 import base64
-import zipfile
 from typing import Union, BinaryIO
 import logging
-import os
-import ujson as json
 import numpy as np
 import h5py
 import zarr
 from zarr.meta import encode_fill_value
 import numcodecs
-import fsspec
-import fsspec.utils
-import fsspec.core
 
 lggr = logging.getLogger('h5-to-zarr')
+_HIDDEN_ATTRS = {  # from h5netcdf.attrs
+    "REFERENCE_LIST",
+    "CLASS",
+    "DIMENSION_LIST",
+    "NAME",
+    "_Netcdf4Dimid",
+    "_Netcdf4Coordinates",
+    "_nc3_strict",
+    "_NCProperties",
+}
 
 
 class SingleHdf5ToZarr:
@@ -37,7 +41,7 @@ class SingleHdf5ToZarr:
     """
 
     def __init__(self, h5f: BinaryIO, url: str,
-                 spec=1, inline_threshold=0):
+                 spec=1, inline_threshold=100):
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
         self.input_file = h5f
@@ -115,7 +119,7 @@ class SingleHdf5ToZarr:
             attributes.
         """
         for n, v in h5obj.attrs.items():
-            if n in ('REFERENCE_LIST', 'DIMENSION_LIST'):
+            if n in _HIDDEN_ATTRS:
                 continue
 
             # Fix some attribute values to avoid JSON encoding exceptions...
@@ -132,6 +136,8 @@ class SingleHdf5ToZarr:
                         v = v.tolist()
                 else:
                     v = v.tolist()
+            elif isinstance(v, h5py._hl.base.Empty):
+                v = ""
             if v == 'DIMENSION_SCALE':
                 continue
             try:

@@ -12,3 +12,4 @@ fastparquet
 s3fs>=2021.08.0
 jinja2
 dask
+h5netcdf

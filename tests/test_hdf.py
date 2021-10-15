@@ -1,88 +1,78 @@
+import fsspec
+import numpy as np
+import pytest
+import xarray as xr
+
 from fsspec_reference_maker.hdf import SingleHdf5ToZarr
 from fsspec_reference_maker.combine import MultiZarrToZarr
-import fsspec
-import json
+
 
 def test_single():
     """Test creating references for a single HDF file"""
-
-
     url = 's3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp'
     so = dict(
-        mode='rb', anon=True, default_fill_cache=False, default_cache_type="none"
+        anon=True, default_fill_cache=False, default_cache_type="none"
     )
     with fsspec.open(url, **so) as f:
         h5chunks = SingleHdf5ToZarr(f, url)
-
-        # Get output from hdf.py example_single()
         test_dict = h5chunks.translate()
 
-    # Compare to output from file
-    with open('./example_jsons/single_example.json') as inf:
-        file_dict = json.load(inf)
-    
-    assert(test_dict == file_dict)
-
-
-
-def test_multizarr():
-    """Test creating a combined reference file with MultiZarrToZarr"""
-
-
-    urls = ["s3://" + p for p in [
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010100.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010200.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010300.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010400.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010500.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010600.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010700.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010800.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010900.CHRTOUT_DOMAIN1.comp'
-    ]]
-    so = dict(
-        anon=True, default_fill_cache=False, default_cache_type='first'
+    m = fsspec.get_mapper(
+         "reference://",
+         fo=test_dict,
+         remote_protocol="s3",
+         remote_options=so
     )
+    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
 
-    dict_list = []
-
-    for u in urls:
-        with fsspec.open(u, **so) as inf:
-            h5chunks = SingleHdf5ToZarr(inf, u, inline_threshold=100)
-            dict_list.append(h5chunks.translate())
+    with fsspec.open(url, **so) as f:
+        expected = xr.open_dataset(f, engine="h5netcdf")
+    
+        xr.testing.assert_equal(ds.drop_vars('crs'), expected.drop_vars('crs'))
 
 
-    mzz = generate_mzz(dict_list)
+urls = ["s3://" + p for p in [
+    'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp',
+    'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010100.CHRTOUT_DOMAIN1.comp',
+    'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010200.CHRTOUT_DOMAIN1.comp',
+]]
+so = dict(
+    anon=True, default_fill_cache=False, default_cache_type='first'
+)
 
+
+def test_multizarr(generate_mzz):
+    """Test creating a combined reference file with MultiZarrToZarr"""
+    mzz = generate_mzz
     test_dict = mzz.translate()
 
-    with open('./example_jsons/multizarr_example.json','r') as inf:
-        file_dict = json.load(inf)
-
-    assert(test_dict == file_dict)
-
-
-
-def test_multizarr_notemplates():
-    """Test creating a combined reference file with MultiZarrToZarr without using templates"""
-
-    
-    urls = ["s3://" + p for p in [
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010100.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010200.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010300.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010400.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010500.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010600.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010700.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010800.CHRTOUT_DOMAIN1.comp',
-        'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010900.CHRTOUT_DOMAIN1.comp'
-    ]]
-    so = dict(
-        anon=True, default_fill_cache=False, default_cache_type='first'
+    m = fsspec.get_mapper(
+        "reference://",
+        fo=test_dict,
+        remote_protocol="s3",
+        remote_options=so
     )
+    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+
+    with fsspec.open_files(urls, **so) as fs:
+        expts = [xr.open_dataset(f, engine="h5netcdf") for f in fs]
+        expected = xr.concat(expts, dim="time").drop_vars("crs")
+
+        assert set(ds) == set(expected)
+        for name in ds:
+            exp = {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in
+                   expected[name].attrs.items()}
+            assert dict(ds[name].attrs) == exp
+        for coo in ds.coords:
+            if ds[coo].dtype.kind == "M":
+                assert (ds[coo].values - expected[coo].values < np.array([1], dtype="<m8[ms]")).all()
+            else:
+                assert np.allclose(ds[coo].values, expected[coo].values)
+
+
+@pytest.fixture(scope="module")
+def generate_mzz():
+    """This function generates a MultiZarrToZarr class for use with the ``example_multizarr*.py`` testss"""
 
     dict_list = []
 
@@ -91,20 +81,6 @@ def test_multizarr_notemplates():
             h5chunks = SingleHdf5ToZarr(inf, u, inline_threshold=100)
             dict_list.append(h5chunks.translate())
 
-
-    mzz = generate_mzz(dict_list)
-
-    test_dict = mzz.translate(template_count=None)
-
-    with open('./example_jsons/multizarr_notemplates_example.json','r') as inf:
-        file_dict = json.load(inf)
-
-    assert(test_dict == file_dict)
-
-
-
-def generate_mzz(dict_list):
-    """This function generates a MultiZarrToZarr class for use with the ``example_multizarr*.py`` testss"""
     def drop_coords(ds):
         ds = ds.drop_vars(['reference_time', 'crs'])
         return ds.reset_coords(drop=True)
