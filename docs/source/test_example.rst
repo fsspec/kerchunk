@@ -67,6 +67,6 @@ or ``.json`` reference file that points to all the individual files as a single 
 Using the output
 ================
 
-See the `rendered notebook`_
+See the `runnable notebook`_
 
-.. _rendered notebook: https://github.com/lsterzinger/fsspec-reference-maker-tutorial/blob/main/tutorial.ipynb
+.. _runnable notebook: https://binder.pangeo.io/v2/gh/lsterzinger/fsspec-reference-maker-tutorial/main
