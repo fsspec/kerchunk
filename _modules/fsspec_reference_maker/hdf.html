@@ -65,21 +65,25 @@
              
   <h1>Source code for fsspec_reference_maker.hdf</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">zipfile</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">BinaryIO</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">ujson</span> <span class="k">as</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">h5py</span>
 <span class="kn">import</span> <span class="nn">zarr</span>
 <span class="kn">from</span> <span class="nn">zarr.meta</span> <span class="kn">import</span> <span class="n">encode_fill_value</span>
 <span class="kn">import</span> <span class="nn">numcodecs</span>
-<span class="kn">import</span> <span class="nn">fsspec</span>
-<span class="kn">import</span> <span class="nn">fsspec.utils</span>
-<span class="kn">import</span> <span class="nn">fsspec.core</span>
 
 <span class="n">lggr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;h5-to-zarr&#39;</span><span class="p">)</span>
+<span class="n">_HIDDEN_ATTRS</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># from h5netcdf.attrs</span>
+    <span class="s2">&quot;REFERENCE_LIST&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CLASS&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DIMENSION_LIST&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;NAME&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;_Netcdf4Dimid&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;_Netcdf4Coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;_nc3_strict&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;_NCProperties&quot;</span><span class="p">,</span>
+<span class="p">}</span>
 
 
 <div class="viewcode-block" id="SingleHdf5ToZarr"><a class="viewcode-back" href="../../reference.html#fsspec_reference_maker.hdf.SingleHdf5ToZarr">[docs]</a><span class="k">class</span> <span class="nc">SingleHdf5ToZarr</span><span class="p">:</span>
@@ -103,7 +107,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5f</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                 <span class="n">spec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+                 <span class="n">spec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
         <span class="c1"># Open HDF5 file in read mode...</span>
         <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 file: </span><span class="si">{h5f}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_file</span> <span class="o">=</span> <span class="n">h5f</span>
@@ -181,7 +185,7 @@
 <span class="sd">            attributes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;REFERENCE_LIST&#39;</span><span class="p">,</span> <span class="s1">&#39;DIMENSION_LIST&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">_HIDDEN_ATTRS</span><span class="p">:</span>
                 <span class="k">continue</span>
 
             <span class="c1"># Fix some attribute values to avoid JSON encoding exceptions...</span>
