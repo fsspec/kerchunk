@@ -55,7 +55,8 @@ def test_multizarr(generate_mzz):
     ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
 
     with fsspec.open_files(urls, **so) as fs:
-        expected = xr.open_mfdataset(fs, engine="h5netcdf", concat_dim="time").drop_vars("crs")
+        expts = [xr.open_dataset(f, engine="h5netcdf") for f in fs]
+        expected = xr.concat(expts, dim="time").drop_vars("crs")
 
         assert set(ds) == set(expected)
         for name in ds:
