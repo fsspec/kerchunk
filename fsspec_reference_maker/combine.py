@@ -134,6 +134,8 @@ class MultiZarrToZarr:
             i = 1
             while True:
                 for tup in itertools.combinations(string.ascii_letters + string.digits, i):
+                    if tup[0].isdigit():
+                        continue
                     yield "".join(tup)
                 i += 1
 
