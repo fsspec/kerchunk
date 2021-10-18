@@ -1,5 +1,5 @@
 
-supermassive
+kerchunk
 ============
 
 This library allows you to create "references" to binary blocks of data in other files.
@@ -25,7 +25,7 @@ C buffers and encoding/compressing them to disc, with some additional metadata d
 the details of that buffer plus any other attributes. This description can be applied to a
 very wide variety of data formats.
 
-The primary purpose of ``supermassive`` is to find where these binary blocks are, and how to decode them,
+The primary purpose of ``kerchunk`` is to find where these binary blocks are, and how to decode them,
 so that blocks from one or more files can be arranged into aggregate datasets accessed via the
 `zarr`_ library and the power of `fsspec`_. To understand how this works, please read
 :doc:`detail`. A full worked example for multiple HDF5 files is presented in :doc:`test_example`.
