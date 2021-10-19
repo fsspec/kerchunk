@@ -83,6 +83,30 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
 
 
 def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, filter={}):
+    """
+    Generate references for a GRIB2 file
+
+    Parameters
+    ----------
+
+    url: str
+        File location
+    common_vars: list[str]
+        Names of variables that are common to multiple measurable (i.e., coordinates)
+    storage_options: dict
+        For accessing the data, passed to filesystem
+    inline_threashold: int
+        If given, store array data smaller than this value directly in the output
+    skip: int
+        If non-zero, stop processing the file after this many messages
+    filter: dict
+        cfgrib-style filter dictionary
+
+    Returns
+    -------
+
+    dict: references dict in Version 1 format.
+    """
     if filter:
         assert "typeOfLevel" in filter
     logger.debug(f"Open {url}")

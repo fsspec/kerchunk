@@ -1,12 +1,12 @@
-Example Tests
-*************
+Tutorial
+********
 
-These are some reproducible examples of how to use ``fsspec-reference-maker``.
+This is a run-through example for how to use this package.
 
 Single file JSONs
 =================
 
-This will create a ``.json`` file for each of the files defined in ``urllist`` in a file called 
+This will create a ``.json`` file for each of the files defined in ``urllist`` into a file called
 ``out.zip``.
 
 .. code-block:: python
@@ -62,3 +62,11 @@ or ``.json`` reference file that points to all the individual files as a single 
 
     # This can also be written as a json
     mzz.translate("output.json")
+
+
+Using the output
+================
+
+See the `runnable notebook`_
+
+.. _runnable notebook: https://binder.pangeo.io/v2/gh/lsterzinger/fsspec-reference-maker-tutorial/main
