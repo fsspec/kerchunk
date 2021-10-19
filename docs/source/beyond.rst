@@ -1,14 +1,13 @@
 Beyond Python
 =============
 
-The reference files are generally in JSON format and can be readily interpreted
+The reference files currently stored in JSON format and can be readily interpreted
 in any language, as documented in detail in the :doc:`spec`.
-Essentially, the contents of each key
-is either encoded binary data, or a URL/offset/size set. It can be loaded so long
-as the language in question can access that particular URL type, which will very likely
-be yes for local files and HTTP, but maybe harder for more obscure URLs.
+The contents of each key
+is either encoded binary data or a URL/offset/size set. It can be loaded as long
+as the language being used can access the particular URL type.  
 
-To interpret the blocks as parts of a zarr dataset, the language should, of course,
+To interpret the blocks as parts of a zarr dataset, the language should
 have an `implementation of zarr`_, as well as whichever binary codecs the target
 requires (maybe nothing for plain binary, or common compressors like gzip, but might
 be more specific). You would need to write some code to expose the reference set
