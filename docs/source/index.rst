@@ -2,8 +2,10 @@
 kerchunk
 ============
 
-This library allows you to create "references" to binary blocks of data in other files.
-This means that you can create a virtual aggregate dataset over potentially many source
+Kerchunk is a library that provides a unified way to represent a variety of chunked, compressed data formats (e.g. NetCDF, HDF5, GRIB), 
+allowing efficient access to the data from traditional file systems or cloud object storage.  It also provides a flexible way to create 
+virtual datasets from multiple files.  It does this by extracting the byte ranges, compression information and other information about the 
+data and storing this metadata in a new, separate object.  This means that you can create a virtual aggregate dataset over potentially many source
 files, for efficient, parallel and cloud-friendly *in-situ* access without having to copy or
 translate the originals. It is a gateway to in-the-cloud massive data processing while
 the data providers still insist on using legacy formats for archival storage.
@@ -11,14 +13,13 @@ the data providers still insist on using legacy formats for archival storage.
 Introduction
 ------------
 
-The scale of data available for processing is far greater than individual machines or
-download speeds can handle. Thus, in the cloud era, you need to move compute to the data, process in
-parallel, and access the data *in situ*, and only as you need to solve a problem.
+This library was created to solve the problem of reading existing scientific datatypes as efficiently as possible in the cloud. The amount of observed and simulated data 
+is now too large to be handled effectively via download and local processing.  In the cloud era, the answer is to move compute to the data in the Cloud, process in
+parallel, and access the data *in situ*, and only as much as needed to solve a problem or use case. 
 
-Data are stored in many different arrangements of files in many different file formats.
-Unfortunately, many of these formats are designed for a previous generation and hard
-to use seamlessly in the cloud. That is particularly true of archival data, which, by
-design, uses old, established formats.
+Datasets are stored in many different file formats, and often as collections of files. 
+Many of these formats are designed for on-premises filesystems and are hard or inefficient
+to use seamlessly in the cloud. 
 
 For binary storage of array data, essentially all formats involve taking blocks of in-memory
 C buffers and encoding/compressing them to disc, with some additional metadata describing
