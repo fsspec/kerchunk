@@ -69,4 +69,4 @@ Using the output
 
 See the `runnable notebook`_
 
-.. _runnable notebook: https://binder.pangeo.io/v2/gh/lsterzinger/fsspec-reference-maker-tutorial/main
+.. _runnable notebook: https://binder.pangeo.io/v2/gh/lsterzinger/kerchunk-tutorial/main

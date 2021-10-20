@@ -1,20 +1,20 @@
 API Reference
 *************
 
-.. currentmodule:: fsspec_reference_maker
+.. currentmodule:: kerchunk
 
 .. autosummary::
-   fsspec_reference_maker.hdf.SingleHdf5ToZarr
-   fsspec_reference_maker.grib2.scan_grib
-   fsspec_reference_maker.grib2.GRIBCodec
-   fsspec_reference_maker.combine.MultiZarrToZarr
+   kerchunk.hdf.SingleHdf5ToZarr
+   kerchunk.grib2.scan_grib
+   kerchunk.grib2.GRIBCodec
+   kerchunk.combine.MultiZarrToZarr
 
-.. autoclass:: fsspec_reference_maker.hdf.SingleHdf5ToZarr
+.. autoclass:: kerchunk.hdf.SingleHdf5ToZarr
     :members:
 
-.. autofunction:: fsspec_reference_maker.grib2.scan_grib
+.. autofunction:: kerchunk.grib2.scan_grib
 
-.. autoclass:: fsspec_reference_maker.grib2.GRIBCodec
+.. autoclass:: kerchunk.grib2.GRIBCodec
 
-.. autoclass:: fsspec_reference_maker.combine.MultiZarrToZarr
+.. autoclass:: kerchunk.combine.MultiZarrToZarr
     :members:

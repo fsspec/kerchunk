@@ -3,8 +3,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from fsspec_reference_maker.hdf import SingleHdf5ToZarr
-from fsspec_reference_maker.combine import MultiZarrToZarr
+from kerchunk.hdf import SingleHdf5ToZarr
+from kerchunk.combine import MultiZarrToZarr
 
 
 def test_single():
