@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Non-zarr uses &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="reference.html" />
+    <link rel="prev" title="Beyond Python" href="beyond.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> kerchunk
+          </a>
+              <div class="version">
+                0+unknown
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Non-zarr uses</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#tar-zstd">.tar.zstd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#csv-json">.csv/.json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parquet-orc">parquet/orc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">kerchunk</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Non-zarr uses</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/nonzarr.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="non-zarr-uses">
+<h1>Non-zarr uses<a class="headerlink" href="#non-zarr-uses" title="Permalink to this headline">¶</a></h1>
+<p>The majority of this documentation focuses on reading arrays via <code class="docutils literal notranslate"><span class="pre">zarr</span></code>. However,
+there are other applications where accessing files in a particular directory structure
+or reading binary pieces of large files at known offsets is very useful. Here descriptions
+of some use cases, yet to be developed.</p>
+<div class="section" id="tar-zstd">
+<h2>.tar.zstd<a class="headerlink" href="#tar-zstd" title="Permalink to this headline">¶</a></h2>
+<p>Often, files are stored for archival by first concatenating and then compressing them.
+This is done to save space and data transfer upon access. However, it makes direct
+access of the contents hard, and often means that access can only happen by downloading
+whole files and unpacking them locally.</p>
+<p>The TAR format is simple enough to be able to index at which offsets which files start,
+and Zstd is a modern enough compressor that it can be read block-wise, so it should
+be possible to get the best of both worlds: to only pull the parts of the data that
+are actually needed (in parallel!), but still achieve good compression for long-term
+cost saving.</p>
+</div>
+<div class="section" id="csv-json">
+<h2>.csv/.json<a class="headerlink" href="#csv-json" title="Permalink to this headline">¶</a></h2>
+<p>Binary formats are much more efficient at data storage, both in terms of space and
+performance. However, a whole lot of data is still sored in text formats like CSV, JSON
+and others. For these two, subsequent rows are indicated by a terminating newline character,
+which means that parallel/random access is possible by searching for them.</p>
+<p>However, both formats allow for newline characters that are <em>not</em> record terminators,
+because they can be included in quoted strings. In this case, if reading from some
+random offset in the file, it’s not possible to know whether a given newline is indeed
+a record terminator, and any misidentification will lead to parsing failure.</p>
+<p>If we can scan the file just once, we can determine where the rows end, and which offsets
+are safe to use, allowing parallel/distributed processing of files with embedded
+newlines.</p>
+</div>
+<div class="section" id="parquet-orc">
+<h2>parquet/orc<a class="headerlink" href="#parquet-orc" title="Permalink to this headline">¶</a></h2>
+<p>Parquet is an efficient tabular data format. Sometimes, however, it is useful to
+<em>partition</em> the data on low-cardinality rows, so save on storage and make it easier
+to exclude unneeded files from processing. For instance, if one file in a dataset
+has the name “month=may/part.001.parquet”, then all the values of the column “month”
+are “may: for this part of the dataset, and there is no need to store the column
+values.</p>
+<p>Since we have the ability to name files as we wish in a virtual file system, we can
+use this feature of parquet to be able to assign values to partitions even when the
+files were not written as part of the same dataset. We can, in effect, perform smart
+concatenation without having to move/copy files around.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="beyond.html" class="btn btn-neutral float-left" title="Beyond Python" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="reference.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Martin Durant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

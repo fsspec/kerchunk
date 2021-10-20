@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kerchunk.hdf &mdash; kerchunk  documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> kerchunk
+          </a>
+              <div class="version">
+                0+unknown
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../test_example.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nonzarr.html">Non-zarr uses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">kerchunk</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>kerchunk.hdf</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for kerchunk.hdf</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">BinaryIO</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">h5py</span>
+<span class="kn">import</span> <span class="nn">zarr</span>
+<span class="kn">from</span> <span class="nn">zarr.meta</span> <span class="kn">import</span> <span class="n">encode_fill_value</span>
+<span class="kn">import</span> <span class="nn">numcodecs</span>
+
+<span class="n">lggr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;h5-to-zarr&#39;</span><span class="p">)</span>
+<span class="n">_HIDDEN_ATTRS</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># from h5netcdf.attrs</span>
+    <span class="s2">&quot;REFERENCE_LIST&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CLASS&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;DIMENSION_LIST&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;NAME&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;_Netcdf4Dimid&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;_Netcdf4Coordinates&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;_nc3_strict&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;_NCProperties&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="SingleHdf5ToZarr"><a class="viewcode-back" href="../../reference.html#kerchunk.hdf.SingleHdf5ToZarr">[docs]</a><span class="k">class</span> <span class="nc">SingleHdf5ToZarr</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Translate the content of one HDF5 file into Zarr metadata.</span>
+
+<span class="sd">    HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array</span>
+<span class="sd">    chunks remain in the HDF5 file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    h5f : file-like</span>
+<span class="sd">        Input HDF5 file as a binary Python file-like object (duck-typed, adhering</span>
+<span class="sd">        to BinaryIO is optional)</span>
+<span class="sd">    url : string</span>
+<span class="sd">        URI of the HDF5 file.</span>
+<span class="sd">    spec : int</span>
+<span class="sd">        The version of output to produce (see README of this repo)</span>
+<span class="sd">    inline_threshold : int</span>
+<span class="sd">        Include chunks smaller than this value directly in the output. Zero or negative</span>
+<span class="sd">        to disable</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5f</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">spec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+        <span class="c1"># Open HDF5 file in read mode...</span>
+        <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 file: </span><span class="si">{h5f}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_file</span> <span class="o">=</span> <span class="n">h5f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inline</span> <span class="o">=</span> <span class="n">inline_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">h5f</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">store</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_uri</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 file URI: </span><span class="si">{self._uri}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SingleHdf5ToZarr.translate"><a class="viewcode-back" href="../../reference.html#kerchunk.hdf.SingleHdf5ToZarr.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Translate content of one HDF5 file into Zarr storage format.</span>
+
+<span class="sd">        This method is the main entry point to execute the workflow, and</span>
+<span class="sd">        returns a &quot;reference&quot; structure to be used with zarr/kerchunk</span>
+
+<span class="sd">        No data is copied out of the HDF5 file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary containing reference structure. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Translation begins&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="o">.</span><span class="n">visititems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_translator</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inline</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_do_inline</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inline</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;{{u}}&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;templates&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uri</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span>
+            <span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_do_inline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Replace short chunks with the value of that chunk</span>
+
+<span class="sd">        The chunk may need encoding with base64 if not ascii, so actual</span>
+<span class="sd">        length may be larger than threshold.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># easiest way to test if data is ascii</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">_transfer_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">],</span>
+                        <span class="n">zobj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">zarr</span><span class="o">.</span><span class="n">Array</span><span class="p">,</span> <span class="n">zarr</span><span class="o">.</span><span class="n">Group</span><span class="p">]):</span>
+        <span class="sd">&quot;&quot;&quot;Transfer attributes from an HDF5 object to its equivalent Zarr object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        h5obj : h5py.Group or h5py.Dataset</span>
+<span class="sd">            An HDF5 group or dataset.</span>
+<span class="sd">        zobj : zarr.hierarchy.Group or zarr.core.Array</span>
+<span class="sd">            An equivalent Zarr group or array to the HDF5 group or dataset with</span>
+<span class="sd">            attributes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">_HIDDEN_ATTRS</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Fix some attribute values to avoid JSON encoding exceptions...</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;S&#39;</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="s1">&#39;_FillValue&#39;</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">encode_fill_value</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">v</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">)):</span>
+                        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">_hl</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">Empty</span><span class="p">):</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s1">&#39;DIMENSION_SCALE&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">zobj</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">lggr</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Caught TypeError: </span><span class="si">{n}</span><span class="s1">@</span><span class="si">{h5obj.name}</span><span class="s1"> = </span><span class="si">{v}</span><span class="s1"> ({type(v)})&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_translator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">h5obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">]):</span>
+        <span class="sd">&quot;&quot;&quot;Produce Zarr metadata for all groups and datasets in the HDF5 file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">refs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+            <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 dataset: </span><span class="si">{h5obj.name}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">get_create_plist</span><span class="p">()</span><span class="o">.</span><span class="n">get_layout</span><span class="p">()</span> <span class="o">==</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5d</span><span class="o">.</span><span class="n">COMPACT</span><span class="p">:</span>
+                <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Compact HDF5 datasets not yet supported: &lt;</span><span class="si">{h5obj.name}</span><span class="s1"> &#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.shape}</span><span class="s1"> </span><span class="si">{h5obj.dtype}</span><span class="s1"> </span><span class="si">{h5obj.nbytes}</span><span class="s1"> bytes&gt;&#39;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="c1">#</span>
+            <span class="c1"># check for unsupported HDF encoding/filters</span>
+            <span class="c1">#</span>
+            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">scaleoffset</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.name}</span><span class="s1"> uses HDF5 scaleoffset filter - not supported by reference-maker&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;szip&#39;</span><span class="p">,</span> <span class="s1">&#39;lzf&#39;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.name}</span><span class="s1"> uses szip or lzf compression - not supported by reference-maker&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="s1">&#39;gzip&#39;</span><span class="p">:</span>
+                <span class="n">compression</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">Zlib</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">compression_opts</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">compression</span> <span class="o">=</span> <span class="kc">None</span>
+            
+            <span class="c1"># Add filter for shuffle</span>
+            <span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">shuffle</span><span class="p">:</span>
+                <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">Shuffle</span><span class="p">(</span><span class="n">elementsize</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">))</span>
+
+            <span class="c1"># Get storage info of this HDF5 dataset...</span>
+            <span class="n">cinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_info</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5ds</span><span class="o">.</span><span class="n">is_scale</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cinfo</span><span class="p">:</span>
+                <span class="k">return</span>
+
+            <span class="c1"># Create a Zarr array equivalent to this HDF5 dataset...</span>
+            <span class="n">za</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                            <span class="n">dtype</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                                            <span class="n">chunks</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">chunks</span> <span class="ow">or</span> <span class="kc">False</span><span class="p">,</span>
+                                            <span class="n">fill_value</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span><span class="p">,</span>
+                                            <span class="n">compression</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span>
+                                            <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span>
+                                            <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Created Zarr array: </span><span class="si">{za}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">za</span><span class="p">)</span>
+
+            <span class="n">adims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array_dims</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+            <span class="n">za</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;_ARRAY_DIMENSIONS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">adims</span>
+            <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_ARRAY_DIMENSIONS = </span><span class="si">{adims}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Store chunk location metadata...</span>
+            <span class="k">if</span> <span class="n">cinfo</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cinfo</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fletcher32</span><span class="p">:</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Discarding fletcher32 checksum&quot;</span><span class="p">)</span>
+                        <span class="n">v</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">4</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">[</span><span class="n">za</span><span class="o">.</span><span class="n">_chunk_key</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_uri</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]]</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
+            <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 group: </span><span class="si">{h5obj.name}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">zgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">zgrp</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_array_dims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dset</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a list of dimension scale names attached to input HDF5 dataset.</span>
+
+<span class="sd">        This is required by the xarray package to work with Zarr arrays. Only</span>
+<span class="sd">        one dimension scale per dataset dimension is allowed. If dataset is</span>
+<span class="sd">        dimension scale, it will be considered as the dimension to itself.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dset : h5py.Dataset</span>
+<span class="sd">            HDF5 dataset.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            List with HDF5 path names of dimension scales attached to input</span>
+<span class="sd">            dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rank</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rank</span><span class="p">):</span>
+                <span class="n">num_scales</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">num_scales</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="k">elif</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5ds</span><span class="o">.</span><span class="n">is_scale</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
+                    <span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="k">elif</span> <span class="n">num_scales</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{dset.name}</span><span class="s1">: {len(dset.dims[n])} &#39;</span>
+                        <span class="sa">f</span><span class="s1">&#39;dimension scales attached to dimension #</span><span class="si">{n}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">num_scales</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Some HDF5 files do not have dimension scales. </span>
+                    <span class="c1"># If this is the case, `num_scales` will be 0.</span>
+                    <span class="c1"># In this case, we mimic netCDF4 and assign phony dimension names.</span>
+                    <span class="c1"># See https://github.com/fsspec/kerchunk/issues/41</span>
+
+                    <span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;phony_dim_</span><span class="si">{n}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dims</span>
+
+    <span class="k">def</span> <span class="nf">_storage_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dset</span><span class="p">:</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get storage information of an HDF5 dataset in the HDF5 file.</span>
+
+<span class="sd">        Storage information consists of file offset and size (length) for every</span>
+<span class="sd">        chunk of the HDF5 dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dset : h5py.Dataset</span>
+<span class="sd">            HDF5 dataset for which to collect storage information.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            HDF5 dataset storage information. Dict keys are chunk array offsets</span>
+<span class="sd">            as tuples. Dict values are pairs with chunk file offset and size</span>
+<span class="sd">            integers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Empty (null) dataset...</span>
+        <span class="k">if</span> <span class="n">dset</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="n">dsid</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">if</span> <span class="n">dset</span><span class="o">.</span><span class="n">chunks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Contiguous dataset...</span>
+            <span class="k">if</span> <span class="n">dsid</span><span class="o">.</span><span class="n">get_offset</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># No data ever written...</span>
+                <span class="k">return</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;offset&#39;</span><span class="p">:</span> <span class="n">dsid</span><span class="o">.</span><span class="n">get_offset</span><span class="p">(),</span>
+                              <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">dsid</span><span class="o">.</span><span class="n">get_storage_size</span><span class="p">()}}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Chunked dataset...</span>
+            <span class="n">num_chunks</span> <span class="o">=</span> <span class="n">dsid</span><span class="o">.</span><span class="n">get_num_chunks</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">num_chunks</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># No data ever written...</span>
+                <span class="k">return</span> <span class="nb">dict</span><span class="p">()</span>
+
+            <span class="c1"># Go over all the dataset chunks...</span>
+            <span class="n">stinfo</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">chunks</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_chunks</span><span class="p">):</span>
+                <span class="n">blob</span> <span class="o">=</span> <span class="n">dsid</span><span class="o">.</span><span class="n">get_chunk_info</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">a</span> <span class="o">//</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">blob</span><span class="o">.</span><span class="n">chunk_offset</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">)])</span>
+                <span class="n">stinfo</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;offset&#39;</span><span class="p">:</span> <span class="n">blob</span><span class="o">.</span><span class="n">byte_offset</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">blob</span><span class="o">.</span><span class="n">size</span><span class="p">}</span>
+            <span class="k">return</span> <span class="n">stinfo</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Martin Durant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

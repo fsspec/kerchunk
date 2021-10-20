@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Example Tests &mdash; fsspec-reference-maker  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>Tutorial &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
@@ -16,8 +16,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API Reference" href="reference.html" />
-    <link rel="prev" title="Welcome to fsspec-reference-maker’s documentation!" href="index.html" /> 
+    <link rel="next" title="Detailed description" href="detail.html" />
+    <link rel="prev" title="kerchunk" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -25,8 +25,11 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> fsspec-reference-maker
+            <a href="index.html" class="icon icon-home"> kerchunk
           </a>
+              <div class="version">
+                0+unknown
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -37,11 +40,17 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Example Tests</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#single-file-jsons">Single file JSONs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#multi-file-jsons">Multi-file JSONs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-output">Using the output</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
 </ul>
 
@@ -51,7 +60,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">fsspec-reference-maker</a>
+          <a href="index.html">kerchunk</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -59,7 +68,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Example Tests</li>
+      <li>Tutorial</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/test_example.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -69,12 +78,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="example-tests">
-<h1>Example Tests<a class="headerlink" href="#example-tests" title="Permalink to this headline">¶</a></h1>
-<p>These are some reproducible examples of how to use <code class="docutils literal notranslate"><span class="pre">fsspec-reference-maker</span></code>.</p>
+  <div class="section" id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<p>This is a run-through example for how to use this package.</p>
 <div class="section" id="single-file-jsons">
 <h2>Single file JSONs<a class="headerlink" href="#single-file-jsons" title="Permalink to this headline">¶</a></h2>
-<p>This will create a <code class="docutils literal notranslate"><span class="pre">.json</span></code> file for each of the files defined in <code class="docutils literal notranslate"><span class="pre">urllist</span></code> in a file called
+<p>This will create a <code class="docutils literal notranslate"><span class="pre">.json</span></code> file for each of the files defined in <code class="docutils literal notranslate"><span class="pre">urllist</span></code> into a file called
 <code class="docutils literal notranslate"><span class="pre">out.zip</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">urls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;s3://&quot;</span> <span class="o">+</span> <span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">[</span>
     <span class="s1">&#39;noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp&#39;</span><span class="p">,</span>
@@ -127,14 +136,18 @@ or <code class="docutils literal notranslate"><span class="pre">.json</span></co
 </pre></div>
 </div>
 </div>
+<div class="section" id="using-the-output">
+<h2>Using the output<a class="headerlink" href="#using-the-output" title="Permalink to this headline">¶</a></h2>
+<p>See the <a class="reference external" href="https://binder.pangeo.io/v2/gh/lsterzinger/kerchunk-tutorial/main">runnable notebook</a></p>
+</div>
 </div>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to fsspec-reference-maker’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="reference.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="kerchunk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="detail.html" class="btn btn-neutral float-right" title="Detailed description" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

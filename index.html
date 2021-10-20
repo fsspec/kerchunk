@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to fsspec-reference-maker’s documentation! &mdash; fsspec-reference-maker  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>kerchunk &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
@@ -16,7 +16,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Example Tests" href="test_example.html" /> 
+    <link rel="next" title="Tutorial" href="test_example.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -24,8 +24,11 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="#" class="icon icon-home"> fsspec-reference-maker
+            <a href="#" class="icon icon-home"> kerchunk
           </a>
+              <div class="version">
+                0+unknown
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -36,7 +39,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="test_example.html">Example Tests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
 </ul>
 
@@ -46,7 +54,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="#">fsspec-reference-maker</a>
+          <a href="#">kerchunk</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -54,7 +62,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-      <li>Welcome to fsspec-reference-maker’s documentation!</li>
+      <li>kerchunk</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -64,22 +72,62 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="welcome-to-fsspec-reference-maker-s-documentation">
-<h1>Welcome to fsspec-reference-maker’s documentation!<a class="headerlink" href="#welcome-to-fsspec-reference-maker-s-documentation" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="kerchunk">
+<h1>kerchunk<a class="headerlink" href="#kerchunk" title="Permalink to this headline">¶</a></h1>
+<p>Kerchunk is a library that provides a unified way to represent a variety of chunked, compressed data formats (e.g. NetCDF, HDF5, GRIB),
+allowing efficient access to the data from traditional file systems or cloud object storage.  It also provides a flexible way to create
+virtual datasets from multiple files.  It does this by extracting the byte ranges, compression information and other information about the
+data and storing this metadata in a new, separate object.  This means that you can create a virtual aggregate dataset over potentially many source
+files, for efficient, parallel and cloud-friendly <em>in-situ</em> access without having to copy or
+translate the originals. It is a gateway to in-the-cloud massive data processing while
+the data providers still insist on using legacy formats for archival storage.</p>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>This library was created to solve the problem of reading existing scientific datatypes as efficiently as possible in the cloud. The amount of observed and simulated data
+is now too large to be handled effectively via download and local processing.  In the cloud era, the answer is to move compute to the data in the Cloud, process in
+parallel, and access the data <em>in situ</em>, and only as much as needed to solve a problem or use case.</p>
+<p>Datasets are stored in many different file formats, and often as collections of files.
+Many of these formats are designed for on-premises filesystems and are hard or inefficient
+to use seamlessly in the cloud.</p>
+<p>For binary storage of array data, essentially all formats involve taking blocks of in-memory
+C buffers and encoding/compressing them to disc, with some additional metadata describing
+the details of that buffer plus any other attributes. This description can be applied to a
+very wide variety of data formats.</p>
+<p>The primary purpose of <code class="docutils literal notranslate"><span class="pre">kerchunk</span></code> is to find where these binary blocks are, and how to decode them,
+so that blocks from one or more files can be arranged into aggregate datasets accessed via the
+<a class="reference external" href="https://zarr.readthedocs.io/en/stable/">zarr</a> library and the power of <a class="reference external" href="https://filesystem-spec.readthedocs.io/en/latest/">fsspec</a>. To understand how this works, please read
+<a class="reference internal" href="detail.html"><span class="doc">Detailed description</span></a>. A full worked example for multiple HDF5 files is presented in <a class="reference internal" href="test_example.html"><span class="doc">Tutorial</span></a>.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="test_example.html">Example Tests</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="test_example.html#single-file-jsons">Single file JSONs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="test_example.html#multi-file-jsons">Multi-file JSONs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="test_example.html#using-the-output">Using the output</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#singlehdf5tozarr">SingleHdf5ToZarr</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#multizarrtozarr">MultiZarrToZarr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="detail.html#binary-buffers">Binary buffers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="detail.html#fsspec-virtual-fileesystem"><code class="docutils literal notranslate"><span class="pre">fsspec</span></code> virtual fileesystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="detail.html#zarr-reader"><code class="docutils literal notranslate"><span class="pre">zarr</span></code> reader</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="spec.html#version-0">Version 0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spec.html#version-1">Version 1</a></li>
 </ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nonzarr.html#tar-zstd">.tar.zstd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nonzarr.html#csv-json">.csv/.json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nonzarr.html#parquet-orc">parquet/orc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
+</ul>
+</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -95,7 +143,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="test_example.html" class="btn btn-neutral float-right" title="Example Tests" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="test_example.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

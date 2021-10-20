@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Reference &mdash; fsspec-reference-maker  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>API Reference &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
@@ -16,7 +16,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Example Tests" href="test_example.html" /> 
+    <link rel="prev" title="Non-zarr uses" href="nonzarr.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -24,8 +24,11 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> fsspec-reference-maker
+            <a href="index.html" class="icon icon-home"> kerchunk
           </a>
+              <div class="version">
+                0+unknown
+              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -36,12 +39,13 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="test_example.html">Example Tests</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#singlehdf5tozarr">SingleHdf5ToZarr</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#multizarrtozarr">MultiZarrToZarr</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a></li>
 </ul>
 
         </div>
@@ -50,7 +54,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">fsspec-reference-maker</a>
+          <a href="index.html">kerchunk</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -70,11 +74,29 @@
              
   <div class="section" id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="singlehdf5tozarr">
-<h2>SingleHdf5ToZarr<a class="headerlink" href="#singlehdf5tozarr" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr" title="kerchunk.hdf.SingleHdf5ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.hdf.SingleHdf5ToZarr</span></code></a>(h5f, url[, …])</p></td>
+<td><p>Translate the content of one HDF5 file into Zarr metadata.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.grib2.scan_grib" title="kerchunk.grib2.scan_grib"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.scan_grib</span></code></a>(url, common_vars, …)</p></td>
+<td><p>Generate references for a GRIB2 file</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.grib2.GRIBCodec" title="kerchunk.grib2.GRIBCodec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.GRIBCodec</span></code></a>(var)</p></td>
+<td><p>Read GRIB stream of bytes by writing to a temp file and calling cfgrib</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>(path, …)</p></td>
+<td><p>Combine multiple reference files into one</p></td>
+</tr>
+</tbody>
+</table>
 <dl class="class">
-<dt id="fsspec_reference_maker.hdf.SingleHdf5ToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">fsspec_reference_maker.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO</em>, <em class="sig-param">url: str</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fsspec_reference_maker/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fsspec_reference_maker.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
+<dt id="kerchunk.hdf.SingleHdf5ToZarr">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO</em>, <em class="sig-param">url: str</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate the content of one HDF5 file into Zarr metadata.</p>
 <p>HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array
 chunks remain in the HDF5 file.</p>
@@ -101,17 +123,17 @@ to disable</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#fsspec_reference_maker.hdf.SingleHdf5ToZarr.translate" title="fsspec_reference_maker.hdf.SingleHdf5ToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr.translate" title="kerchunk.hdf.SingleHdf5ToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>()</p></td>
 <td><p>Translate content of one HDF5 file into Zarr storage format.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="fsspec_reference_maker.hdf.SingleHdf5ToZarr.translate">
-<code class="sig-name descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/fsspec_reference_maker/hdf.html#SingleHdf5ToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fsspec_reference_maker.hdf.SingleHdf5ToZarr.translate" title="Permalink to this definition">¶</a></dt>
+<dt id="kerchunk.hdf.SingleHdf5ToZarr.translate">
+<code class="sig-name descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr.translate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate content of one HDF5 file into Zarr storage format.</p>
 <p>This method is the main entry point to execute the workflow, and
-returns a “reference” structure to be used with zarr/fsspec-reference-maker</p>
+returns a “reference” structure to be used with zarr/kerchunk</p>
 <p>No data is copied out of the HDF5 file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -125,12 +147,65 @@ returns a “reference” structure to be used with zarr/fsspec-reference-maker<
 
 </dd></dl>
 
-</div>
-<div class="section" id="multizarrtozarr">
-<h2>MultiZarrToZarr<a class="headerlink" href="#multizarrtozarr" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="kerchunk.grib2.scan_grib">
+<code class="sig-prename descclassname">kerchunk.grib2.</code><code class="sig-name descname">scan_grib</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">common_vars</em>, <em class="sig-param">storage_options</em>, <em class="sig-param">inline_threashold=100</em>, <em class="sig-param">skip=0</em>, <em class="sig-param">filter={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/grib2.html#scan_grib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.grib2.scan_grib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate references for a GRIB2 file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>url: str</strong></dt><dd><p>File location</p>
+</dd>
+<dt><strong>common_vars: list[str]</strong></dt><dd><p>Names of variables that are common to multiple measurable (i.e., coordinates)</p>
+</dd>
+<dt><strong>storage_options: dict</strong></dt><dd><p>For accessing the data, passed to filesystem</p>
+</dd>
+<dt><strong>inline_threashold: int</strong></dt><dd><p>If given, store array data smaller than this value directly in the output</p>
+</dd>
+<dt><strong>skip: int</strong></dt><dd><p>If non-zero, stop processing the file after this many messages</p>
+</dd>
+<dt><strong>filter: dict</strong></dt><dd><p>cfgrib-style filter dictionary</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>dict: references dict in Version 1 format.</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="class">
-<dt id="fsspec_reference_maker.combine.MultiZarrToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">fsspec_reference_maker.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">remote_protocol</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">xarray_open_kwargs=None</em>, <em class="sig-param">xarray_concat_args=None</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">storage_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fsspec_reference_maker/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fsspec_reference_maker.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
+<dt id="kerchunk.grib2.GRIBCodec">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.grib2.</code><code class="sig-name descname">GRIBCodec</code><span class="sig-paren">(</span><em class="sig-param">var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/grib2.html#GRIBCodec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.grib2.GRIBCodec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read GRIB stream of bytes by writing to a temp file and calling cfgrib</p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">decode</span></code>(buf[, out])</p></td>
+<td><p>Decode data in <cite>buf</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode</span></code>(buf)</p></td>
+<td><p>Encode data in <cite>buf</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
+<td><p>Instantiate codec from a configuration object.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
+<td><p>Return a dictionary holding configuration parameters for this codec.</p></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="kerchunk.combine.MultiZarrToZarr">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">remote_protocol</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">xarray_open_kwargs=None</em>, <em class="sig-param">xarray_concat_args=None</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">storage_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combine multiple reference files into one</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -159,14 +234,14 @@ returns a “reference” structure to be used with zarr/fsspec-reference-maker<
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#fsspec_reference_maker.combine.MultiZarrToZarr.translate" title="fsspec_reference_maker.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([outpath, template_count])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([outpath, template_count])</p></td>
 <td><p>Translate the combined reference files and write to new file</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="fsspec_reference_maker.combine.MultiZarrToZarr.translate">
-<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">outpath=None</em>, <em class="sig-param">template_count=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/fsspec_reference_maker/combine.html#MultiZarrToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#fsspec_reference_maker.combine.MultiZarrToZarr.translate" title="Permalink to this definition">¶</a></dt>
+<dt id="kerchunk.combine.MultiZarrToZarr.translate">
+<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">outpath=None</em>, <em class="sig-param">template_count=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.translate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate the combined reference files and write to new file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -183,13 +258,12 @@ returns a “reference” structure to be used with zarr/fsspec-reference-maker<
 </dd></dl>
 
 </div>
-</div>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="test_example.html" class="btn btn-neutral float-left" title="Example Tests" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nonzarr.html" class="btn btn-neutral float-left" title="Non-zarr uses" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

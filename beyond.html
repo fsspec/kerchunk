@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Search &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>Beyond Python &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -15,10 +14,10 @@
         <script src="_static/doctools.js"></script>
         <script src="_static/language_data.js"></script>
     <script src="_static/js/theme.js"></script>
-    <script src="_static/searchtools.js"></script>
-    <script src="_static/language_data.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="#" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Non-zarr uses" href="nonzarr.html" />
+    <link rel="prev" title="References specification" href="spec.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -32,7 +31,7 @@
                 0+unknown
               </div>
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="#" method="get">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -40,12 +39,12 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
-<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Beyond Python</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
 </ul>
@@ -64,8 +63,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Search</li>
+      <li>Beyond Python</li>
       <li class="wy-breadcrumbs-aside">
+            <a href="_sources/beyond.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -73,22 +73,30 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <noscript>
-  <div id="fallback" class="admonition warning">
-    <p class="last">
-      Please activate JavaScript to enable the search functionality.
-    </p>
-  </div>
-  </noscript>
+  <div class="section" id="beyond-python">
+<h1>Beyond Python<a class="headerlink" href="#beyond-python" title="Permalink to this headline">¶</a></h1>
+<p>The reference files currently stored in JSON format and can be readily interpreted
+in any language, as documented in detail in the <a class="reference internal" href="spec.html"><span class="doc">References specification</span></a>.
+The contents of each key
+is either encoded binary data or a URL/offset/size set. It can be loaded as long
+as the language being used can access the particular URL type.</p>
+<p>To interpret the blocks as parts of a zarr dataset, the language should
+have an <a class="reference external" href="https://github.com/zarr-developers/zarr_implementations">implementation of zarr</a>, as well as whichever binary codecs the target
+requires (maybe nothing for plain binary, or common compressors like gzip, but might
+be more specific). You would need to write some code to expose the reference set
+as a storage object that <code class="docutils literal notranslate"><span class="pre">zarr</span></code> can use.</p>
+<p>One example of a reference dataset used via a JS implementation, applied to multi-scale
+TIFF microscopy, can be found
+at <a href="#id1"><span class="problematic" id="id2">`https://observablehq.com/&#64;manzt/ome-tiff-as-filesystemreference`__</span></a>.</p>
+</div>
 
-  
-  <div id="search-results">
-  
-  </div>
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="spec.html" class="btn btn-neutral float-left" title="References specification" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nonzarr.html" class="btn btn-neutral float-right" title="Non-zarr uses" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 
@@ -110,14 +118,7 @@
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-  <script>
-    jQuery(function() { Search.loadIndex("searchindex.js"); });
-  </script>
-  
-  <script id="searchindexloader"></script>
-   
-
+  </script> 
 
 </body>
 </html>
