@@ -43,7 +43,7 @@
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Detailed description</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#binary-buffers">Binary buffers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#fsspec-virtual-fileesystem"><code class="docutils literal notranslate"><span class="pre">fsspec</span></code> virtual fileesystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fsspec-virtual-filesystem"><code class="docutils literal notranslate"><span class="pre">fsspec</span></code> virtual filesystem</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#zarr-reader"><code class="docutils literal notranslate"><span class="pre">zarr</span></code> reader</a></li>
 </ul>
 </li>
@@ -114,8 +114,8 @@ binary chunks and metadata areas, describing the types and sizes of the binary c
 they relate to one-another and any other metadata/attributes that might be associated.</p>
 <a class="reference internal image-reference" href="_images/binary_buffer.png"><img alt="HDF5 files contain C buffers" src="_images/binary_buffer.png" style="width: 400px;" /></a>
 </div>
-<div class="section" id="fsspec-virtual-fileesystem">
-<h2><code class="docutils literal notranslate"><span class="pre">fsspec</span></code> virtual fileesystem<a class="headerlink" href="#fsspec-virtual-fileesystem" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="fsspec-virtual-filesystem">
+<h2><code class="docutils literal notranslate"><span class="pre">fsspec</span></code> virtual filesystem<a class="headerlink" href="#fsspec-virtual-filesystem" title="Permalink to this headline">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">fsspec</span></code> was designed allow access to any storage backend and present it using the same filesystem-like
 interface, so that other libraries could ingest data from anywhere. The idea was originally
 motivated by the need for <code class="docutils literal notranslate"><span class="pre">dask</span></code> to be able to read data from cloud storage in parallel on a
