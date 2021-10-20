@@ -19,8 +19,9 @@ files, for efficient, parallel and cloud-friendly *in-situ* access without havin
 translate the originals. It is a gateway to in-the-cloud massive data processing while
 the data providers still insist on using legacy formats for archival storage.
 
+(formerly known as `fsspec-reference-maker`)
 
-[<img alt="logo" src="kerchunk.png" width="400"/>](https://anaconda.org/conda-forge/kerchunk)
+<img alt="logo" src="./kerchunk.png" width="200"/>
 
 
 For further information, please see the documentation pages.
