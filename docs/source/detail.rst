@@ -43,8 +43,8 @@ they relate to one-another and any other metadata/attributes that might be assoc
   :width: 400
   :alt: HDF5 files contain C buffers
 
-``fsspec`` virtual fileesystem
-------------------------------
+``fsspec`` virtual filesystem
+-----------------------------
 
 ``fsspec`` was designed allow access to any storage backend and present it using the same filesystem-like
 interface, so that other libraries could ingest data from anywhere. The idea was originally
