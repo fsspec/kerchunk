@@ -3,14 +3,14 @@ from setuptools import setup
 import versioneer
 
 setup(
-    name='fsspec-reference-maker',
+    name='kerchunk',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    packages=['fsspec_reference_maker'],
-    url='https://github.com/intake/fsspec-reference-maker',
+    packages=['kerchunk', 'fsspec_reference_maker'],
+    url='https://github.com/fsspec/kerchunk',
     license='MIT',
     author='Martin Durant',
-    author_email='martin.durant@utoronto.ca',
+    author_email='martin.durant@alumni.utoronto.ca',
     description='Functions to make reference descriptions for ReferenceFileSystem',
     python_requires='>=3.7',
     long_description=(open('README.md').read() if exists('README.md') else ''),

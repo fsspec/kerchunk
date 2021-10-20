@@ -1,4 +1,10 @@
-from ._version import get_versions
+# old package alias, to be deprecated
+import importlib
 
-__version__ = get_versions()["version"]
-del get_versions
+from kerchunk import *
+
+
+def __getattr__(name):
+    # aliases
+    return importlib.import_module(f"kerchunk.{name}")
+

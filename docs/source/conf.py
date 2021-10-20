@@ -13,15 +13,15 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
-import fsspec_reference_maker
+import kerchunk
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'fsspec-reference-maker'
+project = 'kerchunk'
 copyright = '2021, Martin Durant'
 author = 'Martin Durant'
-version = fsspec_reference_maker.__version__
+version = kerchunk.__version__
 
 # -- General configuration ---------------------------------------------------
 
