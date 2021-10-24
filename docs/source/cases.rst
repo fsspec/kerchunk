@@ -7,7 +7,7 @@ All datasets available here will also be listed in the repo Intake catalogue.
 
 .. note::
 
-   This page needs to be cleaned up and the cases standerdised.
+   This page needs to be cleaned up and the cases standardized.
 
 Sentinel Global coherence
 -------------------------
