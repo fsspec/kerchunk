@@ -36,3 +36,75 @@ sources:
           requester_pays: true
         remote_protocol: s3
 
+  sentinel_seasonal:
+    description: |
+      Global Seasonal Interferometric Coherence and Backscatter from one year of Sentinel-1 C-band SAR data.
+      See http://sentinel-1-global-coherence-earthbigdata.s3-website-us-west-2.amazonaws.com/
+    driver: zarr
+    args:
+      urlpath: "reference://"
+      storage_options:
+        fo: "gcs://mdtemp/earthbigdata.json.zst"
+        target_options:
+          compression: zstd
+      chunks: null
+
+  SDO:
+    description: |
+      6 Hours of level 1 SDO mages from 2012.
+      The WCS can be recreated from the attrs in the dataset top level.
+    driver: zarr
+    args:
+      urlpath: "reference://"
+      storage_options:
+        fo: "gcs://mdtemp/SDO_no_coords.json"
+        target_options:
+          token: anon
+        remote_protocol: gcs
+        remote_options:
+          token: anon
+
+  nwm-reanalysis:
+    driver: intake_xarray.xzarr.ZarrSource
+    description: 'National Water Model Reanalysis, version 2.1'
+    args:
+      urlpath: 'reference://'
+      storage_options:
+        simple_templates: True
+        target_options:
+          anon: true
+          compression: 'zstd'
+        target_protocol: s3
+        fo: 's3://esip-qhub-public/noaa/nwm/nwm_reanalysis.json.zst'
+        remote_options:
+          anon: true
+        remote_protocol: s3
+
+  nwm-forecast:
+    driver: intake_xarray.xzarr.ZarrSource
+    description: 'National Water Model Forecast Best Time Series'
+    args:
+      urlpath: 'reference://'
+      storage_options:
+        target_options:
+          requester_pays: true
+        target_protocol: s3
+        fo: 's3://esip-qhub-public/noaa/nwm/nwm_forecast.json'
+        remote_options:
+          anon: true
+        remote_protocol: s3
+
+  hrrr:
+    driver: zarr
+    decription: small section of 200 files of forecast data
+    args:
+      urlpath: "reference://"
+      storage_options:
+        fo: s3://esip-qhub-public/noaa/hrrr/hrrr_best.json
+        target_options:
+          anon: True
+          requester_pays: True
+        remote_options:
+          anon: True
+        remote_protocol: s3
+
