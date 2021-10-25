@@ -42,7 +42,14 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Case studies</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Case studies</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#sentinel-global-coherence">Sentinel Global coherence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#solar-dynamics-observatory">Solar Dynamics Observatory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#national-water-model">National Water Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mur-sst">MUR SST</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hrrr">HRRR</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
@@ -78,7 +85,53 @@
 <p>Here we list completed datasets, with the reproducible code that made them, link to the
 created references and possibly notebook/benchmark examples. This page is a work in progress.
 All datasets available here will also be listed in the repo Intake catalogue.</p>
-<p>[TBD]</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This page needs to be cleaned up and the cases standardized.</p>
+</div>
+<div class="section" id="sentinel-global-coherence">
+<h2>Sentinel Global coherence<a class="headerlink" href="#sentinel-global-coherence" title="Permalink to this headline">¶</a></h2>
+<p>Native data format: geoTIFF.
+Effective in-memory size: 400TB.</p>
+<p>Documentation: <a class="reference external" href="http://sentinel-1-global-coherence-earthbigdata.s3-website-us-west-2.amazonaws.com">http://sentinel-1-global-coherence-earthbigdata.s3-website-us-west-2.amazonaws.com</a></p>
+<p>Discussion: <a class="reference external" href="https://github.com/fsspec/kerchunk/issues/78">https://github.com/fsspec/kerchunk/issues/78</a></p>
+<p>Generator script: <a class="reference external" href="https://github.com/cgohlke/tifffile/blob/v2021.10.10/examples/earthbigdata.py">https://github.com/cgohlke/tifffile/blob/v2021.10.10/examples/earthbigdata.py</a></p>
+<p>Notebook: <a class="reference external" href="https://github.com/fsspec/kerchunk/raw/main/examples/earthbigdata.ipynb">https://github.com/fsspec/kerchunk/raw/main/examples/earthbigdata.ipynb</a></p>
+</div>
+<div class="section" id="solar-dynamics-observatory">
+<h2>Solar Dynamics Observatory<a class="headerlink" href="#solar-dynamics-observatory" title="Permalink to this headline">¶</a></h2>
+<p>Native data format: FITS. Effective in-memory data size: 400GB</p>
+<p>Notes: each wavelength filter is presented as a separate variable. The DATE-OBS of the nearest preceding 94A image
+is used for other filters to maintain a single time axis for all variables.</p>
+<p>Notebook: <a class="reference external" href="https://github.com/fsspec/kerchunk/raw/main/examples/SDO.ipynb">https://github.com/fsspec/kerchunk/raw/main/examples/SDO.ipynb</a></p>
+</div>
+<div class="section" id="national-water-model">
+<h2>National Water Model<a class="headerlink" href="#national-water-model" title="Permalink to this headline">¶</a></h2>
+<p>Native data format: netCDF/HDF5. Effective in-memory size: 80TB</p>
+<p>Notes: there are so many files, that dask and a tee reduction were required to aggregate the
+metadata.</p>
+<p>Notebook: <a class="reference external" href="https://nbviewer.org/gist/rsignell-usgs/02da7d9257b4b26d84d053be1af2ceeb">https://nbviewer.org/gist/rsignell-usgs/02da7d9257b4b26d84d053be1af2ceeb</a></p>
+<p>Generator notebook: <a class="reference external" href="https://gist.github.com/rsignell-usgs/ef435a53ac530a2843ce7e1d59f96e22">https://gist.github.com/rsignell-usgs/ef435a53ac530a2843ce7e1d59f96e22</a></p>
+</div>
+<div class="section" id="mur-sst">
+<h2>MUR SST<a class="headerlink" href="#mur-sst" title="Permalink to this headline">¶</a></h2>
+<p>Sea surface temperatures.
+The notebook includes benchmarks.</p>
+<p>Native data format: netCDF/HDF5. Effective in-memory size: 66TB. On disk size: 16TB</p>
+<p>Documentation: <a class="reference external" href="https://podaac.jpl.nasa.gov/dataset/MUR-JPL-L4-GLOB-v4.1">https://podaac.jpl.nasa.gov/dataset/MUR-JPL-L4-GLOB-v4.1</a></p>
+<p>Notebook: <a class="reference external" href="https://nbviewer.org/github/cgentemann/cloud_science/blob/master/zarr_meta/cloud_mur_v41_benchmark.ipynb">https://nbviewer.org/github/cgentemann/cloud_science/blob/master/zarr_meta/cloud_mur_v41_benchmark.ipynb</a></p>
+<p>Notes: see the notebook for how to establish NASA Earthdata credentials to be able to access this data.</p>
+</div>
+<div class="section" id="hrrr">
+<h2>HRRR<a class="headerlink" href="#hrrr" title="Permalink to this headline">¶</a></h2>
+<p>High-Resolution Rapid Refresh, real-time 3-km resolution, hourly updated, cloud-resolving,
+convection-allowing atmospheric model from NOAA.</p>
+<p>Native format: grib2. Effective in-memory size: 7.5GB (200-file subset)</p>
+<p>Documentation: <a class="reference external" href="https://rapidrefresh.noaa.gov/hrrr/">https://rapidrefresh.noaa.gov/hrrr/</a></p>
+<p>Notebook (generation and use): <a class="reference external" href="https://nbviewer.org/gist/rsignell-usgs/ae7bfb16e8a4049bb1ca0379805c4dc2">https://nbviewer.org/gist/rsignell-usgs/ae7bfb16e8a4049bb1ca0379805c4dc2</a></p>
+<p>Notes: extracts only sections matching the filter “heightAboveGround=2”. Requires importing <code class="docutils literal notranslate"><span class="pre">kerchunk.grib2</span></code>
+to register the codec.</p>
+</div>
 </div>
 
 
