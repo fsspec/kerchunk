@@ -24,4 +24,4 @@ the data providers still insist on using legacy formats for archival storage.
 <img alt="logo" src="./kerchunk.png" width="200"/>
 
 
-For further information, please see the documentation pages.
+For further information, please see [the documentation](https://fsspec.github.io/kerchunk/).
