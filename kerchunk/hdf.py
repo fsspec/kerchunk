@@ -125,14 +125,14 @@ class SingleHdf5ToZarr:
             # Fix some attribute values to avoid JSON encoding exceptions...
             if isinstance(v, bytes):
                 v = v.decode('utf-8')
-            elif isinstance(v, (np.ndarray, np.number)):
+            elif isinstance(v, (np.ndarray, np.number, np.bool_)):
                 if v.dtype.kind == 'S':
                     v = v.astype(str)
                 if n == '_FillValue':
                     v = encode_fill_value(v, v.dtype)
                 elif v.size == 1:
                     v = v.flatten()[0]
-                    if isinstance(v, (np.ndarray, np.number)):
+                    if isinstance(v, (np.ndarray, np.number, np.bool_)):
                         v = v.tolist()
                 else:
                     v = v.tolist()
