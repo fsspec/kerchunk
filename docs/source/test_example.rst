@@ -31,7 +31,7 @@ This will create a ``.json`` file for each of the files defined in ``urllist`` i
     so = dict(
         anon=True, default_fill_cache=False, default_cache_type='first'
     )
-    with zipfile.ZipFile("out.zip", mode="w") as zr:
+    with zipfile.ZipFile("out.zip", mode="w") as zf:
         for u in urls:
             with fsspec.open(u, **so) as inf:
                 h5chunks = kerchunk.hdf.SingleHdf5ToZarr(inf, u, inline_threshold=100)
