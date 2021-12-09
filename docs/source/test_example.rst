@@ -10,6 +10,11 @@ This will create a ``.json`` file for each of the files defined in ``urllist`` i
 ``out.zip``.
 
 .. code-block:: python
+    
+    import os
+    import zipfile
+    import kerchunk.hdf
+    import fsspec
 
     urls = ["s3://" + p for p in [
         'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp',
@@ -26,12 +31,12 @@ This will create a ``.json`` file for each of the files defined in ``urllist`` i
     so = dict(
         anon=True, default_fill_cache=False, default_cache_type='first'
     )
-    zf = zipfile.ZipFile("out.zip", mode="w")
-    for u in urls:
-        with fsspec.open(u, **so) as inf:
-            h5chunks = SingleHdf5ToZarr(inf, u, xarray=True, inline_threshold=100)
-            with zf.open(os.path.basename(u) + ".json", 'w') as outf:
-                outf.write(json.dumps(h5chunks.translate()).encode())
+    with zipfile.ZipFile("out.zip", mode="w") as zr:
+        for u in urls:
+            with fsspec.open(u, **so) as inf:
+                h5chunks = kerchunk.hdf.SingleHdf5ToZarr(inf, u, inline_threshold=100)
+                with zf.open(os.path.basename(u) + ".json", 'w') as outf:
+                    outf.write(json.dumps(h5chunks.translate()).encode())
 
 
 Multi-file JSONs
