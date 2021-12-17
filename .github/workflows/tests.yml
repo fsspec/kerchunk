@@ -18,7 +18,7 @@ jobs:
           auto-update-conda: true
           auto-activate-base: false
           activate-environment: test_env
-          environment-file: ci/environment-py{{matrix.python-version}}.yml
+          environment-file: ci/environment-py${{matrix.python-version}}.yml
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
