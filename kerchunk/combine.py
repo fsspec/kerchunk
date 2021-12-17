@@ -96,8 +96,8 @@ class MultiZarrToZarr:
         references2 = {
             k: {"data": v.encode('ascii') if not isinstance(v, list) else None,
                 "url": v[0] if isinstance(v, list) else None,
-                "offset": v[1] if isinstance(v, list) else None,
-                "size": v[2] if isinstance(v, list) else None}
+                "offset": v[1] if isinstance(v, list) and len(v) == 3 else None,
+                "size": v[2] if isinstance(v, list) and len(v) == 3 else None}
             for k, v in refs['refs'].items()}
         # use pandas for sorting
         df = pd.DataFrame(references2.values(), index=list(references2)).sort_values("offset")

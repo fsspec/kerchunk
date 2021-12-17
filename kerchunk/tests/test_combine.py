@@ -49,10 +49,11 @@ def test_fixture(onezarr, twozarrs):
 def test_write_remote(twozarrs):
     mzz = MultiZarrToZarr(twozarrs, remote_protocol="memory",
                           xarray_concat_args={"dim": "time"})
-    out = mzz.translate(None)
+    out = mzz.translate("memory://combined.json")
     z = xr.open_dataset(
         "reference://",
-        backend_kwargs={"storage_options": {"fo": out}, "consolidated": False},
+        backend_kwargs={"storage_options": {"fo": "memory://combined.json"},
+                        "consolidated": False},
         engine="zarr"
     )
     # TODO: make some assert_eq style function
