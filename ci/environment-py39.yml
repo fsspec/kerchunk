@@ -10,5 +10,6 @@ dependencies:
   - pandas
   - cfgrib
   - pytest-cov
+  - fsspec
   - flake8
   - black
