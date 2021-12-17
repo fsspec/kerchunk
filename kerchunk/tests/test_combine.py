@@ -1,18 +1,16 @@
 import numpy as np
-import pandas as pd
 import pytest
 import xarray as xr
 
 from kerchunk.zarr import single_zarr
 from kerchunk.combine import MultiZarrToZarr
 
-
 arr = np.random.rand(1, 10, 10)
-now = pd.to_datetime(["now"])
-now1 = now + pd.to_timedelta(1, unit="day")
+t0 = np.array([1])
+t1 = np.array([2])
 data1 = xr.DataArray(
     data=arr,
-    coords={"time": now},
+    coords={"time": t0},
     dims=["time", "x", "y"],
     name="data",
     attrs={"attr0": 0}
@@ -31,13 +29,13 @@ def onezarr(m):
 def twozarrs(m):
     data1_1.to_zarr("memory://zarr1.zarr")
     refs1 = single_zarr("memory://zarr1.zarr")
-    data2_1 = data1_1.assign_coords(time=now1)
+    data2_1 = data1_1.assign_coords(time=t1)
     data2_1.to_zarr("memory://zarr2.zarr")
     refs2 = single_zarr("memory://zarr2.zarr")
     return refs1, refs2
 
 
-def test_fixture(onezarr, twozarrs):
+def test_fixture(onezarr):
     z = xr.open_dataset(
         "reference://",
         backend_kwargs={"storage_options": {"fo": onezarr}, "consolidated": False},
@@ -46,10 +44,10 @@ def test_fixture(onezarr, twozarrs):
     assert (z.data.values == arr).all()
 
 
-def test_write_remote(twozarrs):
+def test_write_remote(twozarrs, m):
     mzz = MultiZarrToZarr(twozarrs, remote_protocol="memory",
                           xarray_concat_args={"dim": "time"})
-    out = mzz.translate("memory://combined.json")
+    mzz.translate("memory://combined.json")
     z = xr.open_dataset(
         "reference://",
         backend_kwargs={"storage_options": {"fo": "memory://combined.json"},
@@ -57,7 +55,7 @@ def test_write_remote(twozarrs):
         engine="zarr"
     )
     # TODO: make some assert_eq style function
-    assert z.time.values.tolist() == [now, now1]
+    assert z.time.values.tolist() == [t0, t1]
     assert z.data.shape == (2, 10, 10)
     assert (z.data[0].values == arr).all()
     assert (z.data[1].values == arr).all()

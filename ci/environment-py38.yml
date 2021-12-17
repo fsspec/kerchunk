@@ -13,5 +13,6 @@ dependencies:
   - fsspec
   - dask
   - s3fs
+  - python-blosc
   - flake8
   - black
