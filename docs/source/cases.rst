@@ -7,12 +7,13 @@ All datasets available here will also be listed in the repo Intake catalogue.
 
 .. note::
 
-   This page needs to be cleaned up and the cases standerdised.
+   This page needs to be cleaned up and the cases standardized.
 
 Sentinel Global coherence
 -------------------------
 
-Native data format: geoTIFF.
+Native data format: GeoTIFF.
+
 Effective in-memory size: 400TB.
 
 Documentation: http://sentinel-1-global-coherence-earthbigdata.s3-website-us-west-2.amazonaws.com
@@ -26,7 +27,9 @@ Notebook: https://github.com/fsspec/kerchunk/raw/main/examples/earthbigdata.ipyn
 Solar Dynamics Observatory
 --------------------------
 
-Native data format: FITS. Effective in-memory data size: 400GB
+Native data format: FITS. 
+
+Effective in-memory data size: 400GB
 
 Notes: each wavelength filter is presented as a separate variable. The DATE-OBS of the nearest preceding 94A image
 is used for other filters to maintain a single time axis for all variables.
@@ -36,7 +39,9 @@ Notebook: https://github.com/fsspec/kerchunk/raw/main/examples/SDO.ipynb
 National Water Model
 --------------------
 
-Native data format: netCDF/HDF5. Effective in-memory size: 80TB
+Native data format: NetCDF4/HDF5. 
+
+Effective in-memory size: 80TB
 
 Notes: there are so many files, that dask and a tee reduction were required to aggregate the
 metadata.
@@ -48,28 +53,26 @@ Generator notebook: https://gist.github.com/rsignell-usgs/ef435a53ac530a2843ce7e
 MUR SST
 -------
 
-Sea surface temperatures.
-The notebook includes benchmarks.
-
-Native data format: netCDF/HDF5. Effective in-memory size: 66TB. On disk size: 16TB
+Native data format: NetCDF4/HDF5. Effective in-memory size: 66TB. On disk size: 16TB
 
 Documentation: https://podaac.jpl.nasa.gov/dataset/MUR-JPL-L4-GLOB-v4.1
 
 Notebook: https://nbviewer.org/github/cgentemann/cloud_science/blob/master/zarr_meta/cloud_mur_v41_benchmark.ipynb
 
-Notes: see the notebook for how to establish NASA Earthdata credentials to be able to access this data.
+Notes: Global sea surface temperature data.  The notebook includes benchmarks.
+See the notebook for how to establish NASA Earthdata credentials necessary for data access.
 
 HRRR
 ----
 
-High-Resolution Rapid Refresh, real-time 3-km resolution, hourly updated, cloud-resolving,
-convection-allowing atmospheric model from NOAA.
+Native format: GRIB2. 
 
-Native format: grib2. Effective in-memory size: 7.5GB (200-file subset)
+Effective in-memory size: 7.5GB (200-file subset)
 
 Documentation: https://rapidrefresh.noaa.gov/hrrr/
 
 Notebook (generation and use): https://nbviewer.org/gist/rsignell-usgs/ae7bfb16e8a4049bb1ca0379805c4dc2
 
-Notes: extracts only sections matching the filter "heightAboveGround=2". Requires importing ``kerchunk.grib2``
+Notes: High-Resolution Rapid Refresh, real-time 3-km resolution, hourly updated, cloud-resolving,
+convection-allowing atmospheric model from NOAA.  Notebook extracts only sections matching the filter "heightAboveGround=2". Requires importing ``kerchunk.grib2``
 to register the codec.
