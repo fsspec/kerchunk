@@ -51,7 +51,7 @@ class MultiZarrToZarr:
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
 
-    def translate(self, outpath=None, template_count=5):
+    def translate(self, outpath=None, template_count=5, storage_options=None):
         """
         Translate the combined reference files and write to new file
 
@@ -63,21 +63,21 @@ class MultiZarrToZarr:
         template_count : int or None (optional, default=5)
             Set to ``None`` to disable templates
 
+        storage_options : dict
+            When using an fsspec URL to write to remote
         """
-
-
+        self._open_mappers()
         ds, ds0, fss = self._determine_dims()
         out = self._build_output(ds, ds0, fss)
         self.output = self._consolidate(out, template_count=template_count)
 
         if outpath:
-            self._write(self.output, outpath)
+            self._write(self.output, outpath, storage_options=storage_options)
         else:
             return self.output
-        # TODO: return new zarr dataset?
 
     @staticmethod
-    def _write(refs, outpath, filetype=None):
+    def _write(refs, outpath, storage_options=None, filetype=None):
         types = {
             "json": "json",
             "parquet": "parquet",
@@ -89,7 +89,7 @@ class MultiZarrToZarr:
         elif filetype not in types:
             raise KeyError
         if filetype == "json":
-            with open(outpath, "w") as f:
+            with fsspec.open(outpath, "w", **(storage_options or {})) as f:
                 json.dump(refs, f)
             return
         import pandas as pd
@@ -104,7 +104,7 @@ class MultiZarrToZarr:
 
         if filetype == "zarr":
             # compression should be NONE, if intent is to store in single zip
-            g = zarr.open_group(outpath, mode='w')
+            g = zarr.open_group(outpath, mode='w', storage_options=storage_options)
             g.attrs.update({k: v for k, v in refs.items() if k in ['version', "templates", "gen"]})
             g.array(name="key", data=df.index.values, dtype="object", compression="zstd",
                     object_codec=numcodecs.VLenUTF8())
@@ -122,6 +122,7 @@ class MultiZarrToZarr:
                 outpath,
                 df,
                 custom_metadata=metadata,
+                storage_options=storage_options,
                 compression="ZSTD"
             )
 
@@ -145,7 +146,7 @@ class MultiZarrToZarr:
 
         out = {}
         for k, v in mapping.items():
-            if isinstance(v, list) and v[2] < inline_threshold:
+            if isinstance(v, list) and len(v) == 3 and v[2] < inline_threshold:
                 v = self.fs.cat_file(v[0], start=v[1], end=v[1] + v[2])
             if isinstance(v, bytes):
                 try:
@@ -232,16 +233,15 @@ class MultiZarrToZarr:
                         out[f"{start}/{i}.{part}"] = v
         return out
 
-    def _determine_dims(self):
+    def _open_mappers(self):
         logger.debug("open mappers")
 
         # If self.path is a list of dictionaries, pass them directly to fsspec.filesystem
         import collections.abc
         if isinstance(self.path[0], collections.abc.Mapping):
             fo_list = self.path
-        
-        # If self.path is list of files, open the files and load the json as a dictionary
         else:
+            # If self.path is list of files, open the files and load the json as a dictionary
             with fsspec.open_files(self.path, **self.storage_options) as ofs:
                 fo_list = [json.load(of) for of in ofs]
 
@@ -252,9 +252,11 @@ class MultiZarrToZarr:
                 remote_options=self.remote_options
             ) for fo in fo_list
         ]
+        self.fss = fss
         self.fs = fss[0].fs
-        mappers = [fs.get_mapper("") for fs in fss]
+        self.mappers = [fs.get_mapper("") for fs in fss]
 
+    def _determine_dims(self):
         logger.debug("open first two datasets")
         xr_kwargs_copy = self.xr_kwargs.copy()
         
@@ -265,7 +267,7 @@ class MultiZarrToZarr:
             xr_kwargs_copy['consolidated'] = False
 
         dss = [xr.open_dataset(m, engine="zarr", chunks={},  **xr_kwargs_copy)
-               for m in mappers[:2]]
+               for m in self.mappers[:2]]
 
         if self.preprocess:
             logger.debug("preprocess")
@@ -276,10 +278,10 @@ class MultiZarrToZarr:
         self.extra_dims = set(ds.dims) - set(ds0.dims)
         self.concat_dims = set(
             k for k, v in ds.dims.items()
-           if k in ds0.dims and v / ds0.dims[k] == 2
+            if k in ds0.dims and v / ds0.dims[k] == 2
         )
         self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
-        return ds, ds0, fss
+        return ds, ds0, self.fss
 
 
 def make_coord(fss, z, accum_dim):
