@@ -19,6 +19,10 @@ jobs:
           auto-activate-base: false
           activate-environment: test_env
           environment-file: ci/environment-py${{matrix.python-version}}.yml
+      - name: Install kerchunk
+        shell: bash -l {0}
+        run: |
+          pip install .
       - name: Lint with flake8
         shell: bash -l {0}
         run: |
