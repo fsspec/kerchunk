@@ -17,7 +17,6 @@ data1 = xr.DataArray(
 )
 data1_1 = xr.Dataset({"data": data1})
 
-arr = np.random.rand(1, 10, 10)
 s0 = np.array([1], dtype="M8[s]")
 s1 = np.array([2], dtype="M8[s]")
 tdata1 = xr.DataArray(
@@ -87,10 +86,10 @@ def test_combine_times_1(twotimezarrs, m):
     # one coordinate value per input
     mzz = MultiZarrToZarr(twotimezarrs, remote_protocol="memory",
                           xarray_concat_args={"dim": "time"})
-    mzz.translate("memory://combined.json")
+    mzz.translate("memory://combined2.json")
     z = xr.open_dataset(
         "reference://",
-        backend_kwargs={"storage_options": {"fo": "memory://combined.json"},
+        backend_kwargs={"storage_options": {"fo": "memory://combined2.json"},
                         "consolidated": False},
         engine="zarr"
     )
