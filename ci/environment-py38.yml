@@ -9,6 +9,7 @@ dependencies:
   - h5netcdf
   - pandas
   - cfgrib
+  - cftime
   - pytest-cov
   - fsspec
   - dask

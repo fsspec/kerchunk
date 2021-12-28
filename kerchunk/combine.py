@@ -299,7 +299,7 @@ def make_coord(fss, z, accum_dim):
                 # Try and get the calendar attribute from "calendar" attribute
                 # If it doesn't exist, assume a standard calendar
                 if zz.attrs.get("calendar") is not None:
-                    calendar = zz.attrs.get("calendar")
+                    calendar = zz.attrs.get("calendar", "standard")
                 else:
                     calendar = 'standard'
 
