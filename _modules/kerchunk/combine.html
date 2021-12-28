@@ -373,7 +373,7 @@
                 <span class="c1"># Try and get the calendar attribute from &quot;calendar&quot; attribute</span>
                 <span class="c1"># If it doesn&#39;t exist, assume a standard calendar</span>
                 <span class="k">if</span> <span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calendar&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">calendar</span> <span class="o">=</span> <span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calendar&quot;</span><span class="p">)</span>
+                    <span class="n">calendar</span> <span class="o">=</span> <span class="n">zz</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;calendar&quot;</span><span class="p">,</span> <span class="s2">&quot;standard&quot;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">calendar</span> <span class="o">=</span> <span class="s1">&#39;standard&#39;</span>
 
