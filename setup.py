@@ -16,5 +16,10 @@ setup(
     long_description=(open('README.md').read() if exists('README.md') else ''),
     long_description_content_type='text/markdown',
     install_requires=list(open('requirements.txt').read().strip().split('\n')),
+    entry_points={
+        'numcodecs.codecs': [
+            'grib = kerchunk.grib2:GRIBCodec'
+        ],
+    },
     zip_safe=False
 )
