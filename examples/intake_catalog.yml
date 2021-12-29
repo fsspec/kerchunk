@@ -82,7 +82,9 @@ sources:
 
   nwm-forecast:
     driver: intake_xarray.xzarr.ZarrSource
-    description: 'National Water Model Forecast Best Time Series'
+    description: |
+      National Water Model Forecast Best Time Series.
+      Requires valid S3 credentials, since references file is requester-pays.
     args:
       urlpath: 'reference://'
       storage_options:
@@ -96,7 +98,9 @@ sources:
 
   hrrr:
     driver: zarr
-    decription: small section of 200 files of forecast data
+    decription: |
+      Small section of 200 files of forecast data.
+      Requires import of kerchunk.grib2 to register the grib codec with numcodecs.
     args:
       urlpath: "reference://"
       storage_options:
