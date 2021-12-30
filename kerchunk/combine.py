@@ -65,6 +65,12 @@ class MultiZarrToZarr:
 
         storage_options : dict
             When using an fsspec URL to write to remote
+
+        Returns
+        -------
+        dict or None
+            If outpath was given, the metadata is encoded as json and
+            written to that file. If not, it is returned directly.
         """
         self._open_mappers()
         ds, ds0, fss = self._determine_dims()
