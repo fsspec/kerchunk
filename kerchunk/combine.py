@@ -18,9 +18,11 @@ class MultiZarrToZarr:
 
     Parameters
     ----------
-    path: string or list of strings
-        List of JSON paths or a URL containing multiple JSONs
-    
+    path: string, list of strings or list of dict
+        List of JSON paths or a URL containing multiple JSONs. If a
+        list of mappings, this is the json-decoded content of the
+        files.
+
     remote_protocol: string
         Protocol used to access remote files (e.g. 's3', 'az', etc)
 
