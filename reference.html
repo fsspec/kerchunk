@@ -210,7 +210,9 @@ returns a “reference” structure to be used with zarr/kerchunk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>path: string or list of strings</strong></dt><dd><p>List of JSON paths or a URL containing multiple JSONs</p>
+<dt><strong>path: string, list of strings or list of dict</strong></dt><dd><p>List of JSON paths or a URL containing multiple JSONs. If a
+list of dicts, this is the json-decoded content of the
+files (such as the output of many calls to``kerchunk.hdf.SingleHdf5ToZarr()``).</p>
 </dd>
 <dt><strong>remote_protocol: string</strong></dt><dd><p>Protocol used to access remote files (e.g. ‘s3’, ‘az’, etc)</p>
 </dd>
@@ -251,6 +253,13 @@ returns a “reference” structure to be used with zarr/kerchunk</p>
 <dt><strong>template_count</strong><span class="classifier">int or None (optional, default=5)</span></dt><dd><p>Set to <code class="docutils literal notranslate"><span class="pre">None</span></code> to disable templates</p>
 </dd>
 <dt><strong>storage_options</strong><span class="classifier">dict</span></dt><dd><p>When using an fsspec URL to write to remote</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>dict or None</dt><dd><p>If outpath was given, the metadata is encoded as json and
+written to that file. If not, it is returned directly.</p>
 </dd>
 </dl>
 </dd>

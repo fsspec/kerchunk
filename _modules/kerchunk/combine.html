@@ -92,9 +92,11 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    path: string or list of strings</span>
-<span class="sd">        List of JSON paths or a URL containing multiple JSONs</span>
-<span class="sd">    </span>
+<span class="sd">    path: string, list of strings or list of dict</span>
+<span class="sd">        List of JSON paths or a URL containing multiple JSONs. If a</span>
+<span class="sd">        list of dicts, this is the json-decoded content of the</span>
+<span class="sd">        files (such as the output of many calls to``kerchunk.hdf.SingleHdf5ToZarr()``).</span>
+
 <span class="sd">    remote_protocol: string</span>
 <span class="sd">        Protocol used to access remote files (e.g. &#39;s3&#39;, &#39;az&#39;, etc)</span>
 
@@ -139,6 +141,12 @@
 
 <span class="sd">        storage_options : dict</span>
 <span class="sd">            When using an fsspec URL to write to remote</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict or None</span>
+<span class="sd">            If outpath was given, the metadata is encoded as json and</span>
+<span class="sd">            written to that file. If not, it is returned directly.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_open_mappers</span><span class="p">()</span>
         <span class="n">ds</span><span class="p">,</span> <span class="n">ds0</span><span class="p">,</span> <span class="n">fss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_dims</span><span class="p">()</span>
