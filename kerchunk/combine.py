@@ -18,9 +18,11 @@ class MultiZarrToZarr:
 
     Parameters
     ----------
-    path: string or list of strings
-        List of JSON paths or a URL containing multiple JSONs
-    
+    path: string, list of strings or list of dict
+        List of JSON paths or a URL containing multiple JSONs. If a
+        list of dicts, this is the json-decoded content of the
+        files (such as the output of many calls to``kerchunk.hdf.SingleHdf5ToZarr()``).
+
     remote_protocol: string
         Protocol used to access remote files (e.g. 's3', 'az', etc)
 
@@ -65,6 +67,12 @@ class MultiZarrToZarr:
 
         storage_options : dict
             When using an fsspec URL to write to remote
+
+        Returns
+        -------
+        dict or None
+            If outpath was given, the metadata is encoded as json and
+            written to that file. If not, it is returned directly.
         """
         self._open_mappers()
         ds, ds0, fss = self._determine_dims()
