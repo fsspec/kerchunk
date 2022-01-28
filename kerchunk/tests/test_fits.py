@@ -7,9 +7,10 @@ fits = pytest.importorskip("astropy.io.fits")
 import kerchunk.fits
 import zarr
 testdir = os.path.dirname(fits.util.get_testdata_filepath('btable.fits'))
+btable = os.path.join(testdir, "btable.fits")
 
 
-def test_fits_ascii():
+def test_ascii_table():
     # this one directly hits a remote server - should cache?
     url = "https://fits.gsfc.nasa.gov/samples/WFPC2u5780205r_c0fx.fits"
     out = kerchunk.fits.process_file(url, extension=1)
@@ -20,3 +21,18 @@ def test_fits_ascii():
         hdul = fits.open(f)
         hdu = hdul[1]
         assert list(hdu.data.astype(arr.dtype) == arr) == [True, True, True, True]
+
+
+def test_binary_table():
+    out = kerchunk.fits.process_file(btable, extension=1)
+    m = fsspec.get_mapper("reference://", fo=out)
+    z = zarr.open(m)
+    arr = z["1"]
+    with open(btable, "rb") as f:
+        hdul = fits.open(f)
+        attr2 = dict(arr.attrs)
+        assert attr2.pop('_ARRAY_DIMENSIONS') == ['x']
+        assert attr2 == dict(hdul[1].header)
+        assert (arr['order'] == hdul[1].data['order']).all()
+        assert (arr['mag'] == hdul[1].data['mag']).all()
+        assert (arr['name'].astype("U") == hdul[1].data['name']).all()  # string come out as bytes

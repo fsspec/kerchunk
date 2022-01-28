@@ -10,7 +10,7 @@ logger = logging.getLogger("fits-to-zarr")
 
 
 BITPIX2DTYPE = {8: 'uint8', 16: '>i2', 32: '>i4', 64: '>i8',
-                -32: 'float32', -64: 'float64'}
+                -32: 'float32', -64: 'float64'}  # always bigendian
 
 
 def process_file(url, storage_options=None, extension=None,
@@ -78,7 +78,7 @@ def process_file(url, storage_options=None, extension=None,
                     ]
                 else:
                     filters = None
-                length = arr.nbytes
+                length = dtype.itemsize * size
             elif isinstance(hdu, fits.hdu.table.TableHDU):
                 # ascii table
                 spans = hdu.columns._spans
@@ -91,21 +91,27 @@ def process_file(url, storage_options=None, extension=None,
                 length = (sum(spans) + len(spans)) * nrows
             elif isinstance(hdu, fits.hdu.table.BinTableHDU):
                 # binary table
-                dtype = np.dtype([(name, hdu.columns[name].format.recformat) for name in hdu.columns.names])
-                shape = [hdu.header[f"NAXIS{i + 1}"] for i in range(hdu.header["NAXIS"])]
+                dtype = hdu.columns.dtype.newbyteorder(">") # always big endian
+                import pdb
+                pdb.set_trace()
+                nrows = int(hdu.header["NAXIS2"])
+                shape = (nrows, )
+                filters = None
+                length = dtype.itemsize * nrows
             else:
                 logger.info(f"Skipping non-data extension {hdu}")
                 continue
             # one chunk for whole thing.
             # TODO: we could sub-chunk on biggest dimension
-            arr = g.empty(hdu.name, dtype=dtype, shape=shape, chunks=shape, compression=None,
+            name = hdu.name or str(ext)
+            arr = g.empty(name, dtype=dtype, shape=shape, chunks=shape, compression=None,
                           filters=filters)
             arr.attrs.update({k: str(v) if not isinstance(v, (int, float, str)) else v
                               for k, v in attrs.items() if k != "COMMENT"})
             arr.attrs["_ARRAY_DIMENSIONS"] = ["z", "y", "x"][-len(shape):]
             loc = hdu.fileinfo()["datLoc"]
             parts = ".".join(["0"] * len(shape))
-            out[f"{hdu.name}/{parts}"] = [url, loc, length]
+            out[f"{name}/{parts}"] = [url, loc, length]
         if primary_attr_to_group:
             hdu = infile[0]
             hdu.header.__str__()
