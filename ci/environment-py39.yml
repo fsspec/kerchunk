@@ -11,6 +11,8 @@ dependencies:
   - cfgrib
   - cftime
   - astropy
+  - requests
+  - aiohttp
   - pytest-cov
   - fsspec
   - dask
