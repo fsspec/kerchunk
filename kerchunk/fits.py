@@ -61,11 +61,12 @@ def process_file(url, storage_options=None, extension=None,
             attrs = dict(hdu.header)
             if hdu.is_image:
                 # for images/cubes (i.e., ndarrays with simple type)
-                shape = [hdu.header[f"NAXIS{i + 1}"] for i in range(hdu.header["NAXIS"])]
+                nax = hdu.header["NAXIS"]
+                shape = tuple(int(hdu.header[f'NAXIS{i}']) for i in range(nax, 0, -1))
                 dtype = BITPIX2DTYPE[hdu.header['BITPIX']]
-                size = np.dtype(dtype).itemsize
+                length = np.dtype(dtype).itemsize
                 for s in shape:
-                    size *= s
+                    length *= s
 
                 if 'BSCALE' in hdu.header or 'BZERO' in hdu.header:
                     filters = [
@@ -78,7 +79,6 @@ def process_file(url, storage_options=None, extension=None,
                     ]
                 else:
                     filters = None
-                length = dtype.itemsize * size
             elif isinstance(hdu, fits.hdu.table.TableHDU):
                 # ascii table
                 spans = hdu.columns._spans
@@ -92,8 +92,6 @@ def process_file(url, storage_options=None, extension=None,
             elif isinstance(hdu, fits.hdu.table.BinTableHDU):
                 # binary table
                 dtype = hdu.columns.dtype.newbyteorder(">") # always big endian
-                import pdb
-                pdb.set_trace()
                 nrows = int(hdu.header["NAXIS2"])
                 shape = (nrows, )
                 filters = None

@@ -10,7 +10,7 @@ dependencies:
   - pandas
   - cfgrib
   - cftime
-  - asreopy
+  - astropy
   - pytest-cov
   - fsspec
   - dask

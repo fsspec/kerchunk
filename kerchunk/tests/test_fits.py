@@ -1,5 +1,6 @@
 import os.path
 import fsspec
+import numpy as np
 import pytest
 
 
@@ -8,6 +9,7 @@ import kerchunk.fits
 import zarr
 testdir = os.path.dirname(fits.util.get_testdata_filepath('btable.fits'))
 btable = os.path.join(testdir, "btable.fits")
+range_im = os.path.join(testdir, "arange.fits")
 
 
 def test_ascii_table():
@@ -36,3 +38,14 @@ def test_binary_table():
         assert (arr['order'] == hdul[1].data['order']).all()
         assert (arr['mag'] == hdul[1].data['mag']).all()
         assert (arr['name'].astype("U") == hdul[1].data['name']).all()  # string come out as bytes
+
+
+def test_cube():
+    out = kerchunk.fits.process_file(range_im)
+    m = fsspec.get_mapper("reference://", fo=out)
+    z = zarr.open(m)
+    arr = z["PRIMARY"]
+    with open(range_im, "rb") as f:
+        hdul = fits.open(f)
+        expected = hdul[0].data
+    assert (arr[:] == expected).all()
