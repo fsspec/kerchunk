@@ -97,7 +97,7 @@ def process_file(url, storage_options=None, extension=None,
                 filters = None
                 length = dtype.itemsize * nrows
             else:
-                logger.info(f"Skipping non-data extension {hdu}")
+                logger.warning(f"Skipping unknown extension type: {hdu}")
                 continue
             # one chunk for whole thing.
             # TODO: we could sub-chunk on biggest dimension
@@ -111,6 +111,7 @@ def process_file(url, storage_options=None, extension=None,
             parts = ".".join(["0"] * len(shape))
             out[f"{name}/{parts}"] = [url, loc, length]
         if primary_attr_to_group:
+            # copy attributes of primary extension to top-level group
             hdu = infile[0]
             hdu.header.__str__()
             g.attrs.update({k: str(v) if not isinstance(v, (int, float, str)) else v
