@@ -18,7 +18,8 @@ setup(
     install_requires=list(open('requirements.txt').read().strip().split('\n')),
     entry_points={
         'numcodecs.codecs': [
-            'grib = kerchunk.grib2:GRIBCodec'
+            'grib = kerchunk.grib2:GRIBCodec',
+            'FITSAscii = kerchunk.fits:AsciiTableCodec'
         ],
     },
     zip_safe=False

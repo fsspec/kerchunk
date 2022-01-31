@@ -8,6 +8,7 @@ API Reference
    kerchunk.grib2.scan_grib
    kerchunk.grib2.GRIBCodec
    kerchunk.combine.MultiZarrToZarr
+   kerchunk.fits.process_file
 
 .. autoclass:: kerchunk.hdf.SingleHdf5ToZarr
     :members:
@@ -18,3 +19,5 @@ API Reference
 
 .. autoclass:: kerchunk.combine.MultiZarrToZarr
     :members:
+
+.. autofunction:: kerchunk.fits.process_file
