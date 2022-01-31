@@ -92,6 +92,9 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>(path, …)</p></td>
 <td><p>Combine multiple reference files into one</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.fits.process_file" title="kerchunk.fits.process_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.fits.process_file</span></code></a>(url[, …])</p></td>
+<td><p>Create JSON references for a single FITS file as a zarr group</p></td>
+</tr>
 </tbody>
 </table>
 <dl class="class">
@@ -266,6 +269,33 @@ written to that file. If not, it is returned directly.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="kerchunk.fits.process_file">
+<code class="sig-prename descclassname">kerchunk.fits.</code><code class="sig-name descname">process_file</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">extension=None</em>, <em class="sig-param">primary_attr_to_group=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/fits.html#process_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.fits.process_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create JSON references for a single FITS file as a zarr group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>url: str</strong></dt><dd><p>Where the file is</p>
+</dd>
+<dt><strong>storage_options: dict</strong></dt><dd><p>How to load that file (passed to fsspec)</p>
+</dd>
+<dt><strong>extension: list(int | str) | int | str or None</strong></dt><dd><p>Which extensions to include. Can be ordinal integer(s), the extension name (str) or if None,
+uses the first data extension</p>
+</dd>
+<dt><strong>primary_attr_to_group: bool</strong></dt><dd><p>Whether the output top-level group contains the attributes of the primary extension
+(which often contains no data, just a general description)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>dict of the references</dt><dd></dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
