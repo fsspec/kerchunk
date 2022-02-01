@@ -1,343 +1,256 @@
 import base64
-from collections import Counter
-import ujson as json
-from packaging import version
+import collections
 import logging
-import os
+import re
 
 import fsspec
-import numcodecs
 import numpy as np
-import xarray as xr
+import ujson
 import zarr
-logger = logging.getLogger('reference-combine')
+logger = logging.getLogger("kerchunk.combine")
 
 
 class MultiZarrToZarr:
-    """Combine multiple reference files into one
 
-    Parameters
-    ----------
-    path: string, list of strings or list of dict
-        List of JSON paths or a URL containing multiple JSONs. If a
-        list of dicts, this is the json-decoded content of the
-        files (such as the output of many calls to``kerchunk.hdf.SingleHdf5ToZarr()``).
+    def __init__(self, path, coo_map, concat_dims=None, coo_dtypes=None,
+                 target_options=None, remote_protocol=None, remote_options=None,
+                 cfcombine=False):
+        """
 
-    remote_protocol: string
-        Protocol used to access remote files (e.g. 's3', 'az', etc)
+        Selectors ("how to get coordinate values from a dataset") can be:
 
-    remote_options : dict
-        Dictionary of args to pass to ``fsspec.filesystem()``
+        - a constant value (usually str for a var name, number for a coordinate)
+        - a compiled regex ``re.Pattern``, which will be applied to the filename. Should
+          return exactly one value
+        - a string beginning "attr:" which will fetch this attribute from the
+          zarr dataset of each path
+        - a string beginning "vattr:{var}:" as above, but the attribute is taken from
+          the array named var
+        - "VARNAME" special value where a dataset contains multiple variables, just
+          use the variable names as given
+        - "INDEX" special value for the index of how far through the list of inputs
+          we are so far
+        - a string beginning "data:{var}" which will get the appropriate zarr array from
+          each input dataset.
+        - a list with the values that are known beforehand
+        - a function with signature (index, fs, var, fn) -> value, where index is an
+          int counter, fs is the file system made for the current input, var is the
+          variable we are probing (may be "var") and fn is the filename or None if
+          dicts were used as input
 
-    xarray_open_kwargs : dict
-        Dictionary of args to pass to ``xr.open_dataset()``
-
-    xarray_concat_args : dict
-        Dictionary of args to pass to ``xr.concat()``
-
-    preprocess : function
-        Function take takes in/returns a ``xr.Dataset`` to be processed before dataset concatenation
-
-    storage_options : dict
-        Dictionary of args to pass to ``fsspec.open_files()``
-    """
-
-    def __init__(self, path, remote_protocol,
-                 remote_options=None, xarray_open_kwargs=None, xarray_concat_args=None,
-                 preprocess=None, storage_options=None):
+        :param path: str, list(str) or list(dict)
+            Local paths, each containing a references JSON; or a list of references dicts
+        :param concat_dims: str or list(str)
+            Names of the dimensions to expand with
+        :param coo_map: dict(str, selector)
+            The special key "var" means the variable name int he output, which will be
+            "VARNAME" by default (i.e., variable names are the same as in the input
+            datasets)
+        :param coo_dtypes: map(str, str|np.dtype)
+            Coerce the final type of coordinate arrays (otherwise use numpy default)
+        :param target_options: dict
+            Storage options for opening ``path``
+        :param remote_protocol: str
+            The protocol of the original data
+        :param remote_options: dict
+        :param cfcombine: bool
+        """
+        self._fss = None
+        self._paths = None
+        self.ds = None
         self.path = path
-        self.xr_kwargs = xarray_open_kwargs or {}
-        self.concat_kwargs = xarray_concat_args or {}
-        self.storage_options = storage_options or {}
-        self.preprocess = preprocess
+        if concat_dims is None:
+            self.concat_dims = list(coo_map)
+        elif isinstance(concat_dims, str):
+            self.concat_dims = [concat_dims]
+        else:
+            self.concat_dims = concat_dims
+        logger.debug("Concat dims: %s", self.concat_dims)
+        self.coo_map = coo_map
+        if "var" not in coo_map:
+            self.coo_map["var"] = "VARNAME"
+        self.coo_dtypes = coo_dtypes or {}
+        self.cf = cfcombine
+        self.target_options = target_options or {}
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
+        self.out = {}
 
-    def translate(self, outpath=None, template_count=5, storage_options=None):
-        """
-        Translate the combined reference files and write to new file
+    @property
+    def fss(self):
+        """filesystem instances being analysed"""
+        import collections.abc
+        if self._fss is None:
+            logger.debug("setup filesystems")
+            if isinstance(self.path[0], collections.abc.Mapping):
+                fo_list = self.path
+                self._paths = [None] * len(fo_list)
+            else:
+                self._paths = []
+                fo_list = []
+                for of in fsspec.open_files(self.path, **self.storage_options):
+                    fo_list = of
+                    self._paths.append(of.full_name)
 
-        Parameters
-        ----------
-        outpath : String (optional)
-            Path of file to be written. If left blank, ``MultiZarrToZarr.translate()`` returns a dict.
+            self._fss = [
+                fsspec.filesystem(
+                    "reference", fo=fo,
+                    remote_protocol=self.remote_protocol,
+                    remote_options=self.remote_options
+                ) for fo in fo_list
+            ]
+        return self._fss
 
-        template_count : int or None (optional, default=5)
-            Set to ``None`` to disable templates
-
-        storage_options : dict
-            When using an fsspec URL to write to remote
-
-        Returns
-        -------
-        dict or None
-            If outpath was given, the metadata is encoded as json and
-            written to that file. If not, it is returned directly.
-        """
-        self._open_mappers()
-        ds, ds0, fss = self._determine_dims()
-        out = self._build_output(ds, ds0, fss)
-        self.output = self._consolidate(out, template_count=template_count)
-
-        if outpath:
-            self._write(self.output, outpath, storage_options=storage_options)
+    def _get_value(self, index, fs, var, arrname, fn=None):
+        """derive coordinate values for given piece"""
+        selector = self.coo_map[var]
+        if isinstance(selector, collections.abc.Callable):
+            o = selector(index, fs, var, fn)
+        elif isinstance(selector, list):
+            o = selector[index]
+        elif isinstance(selector, re.Pattern):
+            o = selector.match(fn).groups[0]  # may raise
+        elif not isinstance(selector, str):
+            # constant, should be int or float
+            o = selector
+        elif selector == "VARMANE":
+            o = arrname or var
+        elif selector == "INDEX":
+            o = index
         else:
-            return self.output
+            z = zarr.open_group(fs.get_mapper(""))
+            if selector.startswith("attr:"):
+                o = z.attrs[selector.split(":", 1)[1]]
+            elif selector.startswith("vattr:"):
+                _, var, item = selector.split(":", 3)
+                o = z[var].attrs[item]
+            elif selector.startswith("data:"):
+                o = z[selector.split(":", 1)[1]][...]
+            else:
+                o = selector  # must be a constant
+        logger.debug("Decode: %s -> %s", (selector, index, var, arrname), o)
+        return selector
 
-    @staticmethod
-    def _write(refs, outpath, storage_options=None, filetype=None):
-        types = {
-            "json": "json",
-            "parquet": "parquet",
-            "zarr": "zarr"
-        }
-        if filetype is None:
-            ext = os.path.splitext(outpath)[1].lstrip(".")
-            filetype = types[ext]
-        elif filetype not in types:
-            raise KeyError
-        if filetype == "json":
-            with fsspec.open(outpath, "w", **(storage_options or {})) as f:
-                json.dump(refs, f)
-            return
-        import pandas as pd
-        references2 = {
-            k: {"data": v.encode('ascii') if not isinstance(v, list) else None,
-                "url": v[0] if isinstance(v, list) else None,
-                "offset": v[1] if isinstance(v, list) and len(v) == 3 else None,
-                "size": v[2] if isinstance(v, list) and len(v) == 3 else None}
-            for k, v in refs['refs'].items()}
-        # use pandas for sorting
-        df = pd.DataFrame(references2.values(), index=list(references2)).sort_values("offset")
+    def first_pass(self):
+        """Accumulate the set of concat coords values across all inputs"""
+        coos = {c: set() for c in self.coo_map}
+        chunks = {}
+        for i, fs in enumerate(self.fss):
+            logger.debug("First pass: %s", i)
+            for var in self.concat_dims:
+                value = self._get_value(i, fs, var, arrname=None, fn=self._paths[i])
+                if isinstance(value, np.ndarray):
+                    coos[var].update(value.ravel())
+                    if var not in chunks:
+                        chunks[var] = value.size
+                elif isinstance(value, collections.abc.Iterable):
+                    coos[var].update(value)
+                    if var not in chunks:
+                        chunks[var] = len(value)
+                else:
+                    coos[var].add(value)
+                    if var not in chunks:
+                        chunks[var] = 1
+        coos = {c: np.atleast_1d(np.array(list(v), dtype=self.coo_dtypes.get(c, None)))
+                for c, v in coos.items()}
 
-        if filetype == "zarr":
-            # compression should be NONE, if intent is to store in single zip
-            g = zarr.open_group(outpath, mode='w', storage_options=storage_options)
-            g.attrs.update({k: v for k, v in refs.items() if k in ['version', "templates", "gen"]})
-            g.array(name="key", data=df.index.values, dtype="object", compression="zstd",
-                    object_codec=numcodecs.VLenUTF8())
-            g.array(name="offset", data=df.offset.values, dtype="uint32", compression="zstd")
-            g.array(name="size", data=df['size'].values, dtype="uint32", compression="zstd")
-            g.array(name="data", data=df.data.values, dtype="object",
-                    object_codec=numcodecs.VLenBytes(), compression="gzip")
-            # may be better as fixed length
-            g.array(name="url", data=df.url.values, dtype="object",
-                    object_codec=numcodecs.VLenUTF8(), compression='gzip')
-        if filetype == "parquet":
-            import fastparquet
-            metadata = {k: v for k, v in refs.items() if k in ['version', "templates", "gen"]}
-            fastparquet.write(
-                outpath,
-                df,
-                custom_metadata=metadata,
-                storage_options=storage_options,
-                compression="ZSTD"
-            )
+        for k, arr in coos.copy().items():
+            if arr.ndim == 1:
+                arr.sort()
+                continue
+            for i in range(arr.ndim):
+                slices = [slice(None, None)] * arr.ndim
+                slices[i] = 0
+                if (arr[slices] == all).all():
+                    arr = arr[slices]
+                if arr.ndim == 1:
+                    # we reduced coord dimension to 1
+                    arr.sort()
+                    coos[k] = arr
+                    continue
+        self.chunks = chunks
+        self.coos = coos
+        logger.debug("Created coordinates")
+        return coos
 
-    def _consolidate(self, mapping, inline_threshold=100, template_count=5):
-        counts = Counter(v[0] for v in mapping.values() if isinstance(v, list))
+    def store_coords(self, z=None, coo_attrs=None):
+        """
+        :param z: zarr group
+            Probably the first dataset, with original attrs
+        :param coo_attrs: dict
+            Extra attributes to attach to coordinates, each value of the dict should
+            also be a dict with string keys and json-serializable values.
+        """
+        group = zarr.open(self.out)
+        for k, v in self.coos.items():
+            if k == "var":
+                # The names of the variables to write in the second pass, not a coordinate
+                continue
+            # data may need preparation, e.g., cftime - use xarray Variable here?
+            # override compression?
+            arr = group.create_dataset(name=k, data=v, overwrite=True)
+            if z is not None and k in z:
+                arr.attrs.update(z[k].attrs)
+            if coo_attrs:
+                arr.attrs.update(coo_attrs.get(k, {}))
+            arr.attrs["_ARRAY_DIMENSIONS"] = [k]
 
-        def letter_sets():
-            import string
-            import itertools
-            i = 1
-            while True:
-                for tup in itertools.product(string.ascii_letters + string.digits, repeat=i):
-                    if tup[0].isdigit():
+    def second_pass(self):
+        for i, fs in enumerate(self.fss):
+            m = fs.get_mapper("")
+
+            for v in fs.ls("", detail=False):
+                if v.startswith(".z"):
+                    continue
+                logger.debug("Second pass: %s, %s", i, v)
+                import pdb
+                pdb.set_trace()
+
+                cvalues = {c: self._get_value(i, fs, c, arrname=v, fn=self._paths[i])
+                           for c in self.coo_map}
+                var = cvalues.pop("var")
+                var = var[0] if isinstance(var, list) else var
+                zarray = ujson.loads(m[f"{v}/.zarray"])
+                zattrs = ujson.loads(m[f"{v}/.zattrs"])
+                coords = zattrs["_ARRAY_DIMENSIONS"]
+                coord_order = self.concat_dims + [c for c in coords if c not in self.concat_dims]
+                for fn in fs.ls(var, detail=False):
+                    if ".z" in fn:
                         continue
-                    yield "".join(tup)
-                i += 1
+                    key_parts = fn.split("/", 1)[1].split(".")
+                    key = f"{var}/"
+                    for c in coord_order:
+                        if c in self.coos:
+                            i = np.searchsorted(self.coos[c], cvalues[c])
+                            key += str(i // self.chunks[c])
+                        else:
+                            key += key_parts.pop(0)
+                        key += "."
+                    key = key.rstrip(".")
+                    self.out[key] = fs.references[fn]
 
-        templates = {i: u for i, (u, v) in zip(letter_sets(), counts.items())
-                     if v > template_count} if template_count is not None else {}
-        inv = {v: k for k, v in templates.items()}
+                if f"{var}/.zarray" not in self.out:
+                    for k in reversed(self.concat_dims):
+                        shape = zarray["shape"]
+                        chunks = zarray["chunks"]
+                        coords.insert(0, k)
+                        shape.insert(0, self.coos[k].size)
+                        chunks.insert(0, self.chunks[k])
+                    self.out[f"{var}/.zarray"] = ujson.dumps(zarray)
+                    self.out[f"{var}/.zattrs"] = ujson.dumps(zattrs)
 
+    def consolidate(self, inline_threshold=500):
+        """Turn raw references into output"""
         out = {}
-        for k, v in mapping.items():
-            if isinstance(v, list) and len(v) == 3 and v[2] < inline_threshold:
+        for k, v in self.out.items():
+            if isinstance(v, list) and v[2] < inline_threshold:
                 v = self.fs.cat_file(v[0], start=v[1], end=v[1] + v[2])
             if isinstance(v, bytes):
                 try:
                     # easiest way to test if data is ascii
                     out[k] = v.decode('ascii')
-                    try:
-                        # minify json
-                        out[k] = json.dumps(json.loads(out[k]))
-                    except:
-                        pass
                 except UnicodeDecodeError:
                     out[k] = (b"base64:" + base64.b64encode(v)).decode()
             else:
-                if v[0] in inv:
-                    out[k] = ["{{" + inv[v[0]] + "}}"] + v[1:]
-                else:
-                    out[k] = v
-        return {"version": 1, "templates": templates, "refs": out}
-
-    def _build_output(self, ds, ds0, fss):
-        out = {}
-        logger.debug("write zarr metadata")
-        ds.to_zarr(out, chunk_store={}, compute=False,
-                   consolidated=False)  # fills in metadata&coords
-        z = zarr.open_group(out, mode='a')
-        accum_dim = list(self.concat_dims.union(self.extra_dims))[0]  # only ever one dim for now
-
-        acc_len = make_coord(fss, z, accum_dim)
-
-        for variable in ds.variables:
-            logger.debug("considering %s", variable)
-
-            # cases
-            # a) this is accum_dim -> note values, dealt with above
-            # b) this is a dimension that didn't change -> copy (once)
-            # c) this is a normal var, without accum_dim, var.shape == var0.shape -> copy (once)
-            # d) this is var needing reshape -> each dataset's keys get new names, update shape
-            # e) this is a dimension that DOES change
-
-            if variable == accum_dim:
-                logger.debug("a)")
-                continue
-
-            var, var0 = ds[variable], ds0[variable]
-            if variable in ds.dims or accum_dim not in var.dims:
-                # b) and c)
-                logger.debug(f"b) c) copy variable: {variable}")
-                out.update({k: v for k, v in fss[0].references.items() if k.startswith(variable + "/")})
-                continue
-
-            if variable in ds.coords:
-                logger.debug("e)")
-                make_coord(fss, z, variable)
-                continue
-
-            logger.debug(f"d) process variable: {variable}")
-            # update shape
-            shape = list(var.shape)
-            bit = json.loads(out[f"{variable}/.zarray"])
-            if accum_dim in var0.dims:
-                chunks_per_part = len(var0.chunks[var.dims.index(accum_dim)])
-            else:
-                chunks_per_part = 1
-            shape[var.dims.index(accum_dim)] = acc_len
-            bit["shape"] = shape
-            out[f"{variable}/.zarray"] = json.dumps(bit)
-
-            # handle components chunks
-            for i, fs in enumerate(fss):
-                for k, v in fs.references.items():
-                    start, part = os.path.split(k)
-                    if start != variable or part in ['.zgroup', '.zarray', '.zattrs']:
-                        # OK, so we go through all the keys multiple times
-                        continue
-                    elif var.dims == var0.dims:
-                        # concat only
-                        parts = {d: c for d, c in zip(var.dims, part.split("."))}
-                        parts = [parts[d] if d in self.same_dims else str(i * chunks_per_part + int(parts[d]))
-                                 for d in var.dims]
-                        out[f"{start}/{'.'.join(parts)}"] = v
-                    else:
-                        # merge with new coordinate
-                        # i.e., self.extra_dims applies
-                        out[f"{start}/{i}.{part}"] = v
-        return out
-
-    def _open_mappers(self):
-        logger.debug("open mappers")
-
-        # If self.path is a list of dictionaries, pass them directly to fsspec.filesystem
-        import collections.abc
-        if isinstance(self.path[0], collections.abc.Mapping):
-            fo_list = self.path
-        else:
-            # If self.path is list of files, open the files and load the json as a dictionary
-            with fsspec.open_files(self.path, **self.storage_options) as ofs:
-                fo_list = [json.load(of) for of in ofs]
-
-        fss = [
-            fsspec.filesystem(
-                "reference", fo=fo,
-                remote_protocol=self.remote_protocol,
-                remote_options=self.remote_options
-            ) for fo in fo_list
-        ]
-        self.fss = fss
-        self.fs = fss[0].fs
-        self.mappers = [fs.get_mapper("") for fs in fss]
-
-    def _determine_dims(self):
-        logger.debug("open first two datasets")
-        xr_kwargs_copy = self.xr_kwargs.copy()
-        
-        # Add consolidated=False to xr kwargs if not explictly given by user
-        # needed to suppress zarr open warnings
-        if (version.parse(xr.__version__) >= version.parse("0.19.0")
-                and 'consolidated' not in xr_kwargs_copy):
-            xr_kwargs_copy['consolidated'] = False
-
-        dss = [xr.open_dataset(m, engine="zarr", chunks={},  **xr_kwargs_copy)
-               for m in self.mappers[:2]]
-
-        if self.preprocess:
-            logger.debug("preprocess")
-            dss = [self.preprocess(d) for d in dss]
-        logger.debug("concat")
-        ds = xr.concat(dss, **self.concat_kwargs)
-        ds0 = dss[0]
-        self.extra_dims = set(ds.dims) - set(ds0.dims)
-        self.concat_dims = set(
-            k for k, v in ds.dims.items()
-            if k in ds0.dims and v / ds0.dims[k] == 2
-        )
-        self.same_dims = set(ds.dims) - self.extra_dims - self.concat_dims
-        return ds, ds0, self.fss
-
-
-def make_coord(fss, z, accum_dim):
-    # a)
-    accum = []
-    logger.debug("accumulate coords array %s", accum_dim)
-    times = False
-    for fs in fss:
-        zz = zarr.open_array(fs.get_mapper(accum_dim))
-
-        try:
-            import cftime
-            if not isinstance(zz, cftime.real_datetime):
-
-                # Try and get the calendar attribute from "calendar" attribute
-                # If it doesn't exist, assume a standard calendar
-                if zz.attrs.get("calendar") is not None:
-                    calendar = zz.attrs.get("calendar", "standard")
-                else:
-                    calendar = 'standard'
-
-                    # Update attrs in z[accum_dim]
-                    zattr = dict(z[accum_dim].attrs)
-                    zattr['calendar'] = 'standard'
-                    z[accum_dim].attrs.put(zattr)            
-                
-                zz = cftime.num2pydate(zz[...], units=zz.attrs["units"],
-                                       calendar=calendar)
-                times = True
-                logger.debug("converted times")
-                accum.append(zz)
-            else:
-                accum.append(zz)
-        except Exception as e:
-            ex = e
-            accum.append(zz[...].copy())
-    attr = dict(z[accum_dim].attrs)
-    if times:
-        accum = [np.array(a, dtype="M8") for a in accum]
-        attr.pop('units', None)
-    
-    attr.pop('calendar', None)
-
-    acc = np.concatenate([np.atleast_1d(a) for a in accum]).squeeze()
-
-    logger.debug("write coords array")
-    arr = z.create_dataset(name=accum_dim,
-                           data=acc,
-                           overwrite=True)
-    arr.attrs.update(attr)
-    return len(acc)
+                out[k] = v
+        return {"version": 1, "refs": out}

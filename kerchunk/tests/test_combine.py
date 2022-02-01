@@ -1,3 +1,4 @@
+import fsspec.utils
 import numpy as np
 import pytest
 import xarray as xr
@@ -89,7 +90,7 @@ def test_fixture(onezarr):
 
 def test_write_remote(twozarrs, m):
     mzz = MultiZarrToZarr(twozarrs, remote_protocol="memory",
-                          xarray_concat_args={"dim": "time"})
+                          concat_dims=["time"], coo_map={"time": "data:time"})
     mzz.translate("memory://combined.json")
     z = xr.open_dataset(
         "reference://",
@@ -106,12 +107,17 @@ def test_write_remote(twozarrs, m):
 
 def test_combine_times_1(twotimezarrs, m):
     # one coordinate value per input
+    fsspec.utils.setup_logging(logger_name="kerchunk.combine")
     mzz = MultiZarrToZarr(twotimezarrs, remote_protocol="memory",
-                          xarray_concat_args={"dim": "time"})
-    mzz.translate("memory://combined2.json")
+                          concat_dims=["time"], coo_map={"time": "data:time"})
+    mzz.first_pass()
+    mzz.second_pass()
+    import pdb
+    pdb.set_trace()
+    mzz.store_coords()
     z = xr.open_dataset(
         "reference://",
-        backend_kwargs={"storage_options": {"fo": "memory://combined2.json"},
+        backend_kwargs={"storage_options": {"fo": mzz.out},
                         "consolidated": False},
         engine="zarr"
     )
@@ -121,7 +127,7 @@ def test_combine_times_1(twotimezarrs, m):
 def test_combine_times_2(twowidetimezarrs, m):
     # one coordinate value per input
     mzz = MultiZarrToZarr(twowidetimezarrs, remote_protocol="memory",
-                          xarray_concat_args={"dim": "time"})
+                          concat_dims=["time"])
     mzz.translate("memory://combined3.json")
     z = xr.open_dataset(
         "reference://",

@@ -124,7 +124,7 @@ class SingleHdf5ToZarr:
 
             # Fix some attribute values to avoid JSON encoding exceptions...
             if isinstance(v, bytes):
-                v = v.decode('utf-8')
+                v = v.decode('utf-8') or " "
             elif isinstance(v, (np.ndarray, np.number, np.bool_)):
                 if v.dtype.kind == 'S':
                     v = v.astype(str)
@@ -171,6 +171,10 @@ class SingleHdf5ToZarr:
                 compression = numcodecs.Zlib(level=h5obj.compression_opts)
             else:
                 compression = None
+            if h5obj.dtype.kind in "UVS":
+                fill = h5obj.fillvalue or " "
+            else:
+                fill = h5obj.fillvalue
             
             # Add filter for shuffle
             filters = []
@@ -186,7 +190,7 @@ class SingleHdf5ToZarr:
             za = self._zroot.create_dataset(h5obj.name, shape=h5obj.shape,
                                             dtype=h5obj.dtype,
                                             chunks=h5obj.chunks or False,
-                                            fill_value=h5obj.fillvalue,
+                                            fill_value=fill,
                                             compression=compression,
                                             filters=filters,
                                             overwrite=True)
