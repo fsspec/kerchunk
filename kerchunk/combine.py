@@ -1,20 +1,22 @@
 import base64
-import collections
+import collections.abc
 import logging
 import re
 
 import fsspec
+import fsspec.utils
 import numpy as np
 import ujson
 import zarr
 logger = logging.getLogger("kerchunk.combine")
+fsspec.utils.setup_logging(logger)
 
 
 class MultiZarrToZarr:
 
-    def __init__(self, path, coo_map, concat_dims=None, coo_dtypes=None,
+    def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
                  target_options=None, remote_protocol=None, remote_options=None,
-                 cfcombine=False):
+                 inline_threashold=500):
         """
 
         Selectors ("how to get coordinate values from a dataset") can be:
@@ -43,9 +45,10 @@ class MultiZarrToZarr:
         :param concat_dims: str or list(str)
             Names of the dimensions to expand with
         :param coo_map: dict(str, selector)
-            The special key "var" means the variable name int he output, which will be
+            The special key "var" means the variable name in the output, which will be
             "VARNAME" by default (i.e., variable names are the same as in the input
-            datasets)
+            datasets). The default for any other coordinate is data:varname, i.e., look
+            for an array with that name
         :param coo_dtypes: map(str, str|np.dtype)
             Coerce the final type of coordinate arrays (otherwise use numpy default)
         :param target_options: dict
@@ -53,7 +56,6 @@ class MultiZarrToZarr:
         :param remote_protocol: str
             The protocol of the original data
         :param remote_options: dict
-        :param cfcombine: bool
         """
         self._fss = None
         self._paths = None
@@ -65,20 +67,23 @@ class MultiZarrToZarr:
             self.concat_dims = [concat_dims]
         else:
             self.concat_dims = concat_dims
+        self.coo_map = coo_map or {}
+        self.coo_map.update({
+            c: "VARNAME" if c == "var" else f"data:{c}"
+            for c in concat_dims if c not in self.coo_map
+        })
         logger.debug("Concat dims: %s", self.concat_dims)
-        self.coo_map = coo_map
-        if "var" not in coo_map:
-            self.coo_map["var"] = "VARNAME"
+        logger.debug("Coord map: %s", self.coo_map)
         self.coo_dtypes = coo_dtypes or {}
-        self.cf = cfcombine
         self.target_options = target_options or {}
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
+        self.inline = inline_threashold
         self.out = {}
 
     @property
     def fss(self):
-        """filesystem instances being analysed"""
+        """filesystem instances being analysed, one per input dataset"""
         import collections.abc
         if self._fss is None:
             logger.debug("setup filesystems")
@@ -88,8 +93,8 @@ class MultiZarrToZarr:
             else:
                 self._paths = []
                 fo_list = []
-                for of in fsspec.open_files(self.path, **self.storage_options):
-                    fo_list = of
+                for of in fsspec.open_files(self.path, **self.target_options):
+                    fo_list.append(of)
                     self._paths.append(of.full_name)
 
             self._fss = [
@@ -101,11 +106,23 @@ class MultiZarrToZarr:
             ]
         return self._fss
 
-    def _get_value(self, index, fs, var, arrname, fn=None):
-        """derive coordinate values for given piece"""
+    def _get_value(self, index, z, var, fn=None):
+        """derive coordinate value(s) for given input dataset
+
+        How to map from input to
+
+        index: int
+            Current place in the list of inputs
+        z: zarr group
+            Open for the current input
+        var: str
+            name of value to extract.
+        fn: str
+            filename
+        """
         selector = self.coo_map[var]
         if isinstance(selector, collections.abc.Callable):
-            o = selector(index, fs, var, fn)
+            o = selector(index, z, var, fn)
         elif isinstance(selector, list):
             o = selector[index]
         elif isinstance(selector, re.Pattern):
@@ -113,45 +130,44 @@ class MultiZarrToZarr:
         elif not isinstance(selector, str):
             # constant, should be int or float
             o = selector
-        elif selector == "VARMANE":
-            o = arrname or var
+        elif selector == "VARNAME":
+            # used for merging variable names across datasets
+            o = [_ for _ in z if _ not in self.concat_dims]
+            if len(o) > 1:
+                raise ValueError("Multiple varnames found in dataset, please "
+                                 "provide a more specific selector")
+            o = o[0]
         elif selector == "INDEX":
             o = index
+        elif selector.startswith("attr:"):
+            o = z.attrs[selector.split(":", 1)[1]]
+        elif selector.startswith("vattr:"):
+            _, var, item = selector.split(":", 3)
+            o = z[var].attrs[item]
+        elif selector.startswith("data:"):
+            o = z[selector.split(":", 1)[1]][...]
         else:
-            z = zarr.open_group(fs.get_mapper(""))
-            if selector.startswith("attr:"):
-                o = z.attrs[selector.split(":", 1)[1]]
-            elif selector.startswith("vattr:"):
-                _, var, item = selector.split(":", 3)
-                o = z[var].attrs[item]
-            elif selector.startswith("data:"):
-                o = z[selector.split(":", 1)[1]][...]
-            else:
-                o = selector  # must be a constant
-        logger.debug("Decode: %s -> %s", (selector, index, var, arrname), o)
-        return selector
+            o = selector  # must be a non-number constant - error?
+        logger.debug("Decode: %s -> %s", (selector, index, var, fn), o)
+        return o
 
     def first_pass(self):
         """Accumulate the set of concat coords values across all inputs"""
         coos = {c: set() for c in self.coo_map}
-        chunks = {}
         for i, fs in enumerate(self.fss):
             logger.debug("First pass: %s", i)
+            z = zarr.open_group(fs.get_mapper(""))
             for var in self.concat_dims:
-                value = self._get_value(i, fs, var, arrname=None, fn=self._paths[i])
+                value = self._get_value(i, z, var, fn=self._paths[i])
                 if isinstance(value, np.ndarray):
-                    coos[var].update(value.ravel())
-                    if var not in chunks:
-                        chunks[var] = value.size
+                    coos[var].add(tuple(value.squeeze().ravel()))
                 elif isinstance(value, collections.abc.Iterable):
-                    coos[var].update(value)
-                    if var not in chunks:
-                        chunks[var] = len(value)
+                    coos[var].add(value)
                 else:
                     coos[var].add(value)
-                    if var not in chunks:
-                        chunks[var] = 1
-        coos = {c: np.atleast_1d(np.array(list(v), dtype=self.coo_dtypes.get(c, None)))
+
+        # make sets of coords chunks into array of all coords
+        coos = {c: np.atleast_1d(np.array(list(v), dtype=self.coo_dtypes.get(c, None)).squeeze())
                 for c, v in coos.items()}
 
         for k, arr in coos.copy().items():
@@ -161,89 +177,123 @@ class MultiZarrToZarr:
             for i in range(arr.ndim):
                 slices = [slice(None, None)] * arr.ndim
                 slices[i] = 0
-                if (arr[slices] == all).all():
-                    arr = arr[slices]
+                # if (arr[slices] == all).all():
+                #     arr = arr[slices]
                 if arr.ndim == 1:
                     # we reduced coord dimension to 1
                     arr.sort()
                     coos[k] = arr
                     continue
-        self.chunks = chunks
         self.coos = coos
         logger.debug("Created coordinates")
         return coos
 
-    def store_coords(self, z=None, coo_attrs=None):
+    def store_coords(self):
         """
-        :param z: zarr group
-            Probably the first dataset, with original attrs
-        :param coo_attrs: dict
-            Extra attributes to attach to coordinates, each value of the dict should
-            also be a dict with string keys and json-serializable values.
+        Write coordinate arrays into the output
         """
         group = zarr.open(self.out)
+        m = self.fss[0].get_mapper("")
+        z = zarr.open(m)
         for k, v in self.coos.items():
             if k == "var":
                 # The names of the variables to write in the second pass, not a coordinate
                 continue
-            # data may need preparation, e.g., cftime - use xarray Variable here?
-            # override compression?
-            arr = group.create_dataset(name=k, data=v, overwrite=True)
-            if z is not None and k in z:
+            # parametrize the threshold value below?
+            compression = "blosc" if len(v) > 100 else None
+            arr = group.create_dataset(name=k, data=v.ravel(), overwrite=True, compressor=compression,
+                                       dtype=self.coo_dtypes.get(k, v.dtype))
+            if k in z:
+                # copy attributes if values came from an original variable
                 arr.attrs.update(z[k].attrs)
-            if coo_attrs:
-                arr.attrs.update(coo_attrs.get(k, {}))
             arr.attrs["_ARRAY_DIMENSIONS"] = [k]
+        for fn in [".zgroup", ".zattrs"]:
+            # top-level group attributes from first input
+            if fn in m:
+                self.out[fn] = ujson.dumps(ujson.loads(m[fn]))
 
     def second_pass(self):
+        """map every input chunk to the output"""
+        chunk_sizes = {}  #
+        identical = set()
+        no_deps = None
+
         for i, fs in enumerate(self.fss):
             m = fs.get_mapper("")
+            z = zarr.open(m)
 
+            if no_deps is None:
+                # done first time only
+                deps = [z[_].attrs["_ARRAY_DIMENSIONS"] for _ in z]
+                all_deps = set(sum(deps, []))
+                no_deps = set(self.coo_map) - all_deps
+
+            # Coordinate values for the whole of this dataset
+            cvalues = {c: self._get_value(i, z, c, fn=self._paths[i])
+                       for c in self.coo_map}
+            var = cvalues.get("var", None)
             for v in fs.ls("", detail=False):
-                if v.startswith(".z"):
+                if v in self.coo_map or v.startswith(".z"):
+                    # already made coordinate variables and metadata
                     continue
                 logger.debug("Second pass: %s, %s", i, v)
-                import pdb
-                pdb.set_trace()
 
-                cvalues = {c: self._get_value(i, fs, c, arrname=v, fn=self._paths[i])
-                           for c in self.coo_map}
-                var = cvalues.pop("var")
-                var = var[0] if isinstance(var, list) else var
                 zarray = ujson.loads(m[f"{v}/.zarray"])
+                if v not in chunk_sizes:
+                    chunk_sizes[v] = zarray["chunks"]
+                else:
+                    assert chunk_sizes[v] == zarray["chunks"], "Found chunk size mismatch"
+                chunks = chunk_sizes[v]
                 zattrs = ujson.loads(m[f"{v}/.zattrs"])
                 coords = zattrs["_ARRAY_DIMENSIONS"]
-                coord_order = self.concat_dims + [c for c in coords if c not in self.concat_dims]
-                for fn in fs.ls(var, detail=False):
+
+                # TODO: identical check here, if array does not depend on a concat dim
+                # if nodeps:
+
+                coord_order = [c for c in self.concat_dims if c not in coords and c != "var"] + coords
+                for fn in fs.ls(v, detail=False):
+                    # loop over the chunks and copy the references
                     if ".z" in fn:
                         continue
                     key_parts = fn.split("/", 1)[1].split(".")
-                    key = f"{var}/"
-                    for c in coord_order:
+                    key = f"{var or v}/"
+                    for loc, c in enumerate(coord_order):
                         if c in self.coos:
-                            i = np.searchsorted(self.coos[c], cvalues[c])
-                            key += str(i // self.chunks[c])
+                            cv = cvalues[c]
+                            if isinstance(cv, np.ndarray):
+                                cv = cv.squeeze().tolist()
+                            i = self.coos[c].tolist().index(cv)
+                            key += str(i // chunks[loc])
                         else:
                             key += key_parts.pop(0)
                         key += "."
                     key = key.rstrip(".")
                     self.out[key] = fs.references[fn]
 
-                if f"{var}/.zarray" not in self.out:
-                    for k in reversed(self.concat_dims):
-                        shape = zarray["shape"]
-                        chunks = zarray["chunks"]
-                        coords.insert(0, k)
-                        shape.insert(0, self.coos[k].size)
-                        chunks.insert(0, self.chunks[k])
-                    self.out[f"{var}/.zarray"] = ujson.dumps(zarray)
-                    self.out[f"{var}/.zattrs"] = ujson.dumps(zattrs)
+                # create output array
+                if f"{var or v}/.zarray" not in self.out:
+                    shape = []
+                    ch = []
+                    for c in coord_order:
+                        if c in self.coos:
+                            shape.append(self.coos[c].size)
+                        else:
+                            shape.append(zarray["shape"][coords.index(c)])
+                        ch.append(chunks[coords.index(c)] if c in coords else 1)
 
-    def consolidate(self, inline_threshold=500):
-        """Turn raw references into output"""
+                    zarray['shape'] = shape
+                    zarray['chunks'] = chunks
+                    zattrs["_ARRAY_DIMENSIONS"] = coord_order
+                    self.out[f"{var or v}/.zarray"] = ujson.dumps(zarray)
+                    # other attributes copied as-is from first occurrence of this array
+                    self.out[f"{var or v}/.zattrs"] = ujson.dumps(zattrs)
+
+    def consolidate(self):
+        """Turn raw references into output, inlining as needed"""
         out = {}
         for k, v in self.out.items():
-            if isinstance(v, list) and v[2] < inline_threshold:
+            if isinstance(v, list) and len(v) > 1 and v[2] < self.inline:
+                # TODO: check original file's size if not a range
                 v = self.fs.cat_file(v[0], start=v[1], end=v[1] + v[2])
             if isinstance(v, bytes):
                 try:
@@ -254,3 +304,9 @@ class MultiZarrToZarr:
             else:
                 out[k] = v
         return {"version": 1, "refs": out}
+
+    def translate(self):
+        self.first_pass()
+        self.store_coords()
+        self.second_pass()
+        return self.consolidate()

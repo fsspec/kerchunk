@@ -1,138 +1,277 @@
+import fsspec
 import fsspec.utils
 import numpy as np
+import dask.array as da
 import pytest
 import xarray as xr
+import zarr
 
 from kerchunk.zarr import single_zarr
 from kerchunk.combine import MultiZarrToZarr
 
+fs = fsspec.filesystem("memory")
 arr = np.random.rand(1, 10, 10)
-t0 = np.array([1])
-t1 = np.array([2])
-data1 = xr.DataArray(
+
+static = xr.DataArray(data=np.random.rand(10, 10), dims=["x", "y"], name="static")
+data = xr.DataArray(
+    data=arr.squeeze(),
+    dims=["x", "y"],
+    name="data",
+)
+xr.Dataset({"data": data}, attrs={"attr0": 3}).to_zarr("memory://simple1.zarr")
+
+data = xr.DataArray(
+    data=arr.squeeze() + 1,
+    dims=["x", "y"],
+    name="data",
+)
+xr.Dataset({"data": data}, attrs={"attr0": 4}).to_zarr("memory://simple2.zarr")
+
+data = xr.DataArray(
+    data=arr.squeeze(),
+    dims=["x", "y"],
+    name="datum",
+)
+xr.Dataset({"datum": data}, attrs={"attr0": 3}).to_zarr("memory://simple_var1.zarr")
+
+data = xr.DataArray(
+    data=arr.squeeze() + 1,
+    dims=["x", "y"],
+    name="datum",
+)
+xr.Dataset({"datum": data}, attrs={"attr0": 4}).to_zarr("memory://simple_var2.zarr")
+
+data = xr.DataArray(
     data=arr,
-    coords={"time": t0},
+    coords={"time": np.array([1])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 3}
+)
+xr.Dataset({"data": data, "static": static}, attrs={"attr1": 5}).to_zarr("memory://single1.zarr")
+
+data = xr.DataArray(
+    data=arr,
+    coords={"time": np.array([2])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 4}
+)
+xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr("memory://single2.zarr")
+
+data = xr.DataArray(
+    data=np.vstack([arr]*4),
+    coords={"time": np.array([1, 2, 3, 4])},
     dims=["time", "x", "y"],
     name="data",
     attrs={"attr0": 0}
 )
-data1_1 = xr.Dataset({"data": data1})
+xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk1.zarr")
 
-s0 = np.array([1], dtype="M8[s]")
-s1 = np.array([2], dtype="M8[s]")
+data = xr.DataArray(
+    data=np.vstack([arr]*4),
+    coords={"time": np.array([5, 6, 7, 8])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 0}
+)
+xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk2.zarr")
+
+data = xr.DataArray(
+    data=da.from_array(np.vstack([arr]*4), chunks=(1, 10, 10)),
+    coords={"time": np.array([1, 2, 3, 4])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 0}
+)
+xr.Dataset({"data": data}).to_zarr("memory://quad_1chunk1.zarr")
+
+data = xr.DataArray(
+    data=da.from_array(np.vstack([arr]*4), chunks=(1, 10, 10)),
+    coords={"time": np.array([5, 6, 7, 8])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 0}
+)
+xr.Dataset({"data": data}).to_zarr("memory://quad_1chunk2.zarr")
+
+data = xr.DataArray(
+    data=da.from_array(np.vstack([arr]*4), chunks=(2, 10, 10)),
+    coords={"time": np.array([1, 2, 3, 4])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 0}
+)
+xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk1.zarr")
+
+data = xr.DataArray(
+    data=da.from_array(np.vstack([arr]*4), chunks=(2, 10, 10)),
+    coords={"time": np.array([5, 6, 7, 8])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 0}
+)
+xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk2.zarr")
+
+# simple time arrays
 tdata1 = xr.DataArray(
     data=arr,
-    coords={"time": s0},
+    coords={"time": np.array([1], dtype="M8[s]")},
     dims=["time", "x", "y"],
     name="data",
     attrs={"attr0": 0}
 )
-tdata1_1 = xr.Dataset({"data": tdata1})
+xr.Dataset({"data": data}).to_zarr("memory://time1.zarr")
 
-
-ss0 = np.array([1, 2], dtype="M8[s]")
-ss1 = np.array([3, 4], dtype="M8[s]")
-tdata2 = xr.DataArray(
-    data=np.concatenate([arr, arr]),
-    coords={"time": ss0},
+tdata1 = xr.DataArray(
+    data=arr,
+    coords={"time": np.array([1], dtype="M8[s]")},
     dims=["time", "x", "y"],
     name="data",
     attrs={"attr0": 0}
 )
-tdata2_1 = xr.Dataset({"data": tdata2})
+xr.Dataset({"data": data}).to_zarr("memory://time2.zarr")
+
+# cftime arrays (i.e., integers with unit, epoch and calendar in attributes)
+# ...
 
 
-@pytest.fixture()
-def onezarr(m):
-    data1_1.to_zarr("memory://zarr.zarr")
-    refs = single_zarr("memory://zarr.zarr")
-    return refs
+@pytest.fixture(scope="module")
+def refs():
+    return {path.replace('.zarr', '').lstrip("/"):
+                single_zarr(f"memory://{path}") for path in fs.ls("")}
 
 
-@pytest.fixture()
-def twozarrs(m):
-    data1_1.to_zarr("memory://zarr1.zarr")
-    refs1 = single_zarr("memory://zarr1.zarr")
-    data2_1 = data1_1.assign_coords(time=t1)
-    data2_1.to_zarr("memory://zarr2.zarr")
-    refs2 = single_zarr("memory://zarr2.zarr")
-    return refs1, refs2
-
-
-@pytest.fixture()
-def twotimezarrs(m):
-    tdata1_1.to_zarr("memory://zarr1.zarr")
-    refs1 = single_zarr("memory://zarr1.zarr")
-    tdata2_1 = tdata1_1.assign_coords(time=s1)
-    tdata2_1.to_zarr("memory://zarr2.zarr")
-    refs2 = single_zarr("memory://zarr2.zarr")
-    return refs1, refs2
-
-
-@pytest.fixture()
-def twowidetimezarrs(m):
-    tdata2_1.to_zarr("memory://zarr1.zarr")
-    refs1 = single_zarr("memory://zarr1.zarr")
-    tdata2_2 = tdata2_1.assign_coords(time=ss1)
-    tdata2_2.to_zarr("memory://zarr2.zarr")
-    refs2 = single_zarr("memory://zarr2.zarr")
-    return refs1, refs2
-
-
-def test_fixture(onezarr):
-    z = xr.open_dataset(
+def test_fixture(refs):
+    # effectively checks that single_zarr works
+    assert "single1" in refs
+    m = fsspec.get_mapper(
         "reference://",
-        backend_kwargs={"storage_options": {"fo": onezarr}, "consolidated": False},
-        engine="zarr"
+        fo=refs["single1"],
+        remote_protocol="memory"
     )
-    assert (z.data.values == arr).all()
+    g = xr.open_dataset(m, engine="zarr", backend_kwargs={"consolidated": False})
+    assert g.time.values.tolist() == [1]
+    assert (g.data.values == arr).all()
+    assert g.attrs['attr1'] == 5
+    assert g.data.attrs['attr0'] == 3
 
 
-def test_write_remote(twozarrs, m):
-    mzz = MultiZarrToZarr(twozarrs, remote_protocol="memory",
-                          concat_dims=["time"], coo_map={"time": "data:time"})
-    mzz.translate("memory://combined.json")
+@pytest.mark.parametrize(
+    "dataset,chunks", [
+        ["quad_nochunk1", ["data/0.0.0"]],
+        ["quad_1chunk1", ["data/0.0.0", "data/1.0.0", "data/2.0.0", "data/3.0.0"]],
+        ["quad_2chunk1", ["data/0.0.0", "data/1.0.0"]]
+    ]
+)
+def test_fixture_chunks(refs, dataset, chunks):
+    # checks that the right number of chunks are made per dataset
+    fs = fsspec.filesystem(
+        "reference",
+        fo=refs[dataset],
+        remote_protocol="memory"
+    )
+    out = fs.ls("data", detail=False)
+    assert out == ["data/.zarray", "data/.zattrs"] + chunks
+    out = fs.ls("time", detail=False)
+    assert out == ["time/.zarray", "time/.zattrs", "time/0"]
+
+
+@pytest.mark.parametrize(
+    "selector,expected", [
+        ["data:time", [1, 2]],
+        [[9, 10], [9, 10]],
+        ["INDEX", [0, 1]],
+        # [re.compile("simple(\\d)"), [1, 2]],  # we don't give path names here
+        ["attr:attr1", [5, 6]],
+        ["vattr:data:attr0", [3, 4]]
+    ]
+)
+def test_get_coos(refs, selector, expected):
+    mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
+                          concat_dims=["time"], coo_map={"time": selector})
+    mzz.first_pass()
+    assert mzz.coos["time"].tolist() == expected
+    mzz.store_coords()
+    g = zarr.open(mzz.out)
+    assert g['time'][:].tolist() == expected
+    assert dict(g.attrs)
+
+
+def test_coo_vars(refs):
+    mzz = MultiZarrToZarr([refs["simple1"], refs["simple_var1"]], remote_protocol="memory",
+                          concat_dims=["var"])
+    mzz.first_pass()
+    assert mzz.coos["var"].tolist() == ["data", "datum"]
+
+    mzz = MultiZarrToZarr([refs["simple1"], refs["simple2"], refs["simple_var1"], refs["simple_var2"]],
+                          remote_protocol="memory",
+                          concat_dims=["var", "time"], coo_map={"time": "attr:attr0"})
+    mzz.first_pass()
+    assert mzz.coos["var"].tolist() == ["data", "datum"]
+    assert mzz.coos["time"].tolist() == [3, 4]
+
+
+def test_single(refs):
+    mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
+                          concat_dims=["time"])
+    mzz.first_pass()
+    mzz.store_coords()
+    mzz.second_pass()
+    out = mzz.consolidate()
     z = xr.open_dataset(
         "reference://",
-        backend_kwargs={"storage_options": {"fo": "memory://combined.json"},
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
                         "consolidated": False},
         engine="zarr"
     )
     # TODO: make some assert_eq style function
-    assert z.time.values.tolist() == [t0, t1]
+    assert z.time.values.tolist() == [1, 2]
     assert z.data.shape == (2, 10, 10)
     assert (z.data[0].values == arr).all()
     assert (z.data[1].values == arr).all()
 
 
-def test_combine_times_1(twotimezarrs, m):
-    # one coordinate value per input
-    fsspec.utils.setup_logging(logger_name="kerchunk.combine")
-    mzz = MultiZarrToZarr(twotimezarrs, remote_protocol="memory",
-                          concat_dims=["time"], coo_map={"time": "data:time"})
-    mzz.first_pass()
-    mzz.second_pass()
-    import pdb
-    pdb.set_trace()
-    mzz.store_coords()
-    z = xr.open_dataset(
-        "reference://",
-        backend_kwargs={"storage_options": {"fo": mzz.out},
-                        "consolidated": False},
-        engine="zarr"
-    )
-    assert z.time.values.tolist() == [s0, s1]
-
-
-def test_combine_times_2(twowidetimezarrs, m):
-    # one coordinate value per input
-    mzz = MultiZarrToZarr(twowidetimezarrs, remote_protocol="memory",
+@pytest.mark.parametrize(
+    "inputs, chunks",
+    [
+        [["quad_nochunk1", "quad_nochunk2"], ((4, 4), (10,), (10,))],
+        [["quad_1chunk1", "quad_1chunk2"], ((1,) * 8, (10,), (10,))],
+        [["quad_2chunk1", "quad_2chunk2"], ((2,) * 4, (10,), (10,))],
+    ]
+)
+def test_chunked(refs, inputs, chunks):
+    mzz = MultiZarrToZarr([refs[inputs[0]], refs[inputs[1]]], remote_protocol="memory",
                           concat_dims=["time"])
-    mzz.translate("memory://combined3.json")
+    out = mzz.translate()
     z = xr.open_dataset(
         "reference://",
-        backend_kwargs={"storage_options": {"fo": "memory://combined3.json"},
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
                         "consolidated": False},
-        engine="zarr"
+        engine="zarr",
+        chunks={}
     )
-    assert z.time.values.tolist() == ss0.tolist() + ss1.tolist()
+    # TODO: make some assert_eq style function
+    assert z.time.values.tolist() == [1, 2, 3, 4, 5, 6, 7, 8]
+    assert z.data.shape == (8, 10, 10)
+    assert z.data.chunks ==  chunks
+    assert (z.data[0].values == arr).all()
+    assert (z.data[1].values == arr).all()
+
+
+def test_var(refs):
+    mzz = MultiZarrToZarr([refs["simple1"], refs["simple_var1"]], remote_protocol="memory",
+                          concat_dims=["var"])
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr",
+        chunks={}
+    )
+    assert list(z) == ["data", "datum"]
+    assert list(z.dims) == ["x", "y"]
+    assert z.data.shape == z.datum.shape == (10, 10)
+    assert (z.data.values == arr).all()
+    assert (z.datum.values == arr).all()
