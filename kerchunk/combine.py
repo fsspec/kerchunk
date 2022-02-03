@@ -251,6 +251,25 @@ class MultiZarrToZarr:
                 # if nodeps:
 
                 coord_order = [c for c in self.concat_dims if c not in coords and c != "var"] + coords
+
+                # create output array, accounting for shape, chunks and dim dependencies
+                if f"{var or v}/.zarray" not in self.out:
+                    shape = []
+                    ch = []
+                    for c in coord_order:
+                        if c in self.coos:
+                            shape.append(self.coos[c].size)
+                        else:
+                            shape.append(zarray["shape"][coords.index(c)])
+                        ch.append(chunks[coords.index(c)] if c in coords else 1)
+
+                    zarray['shape'] = shape
+                    zarray['chunks'] = ch
+                    zattrs["_ARRAY_DIMENSIONS"] = coord_order
+                    self.out[f"{var or v}/.zarray"] = ujson.dumps(zarray)
+                    # other attributes copied as-is from first occurrence of this array
+                    self.out[f"{var or v}/.zattrs"] = ujson.dumps(zattrs)
+
                 for fn in fs.ls(v, detail=False):
                     # loop over the chunks and copy the references
                     if ".z" in fn:
@@ -263,30 +282,12 @@ class MultiZarrToZarr:
                             if isinstance(cv, np.ndarray):
                                 cv = cv.squeeze().tolist()
                             i = self.coos[c].tolist().index(cv)
-                            key += str(i // chunks[loc])
+                            key += str(i // ch[loc])
                         else:
                             key += key_parts.pop(0)
                         key += "."
                     key = key.rstrip(".")
                     self.out[key] = fs.references[fn]
-
-                # create output array
-                if f"{var or v}/.zarray" not in self.out:
-                    shape = []
-                    ch = []
-                    for c in coord_order:
-                        if c in self.coos:
-                            shape.append(self.coos[c].size)
-                        else:
-                            shape.append(zarray["shape"][coords.index(c)])
-                        ch.append(chunks[coords.index(c)] if c in coords else 1)
-
-                    zarray['shape'] = shape
-                    zarray['chunks'] = chunks
-                    zattrs["_ARRAY_DIMENSIONS"] = coord_order
-                    self.out[f"{var or v}/.zarray"] = ujson.dumps(zarray)
-                    # other attributes copied as-is from first occurrence of this array
-                    self.out[f"{var or v}/.zattrs"] = ujson.dumps(zattrs)
 
     def consolidate(self):
         """Turn raw references into output, inlining as needed"""

@@ -275,3 +275,24 @@ def test_var(refs):
     assert z.data.shape == z.datum.shape == (10, 10)
     assert (z.data.values == arr).all()
     assert (z.datum.values == arr).all()
+
+
+def test_var_and_dim(refs):
+    mzz = MultiZarrToZarr([refs["simple1"], refs["simple2"], refs["simple_var1"], refs["simple_var2"]],
+                          remote_protocol="memory", concat_dims=["var", "dim"],
+                          coo_map={"dim": "attr:attr0"})
+    out = mzz.translate()
+    m = fsspec.get_mapper("reference://",
+                          fo=out, remote_protocol="memory")
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr",
+        chunks={}
+    )
+    assert list(z) == ["data", "datum"]
+    assert list(z.dims) == ["dim", "x", "y"]
+    assert z.data.shape == z.datum.shape == (2, 10, 10)
+    assert z["dim"].values.tolist() == [3, 4]
+    assert (z.data.values == np.vstack([arr, arr + 1])).all()
