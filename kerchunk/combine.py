@@ -12,6 +12,16 @@ logger = logging.getLogger("kerchunk.combine")
 fsspec.utils.setup_logging(logger)
 
 
+def drop(fields):
+    """Generate example preprocessor removing given fields"""
+    def preproc(refs):
+        for k in list(refs):
+            if k.startswith(fields):
+                refs.pop(k)
+        return refs
+    return preproc
+
+
 class MultiZarrToZarr:
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
@@ -59,7 +69,8 @@ class MultiZarrToZarr:
         :param inline_threshold: int
             Size below which binary blocks are included directly in the output
         :param preprocess: callable
-            Acts on
+            Acts on the references dict of al inputs before processing. See ``drop()``
+            for an example.
         """
         self._fss = None
         self._paths = None
@@ -83,6 +94,7 @@ class MultiZarrToZarr:
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
         self.inline = inline_threshold
+        self.preprocess = preprocess
         self.out = {}
 
     @property
@@ -157,8 +169,12 @@ class MultiZarrToZarr:
 
     def first_pass(self):
         """Accumulate the set of concat coords values across all inputs"""
+
         coos = {c: set() for c in self.coo_map}
         for i, fs in enumerate(self.fss):
+            if self.preprocess:
+                self.preprocess(fs.references)
+
             logger.debug("First pass: %s", i)
             z = zarr.open_group(fs.get_mapper(""))
             for var in self.concat_dims:
@@ -174,6 +190,7 @@ class MultiZarrToZarr:
         coos = {c: np.atleast_1d(np.array(list(v), dtype=self.coo_dtypes.get(c, None)).squeeze())
                 for c, v in coos.items()}
 
+        # reorganise and sort coordinate values
         for k, arr in coos.copy().items():
             if arr.ndim == 1:
                 arr.sort()

@@ -4,7 +4,7 @@ import pytest
 import xarray as xr
 
 from kerchunk.hdf import SingleHdf5ToZarr
-from kerchunk.combine import MultiZarrToZarr
+from kerchunk.combine import MultiZarrToZarr, drop
 
 
 def test_single():
@@ -64,10 +64,7 @@ def test_multizarr(generate_mzz):
                    expected[name].attrs.items()}
             assert dict(ds[name].attrs) == dict(exp)
         for coo in ds.coords:
-            try:
-                print(coo, np.allclose(ds[coo].values, expected[coo].values))
-            except:
-                print(coo, "fail")
+            assert (ds[coo].values == expected[coo].values).all()
 
 
 @pytest.fixture(scope="module")
@@ -85,6 +82,7 @@ def generate_mzz():
         dict_list,
         remote_protocol="s3",
         remote_options={'anon': True},
-        concat_dims=["time"]
+        concat_dims=["time"],
+        preprocess=drop("reference_time")
     )
     return mzz
