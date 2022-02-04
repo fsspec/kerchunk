@@ -16,7 +16,7 @@ class MultiZarrToZarr:
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
                  target_options=None, remote_protocol=None, remote_options=None,
-                 inline_threashold=500):
+                 inline_threshold=500, preprocess=None):
         """
 
         Selectors ("how to get coordinate values from a dataset") can be:
@@ -56,6 +56,10 @@ class MultiZarrToZarr:
         :param remote_protocol: str
             The protocol of the original data
         :param remote_options: dict
+        :param inline_threshold: int
+            Size below which binary blocks are included directly in the output
+        :param preprocess: callable
+            Acts on
         """
         self._fss = None
         self._paths = None
@@ -78,7 +82,7 @@ class MultiZarrToZarr:
         self.target_options = target_options or {}
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
-        self.inline = inline_threashold
+        self.inline = inline_threshold
         self.out = {}
 
     @property
@@ -94,7 +98,7 @@ class MultiZarrToZarr:
                 self._paths = []
                 fo_list = []
                 for of in fsspec.open_files(self.path, **self.target_options):
-                    fo_list.append(of)
+                    fo_list.append(of.open())
                     self._paths.append(of.full_name)
 
             self._fss = [
@@ -215,7 +219,8 @@ class MultiZarrToZarr:
     def second_pass(self):
         """map every input chunk to the output"""
         chunk_sizes = {}  #
-        identical = set()
+        skip = set()
+        dont_skip = set()
         no_deps = None
 
         for i, fs in enumerate(self.fss):
@@ -232,8 +237,9 @@ class MultiZarrToZarr:
             cvalues = {c: self._get_value(i, z, c, fn=self._paths[i])
                        for c in self.coo_map}
             var = cvalues.get("var", None)
+
             for v in fs.ls("", detail=False):
-                if v in self.coo_map or v.startswith(".z"):
+                if v in self.coo_map or v in skip or v.startswith(".z"):
                     # already made coordinate variables and metadata
                     continue
                 logger.debug("Second pass: %s, %s", i, v)
@@ -247,8 +253,21 @@ class MultiZarrToZarr:
                 zattrs = ujson.loads(m[f"{v}/.zattrs"])
                 coords = zattrs["_ARRAY_DIMENSIONS"]
 
+                if v not in dont_skip and v in all_deps:
+                    # this is an input coordinate
+                    # a coordinate is any array appearing in its own or other array's _ARRAY_DIMENSIONS
+                    skip.add(v)
+                    for k in fs.ls(v, detail=False):
+                        self.out[k] = fs.references[k]
+                    continue
+
                 # TODO: identical check here, if array does not depend on a concat dim
-                # if nodeps:
+                #  This is only for the case that none of the data arrays depends on a concat dim
+                # if IKnowItsIdentical:
+                #     skip.add(v)
+                #     continue
+
+                dont_skip.add(v)  # don't check for coord or identical again
 
                 coord_order = [c for c in self.concat_dims if c not in coords and c != "var"] + coords
 
@@ -307,6 +326,7 @@ class MultiZarrToZarr:
         return {"version": 1, "refs": out}
 
     def translate(self):
+        """Perform all stages and return the resultant references dict"""
         self.first_pass()
         self.store_coords()
         self.second_pass()
