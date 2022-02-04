@@ -174,6 +174,9 @@ class MultiZarrToZarr:
         for i, fs in enumerate(self.fss):
             if self.preprocess:
                 self.preprocess(fs.references)
+                # reset this to force references to update
+                fs.dircache = None
+                fs._dircache_from_items()
 
             logger.debug("First pass: %s", i)
             z = zarr.open_group(fs.get_mapper(""))
