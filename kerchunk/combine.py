@@ -23,55 +23,45 @@ def drop(fields):
 
 
 class MultiZarrToZarr:
+    """
+    :param path: str, list(str) or list(dict)
+        Local paths, each containing a references JSON; or a list of references dicts
+    :param concat_dims: str or list(str)
+        Names of the dimensions to expand with
+    :param coo_map: dict(str, selector)
+        The special key "var" means the variable name in the output, which will be
+        "VARNAME" by default (i.e., variable names are the same as in the input
+        datasets). The default for any other coordinate is data:varname, i.e., look
+        for an array with that name. 
+        
+        Selectors ("how to get coordinate values from a dataset") can be:
+            - a constant value (usually str for a var name, number for a coordinate)
+            - a compiled regex ``re.Pattern``, which will be applied to the filename. Should return exactly one value
+            - a string beginning "attr:" which will fetch this attribute from the zarr dataset of each path
+            - a string beginning "vattr:{var}:" as above, but the attribute is taken from the array named var
+            - "VARNAME" special value where a dataset contains multiple variables, just use the variable names as given
+            - "INDEX" special value for the index of how far through the list of inputs we are so far
+            - a string beginning "data:{var}" which will get the appropriate zarr array from each input dataset.
+            - a list with the values that are known beforehand
+            - a function with signature (index, fs, var, fn) -> value, where index is an int counter, fs is the file system made for the current input, var is the variable we are probing may be "var") and fn is the filename or None if dicts were used as input
+
+    :param coo_dtypes: map(str, str|np.dtype)
+        Coerce the final type of coordinate arrays (otherwise use numpy default)
+    :param target_options: dict
+        Storage options for opening ``path``
+    :param remote_protocol: str
+        The protocol of the original data
+    :param remote_options: dict
+    :param inline_threshold: int
+        Size below which binary blocks are included directly in the output
+    :param preprocess: callable
+        Acts on the references dict of al inputs before processing. See ``drop()``
+        for an example.
+    """
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
                  target_options=None, remote_protocol=None, remote_options=None,
                  inline_threshold=500, preprocess=None):
-        """
-
-        Selectors ("how to get coordinate values from a dataset") can be:
-
-        - a constant value (usually str for a var name, number for a coordinate)
-        - a compiled regex ``re.Pattern``, which will be applied to the filename. Should
-          return exactly one value
-        - a string beginning "attr:" which will fetch this attribute from the
-          zarr dataset of each path
-        - a string beginning "vattr:{var}:" as above, but the attribute is taken from
-          the array named var
-        - "VARNAME" special value where a dataset contains multiple variables, just
-          use the variable names as given
-        - "INDEX" special value for the index of how far through the list of inputs
-          we are so far
-        - a string beginning "data:{var}" which will get the appropriate zarr array from
-          each input dataset.
-        - a list with the values that are known beforehand
-        - a function with signature (index, fs, var, fn) -> value, where index is an
-          int counter, fs is the file system made for the current input, var is the
-          variable we are probing (may be "var") and fn is the filename or None if
-          dicts were used as input
-
-        :param path: str, list(str) or list(dict)
-            Local paths, each containing a references JSON; or a list of references dicts
-        :param concat_dims: str or list(str)
-            Names of the dimensions to expand with
-        :param coo_map: dict(str, selector)
-            The special key "var" means the variable name in the output, which will be
-            "VARNAME" by default (i.e., variable names are the same as in the input
-            datasets). The default for any other coordinate is data:varname, i.e., look
-            for an array with that name
-        :param coo_dtypes: map(str, str|np.dtype)
-            Coerce the final type of coordinate arrays (otherwise use numpy default)
-        :param target_options: dict
-            Storage options for opening ``path``
-        :param remote_protocol: str
-            The protocol of the original data
-        :param remote_options: dict
-        :param inline_threshold: int
-            Size below which binary blocks are included directly in the output
-        :param preprocess: callable
-            Acts on the references dict of al inputs before processing. See ``drop()``
-            for an example.
-        """
         self._fss = None
         self._paths = None
         self.ds = None
