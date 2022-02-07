@@ -6,6 +6,7 @@ import re
 import fsspec
 import fsspec.utils
 import numpy as np
+import numcodecs
 import ujson
 import zarr
 logger = logging.getLogger("kerchunk.combine")
@@ -173,33 +174,14 @@ class MultiZarrToZarr:
             for var in self.concat_dims:
                 value = self._get_value(i, z, var, fn=self._paths[i])
                 if isinstance(value, np.ndarray):
-                    coos[var].add(tuple(value.squeeze().ravel()))
-                elif isinstance(value, collections.abc.Iterable):
-                    coos[var].add(value)
+                    value = value.ravel()
+                if isinstance(value, (np.ndarray, tuple, list)):
+                    coos[var].update(value)
                 else:
                     coos[var].add(value)
 
-        # make sets of coords chunks into array of all coords
-        coos = {c: np.atleast_1d(np.array(list(v), dtype=self.coo_dtypes.get(c, None)).squeeze())
-                for c, v in coos.items()}
-
-        # reorganise and sort coordinate values
-        for k, arr in coos.copy().items():
-            if arr.ndim == 1:
-                arr.sort()
-                continue
-            for i in range(arr.ndim):
-                slices = [slice(None, None)] * arr.ndim
-                slices[i] = 0
-                # if (arr[slices] == all).all():
-                #     arr = arr[slices]
-                if arr.ndim == 1:
-                    # we reduced coord dimension to 1
-                    arr.sort()
-                    coos[k] = arr
-                    continue
-        self.coos = coos
-        logger.debug("Created coordinates")
+        self.coos = _reorganise(coos)
+        logger.debug("Created coordinates map")
         return coos
 
     def store_coords(self):
@@ -214,17 +196,26 @@ class MultiZarrToZarr:
                 # The names of the variables to write in the second pass, not a coordinate
                 continue
             # parametrize the threshold value below?
-            compression = "blosc" if len(v) > 100 else None
-            arr = group.create_dataset(name=k, data=v.ravel(), overwrite=True, compressor=compression,
-                                       dtype=self.coo_dtypes.get(k, v.dtype))
+            compression = numcodecs.Zstd() if len(v) > 100 else None
+            if all([isinstance(_, (tuple, list)) for _ in v]):
+                v = sum([list(_) if isinstance(_, tuple) else _ for _ in v], [])
+                data = np.array(v, dtype=self.coo_dtypes.get(k))
+            else:
+                data = np.concatenate([np.atleast_1d(np.array(_, dtype=self.coo_dtypes.get(k)))
+                                       for _ in v])
+            arr = group.create_dataset(name=k, data=np.array(v).ravel(),
+                                       overwrite=True, compressor=compression,
+                                       dtype=self.coo_dtypes.get(k, data.dtype))
             if k in z:
                 # copy attributes if values came from an original variable
                 arr.attrs.update(z[k].attrs)
             arr.attrs["_ARRAY_DIMENSIONS"] = [k]
+        logger.debug("Written coordinates")
         for fn in [".zgroup", ".zattrs"]:
             # top-level group attributes from first input
             if fn in m:
                 self.out[fn] = ujson.dumps(ujson.loads(m[fn]))
+        logger.debug("Written global metadata")
 
     def second_pass(self):
         """map every input chunk to the output"""
@@ -287,7 +278,8 @@ class MultiZarrToZarr:
                     ch = []
                     for c in coord_order:
                         if c in self.coos:
-                            shape.append(self.coos[c].size)
+                            shape.append(self.coos[c].size if isinstance(self.coos[c], np.ndarray)
+                                         else len(self.coos[c]))
                         else:
                             shape.append(zarray["shape"][coords.index(c)])
                         ch.append(chunks[coords.index(c)] if c in coords else 1)
@@ -309,8 +301,14 @@ class MultiZarrToZarr:
                         if c in self.coos:
                             cv = cvalues[c]
                             if isinstance(cv, np.ndarray):
-                                cv = cv.squeeze().tolist()
-                            i = self.coos[c].tolist().index(cv)
+                                cv = cv.ravel()
+                            if isinstance(cv, (np.ndarray, list, tuple)):
+                                cv = tuple(sorted(set(cv)))
+                                l = len(cv)
+                                cv = cv[0]
+                            else:
+                                l = 1
+                            i = self.coos[c].index(cv) // l
                             key += str(i // ch[loc])
                         else:
                             key += key_parts.pop(0)
@@ -341,3 +339,13 @@ class MultiZarrToZarr:
         self.store_coords()
         self.second_pass()
         return self.consolidate()
+
+
+def _reorganise(coos):
+    # reorganise and sort coordinate values
+    # extracted here to enable testing
+    out = {}
+    for k, arr in coos.items():
+        out[k] = list(sorted(arr))
+    return out
+

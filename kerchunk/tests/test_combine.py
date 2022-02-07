@@ -191,7 +191,7 @@ def test_get_coos(refs, selector, expected):
     mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
                           concat_dims=["time"], coo_map={"time": selector})
     mzz.first_pass()
-    assert mzz.coos["time"].tolist() == expected
+    assert mzz.coos["time"] == expected
     mzz.store_coords()
     g = zarr.open(mzz.out)
     assert g['time'][:].tolist() == expected
@@ -202,14 +202,14 @@ def test_coo_vars(refs):
     mzz = MultiZarrToZarr([refs["simple1"], refs["simple_var1"]], remote_protocol="memory",
                           concat_dims=["var"])
     mzz.first_pass()
-    assert mzz.coos["var"].tolist() == ["data", "datum"]
+    assert mzz.coos["var"] == ["data", "datum"]
 
     mzz = MultiZarrToZarr([refs["simple1"], refs["simple2"], refs["simple_var1"], refs["simple_var2"]],
                           remote_protocol="memory",
                           concat_dims=["var", "time"], coo_map={"time": "attr:attr0"})
     mzz.first_pass()
-    assert mzz.coos["var"].tolist() == ["data", "datum"]
-    assert mzz.coos["time"].tolist() == [3, 4]
+    assert mzz.coos["var"] == ["data", "datum"]
+    assert mzz.coos["time"] == [3, 4]
 
 
 def test_single(refs):
