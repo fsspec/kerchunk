@@ -10,7 +10,7 @@ import numcodecs
 import ujson
 import zarr
 logger = logging.getLogger("kerchunk.combine")
-fsspec.utils.setup_logging(logger)
+# fsspec.utils.setup_logging(logger)
 
 
 def drop(fields):
@@ -303,15 +303,17 @@ class MultiZarrToZarr:
                             if isinstance(cv, np.ndarray):
                                 cv = cv.ravel()
                             if isinstance(cv, (np.ndarray, list, tuple)):
-                                cv = tuple(sorted(set(cv)))
-                                l = len(cv)
-                                cv = cv[0]
+                                cv = tuple(sorted(set(cv)))[0]
+                            ind = self.coos[c].index(cv)
+                            if key_parts == ["10", "3", "3"] and i > 1:
+                                import pdb
+                                #pdb.set_trace()
+                            if c in coords:
+                                key += str(ind // ch[loc] + int(key_parts[coords.index(c)]))
                             else:
-                                l = 1
-                            i = self.coos[c].index(cv) // l
-                            key += str(i // ch[loc])
+                                key += str(ind // ch[loc])
                         else:
-                            key += key_parts.pop(0)
+                            key += key_parts[coords.index(c)]
                         key += "."
                     key = key.rstrip(".")
                     self.out[key] = fs.references[fn]
