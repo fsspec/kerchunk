@@ -1,5 +1,7 @@
+from numcodecs.abc import Codec
 import numpy as np
-from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, reduce, mul, netcdf_variable, frombuffer
+from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, reduce, mul, netcdf_variable
+import zarr
 
 import fsspec
 
@@ -7,9 +9,12 @@ import fsspec
 class netcdf_recording_file(netcdf_file):
 
     def __init__(self, filename, *args, storage_options=None, **kwargs):
+        assert kwargs.pop("mmap", False) is False
+        assert kwargs.pop("mode", "r") == "r"
+        assert kwargs.pop("maskandscale", False) is False
         self.chunks = {}
         with fsspec.open(filename, **(storage_options or {})) as fp:
-            super().__init__(fp, *args, **kwargs)
+            super().__init__(fp, *args, mmap=False, mode="r", maskandscale=False, **kwargs)
 
     def _read_var_array(self):
         header = self.fp.read(4)
@@ -66,18 +71,44 @@ class netcdf_recording_file(netcdf_file):
                 dtypes['names'] = dtypes['names'][:1]
                 dtypes['formats'] = dtypes['formats'][:1]
 
-            # Build rec array.
-            if self.use_mmap:
-                rec_array = self._mm_buf[begin:begin+self._recs*self._recsize].view(dtype=dtypes)
-                rec_array.shape = (self._recs,)
-            else:
-                pos = self.fp.tell()
-                self.fp.seek(begin)
-                self.chunks.setdefault(var, []).append([begin, self._recs*self._recsize, dtypes])
-                # rec_array = frombuffer(self.fp.read(self._recs*self._recsize),
-                #                        dtype=dtypes).copy()
-                # rec_array.shape = (self._recs,)
-                self.fp.seek(pos)
+            pos = self.fp.tell()
+            self.fp.seek(begin)
+            self.chunks.setdefault("record_array", []).append([begin, self._recs*self._recsize, dtypes])
+            # rec_array = frombuffer(self.fp.read(self._recs*self._recsize),
+            #                        dtype=dtypes).copy()
+            # rec_array.shape = (self._recs,)
+            self.fp.seek(pos)
 
-            # for var in rec_vars:
-            #    self.variables[var].__dict__['data'] = rec_array[var]
+    def translate(self, threshold=500):
+        out = {}
+        z = zarr.open(out, mode='w')
+        for dim, shape in self.dimensions.items():
+            var = self.variables[dim]
+            if shape is None or (len(shape) and shape[0] is None):
+                # fails, we didn't make the data and need to extract it - but these are recarray strides
+                data = var[:]
+                arr = z.create_dataset(name=var, data=data, chunks=data.shape, compression=None)
+                arr.attrs.update(var._attributes)
+            else:
+                assert len(self.chunks[dim]) == 1  # cloud subchunk here
+                arr = z.empty(name=var, shape=shape, dtype=var.dtype, chunks=shape)
+                arr.attrs.update(var._attributes)
+                part = ".".join(["0"] * len(shape)) or "0"
+                out[f"{dim}/{part}"] = [self.filename] + self.chunks[dim][:2]
+        return out
+
+
+class RecordArrayMember(Codec):
+    codec_id = "record_member"
+
+    def __init__(self, member, dtype):
+        self.member = member
+        self.dtype = dtype
+
+    def decode(self, buf, out=None):
+        arr = np.frombuffer(buf, dtype=np.dtype(self.dtype))
+        return arr[self.member].copy()
+
+    def encode(self, buf):
+        raise NotImplementedError
+
