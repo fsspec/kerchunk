@@ -101,7 +101,7 @@ def generate_mzz():
     mzz = MultiZarrToZarr(
         dict_list,
         remote_protocol="s3",
-        remote_options={'anon': True, 'simple_templates' : True},
+        remote_options={'anon': True},
         preprocess=drop_coords,
         xarray_open_kwargs=xarray_open_kwargs,
         xarray_concat_args=concat_kwargs,
