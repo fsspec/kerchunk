@@ -85,6 +85,20 @@ create a virtual aggregate dataset over potentially many source
 files, for efficient, parallel and cloud-friendly <em>in-situ</em> access without having to copy or
 translate the originals. It is a gateway to in-the-cloud massive data processing while
 the data providers still insist on using legacy formats for archival storage.</p>
+<p><em>Why Kerchunk</em>:</p>
+<p>We provide the following things:</p>
+<ul class="simple">
+<li><p>completely serverless architecture</p></li>
+<li><p>metadata consolidation, so you can understand a many-file dataset (metadata plus physical storage) in a single read</p></li>
+<li><p>read from all of the storage backends supported by fsspec, including object storage (s3, gcs, abfs, alibaba), http,
+cloud user storage (dropbox, gdrive) and network protocols (ftp, ssh, hdfs, smb…)</p></li>
+<li><p>loading of various file types (currently netcdf4/HDF, grib2, tiff, fits, zarr), potentially heterogeneous within a
+single dataset, without a need to go via the specific driver (e.g., no need for h5py)</p></li>
+<li><p>asynchronous concurrent fetch of many data chunks in one go, amortizing the cost of latency</p></li>
+<li><p>parallel access with a library like zarr without any locks</p></li>
+<li><p>logical datasets viewing many (&gt;~millions) data files, and direct access/subselection to them via coordinate
+indexing across an arbitrary number of dimensions</p></li>
+</ul>
 <div class="section" id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
 <p>This library was created to solve the problem of reading existing scientific datatypes as efficiently as possible in the cloud. The amount of observed and simulated data
