@@ -232,6 +232,25 @@ def test_single(refs):
     assert (z.data[1].values == arr).all()
 
 
+def test_outfile_postprocess(refs):
+    def post_process(refs):
+        return {("a_" + k if k.startswith("data") else k): v for k, v in refs.items()}
+
+    mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
+                          concat_dims=["time"], postprocess=post_process)
+    mzz.translate("memory://myout.json")
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": "memory://myout.json", "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr"
+    )
+    assert z.time.values.tolist() == [1, 2]
+    assert z.a_data.shape == (2, 10, 10)
+    assert (z.a_data[0].values == arr).all()
+    assert (z.a_data[1].values == arr).all()
+
+
 @pytest.mark.parametrize(
     "inputs, chunks",
     [

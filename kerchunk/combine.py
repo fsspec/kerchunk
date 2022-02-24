@@ -56,13 +56,15 @@ class MultiZarrToZarr:
     :param inline_threshold: int
         Size below which binary blocks are included directly in the output
     :param preprocess: callable
-        Acts on the references dict of al inputs before processing. See ``drop()``
+        Acts on the references dict of all inputs before processing. See ``drop()``
         for an example.
+    :param postprocess: callable
+        Acts on output references dict before finally returning
     """
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
                  target_options=None, remote_protocol=None, remote_options=None,
-                 inline_threshold=500, preprocess=None):
+                 inline_threshold=500, preprocess=None, postprocess=None):
         self._fss = None
         self._paths = None
         self.ds = None
@@ -86,6 +88,7 @@ class MultiZarrToZarr:
         self.remote_options = remote_options or {}
         self.inline = inline_threshold
         self.preprocess = preprocess
+        self.postprocess = postprocess
         self.out = {}
 
     @property
@@ -333,14 +336,21 @@ class MultiZarrToZarr:
                     out[k] = (b"base64:" + base64.b64encode(v)).decode()
             else:
                 out[k] = v
+        if self.postprocess is not None:
+            out = self.postprocess(out)
         return {"version": 1, "refs": out}
 
-    def translate(self):
+    def translate(self, filename=None, storage_options=None):
         """Perform all stages and return the resultant references dict"""
         self.first_pass()
         self.store_coords()
         self.second_pass()
-        return self.consolidate()
+        out = self.consolidate()
+        if filename is None:
+            return out
+        else:
+            with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
+                ujson.dump(out, f)
 
 
 def _reorganise(coos):
