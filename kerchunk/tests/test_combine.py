@@ -233,8 +233,10 @@ def test_single(refs):
 
 
 def test_outfile_postprocess(refs):
-    def post_process(refs):
-        return {("a_" + k if k.startswith("data") else k): v for k, v in refs.items()}
+    def post_process(ref):
+        # renamed "data" array to "a_data"; to rename a coordinate, one would nee
+        # to alter attributes of arrays pointing to it
+        return {("a_" + k if k.startswith("data") else k): v for k, v in ref.items()}
 
     mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
                           concat_dims=["time"], postprocess=post_process)

@@ -14,6 +14,22 @@ files, for efficient, parallel and cloud-friendly *in-situ* access without havin
 translate the originals. It is a gateway to in-the-cloud massive data processing while
 the data providers still insist on using legacy formats for archival storage.
 
+*Why Kerchunk*:
+
+We provide the following things:
+
+- completely serverless architecture
+- metadata consolidation, so you can understand a many-file dataset (metadata plus physical storage) in a single read
+- read from all of the storage backends supported by fsspec, including object storage (s3, gcs, abfs, alibaba), http,
+  cloud user storage (dropbox, gdrive) and network protocols (ftp, ssh, hdfs, smb...)
+- loading of various file types (currently netcdf4/HDF, grib2, tiff, fits, zarr), potentially heterogeneous within a
+  single dataset, without a need to go via the specific driver (e.g., no need for h5py)
+- asynchronous concurrent fetch of many data chunks in one go, amortizing the cost of latency
+- parallel access with a library like zarr without any locks
+- logical datasets viewing many (>~millions) data files, and direct access/subselection to them via coordinate
+  indexing across an arbitrary number of dimensions
+
+
 Introduction
 ------------
 
