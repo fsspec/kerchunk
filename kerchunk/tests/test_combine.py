@@ -214,7 +214,7 @@ def test_coo_vars(refs):
 
 def test_single(refs):
     mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
-                          concat_dims=["time"])
+                          concat_dims=["time"], coo_dtypes={"time": "int16"})
     mzz.first_pass()
     mzz.store_coords()
     mzz.second_pass()
@@ -223,9 +223,13 @@ def test_single(refs):
         "reference://",
         backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
                         "consolidated": False},
-        engine="zarr"
+        engine="zarr",
+        decode_cf=False
     )
+    m = fsspec.get_mapper("reference://", fo=out, remote_protocol="memory")
+    zz = zarr.open(m)
     # TODO: make some assert_eq style function
+    assert z.time.dtype == "int16"  # default is int64, or float64 if decode_cf is True because or array special name
     assert z.time.values.tolist() == [1, 2]
     assert z.data.shape == (2, 10, 10)
     assert (z.data[0].values == arr).all()

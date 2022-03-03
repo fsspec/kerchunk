@@ -60,11 +60,14 @@ class MultiZarrToZarr:
         for an example.
     :param postprocess: callable
         Acts on output references dict before finally returning
+    :param cftime: list[str]
+        The variable names to interpret as datetimes using cftimes.
     """
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
                  target_options=None, remote_protocol=None, remote_options=None,
-                 inline_threshold=500, preprocess=None, postprocess=None):
+                 inline_threshold=500, preprocess=None, postprocess=None,
+                 cftimes=None):
         self._fss = None
         self._paths = None
         self.ds = None
@@ -89,6 +92,7 @@ class MultiZarrToZarr:
         self.inline = inline_threshold
         self.preprocess = preprocess
         self.postprocess = postprocess
+        self.cftimes = cftimes
         self.out = {}
 
     @property
