@@ -113,27 +113,67 @@ data = xr.DataArray(
 )
 xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk2.zarr")
 
-# simple time arrays
+# simple time arrays - xarray can't make these!
+m = fs.get_mapper("time1.zarr")
+z = zarr.open(m, mode="w")
+ar = z.create_dataset("time", data=np.array([1], dtype="M8[s]"))
+ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
+ar = z.create_dataset("data", data=arr)
+ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
+
+m = fs.get_mapper("time2.zarr")
+z = zarr.open(m, mode="w")
+ar = z.create_dataset("time", data=np.array([2], dtype="M8[s]"))
+ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
+ar = z.create_dataset("data", data=arr)
+ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
+
+
+# cftime arrays - standard
 tdata1 = xr.DataArray(
     data=arr,
-    coords={"time": np.array([1], dtype="M8[s]")},
+    coords={"time": np.array([1])},
     dims=["time", "x", "y"],
     name="data",
-    attrs={"attr0": 0}
 )
-xr.Dataset({"data": data}).to_zarr("memory://time1.zarr")
+xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime1.zarr")
+fs.pipe("cfstdtime1.zarr/time/.zattrs", b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
+                                        b'1970-01-01T00:00:00"}')
 
 tdata1 = xr.DataArray(
     data=arr,
-    coords={"time": np.array([1], dtype="M8[s]")},
+    coords={"time": np.array([2])},
     dims=["time", "x", "y"],
     name="data",
-    attrs={"attr0": 0}
 )
-xr.Dataset({"data": data}).to_zarr("memory://time2.zarr")
+xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime2.zarr")
+fs.pipe("cfstdtime2.zarr/time/.zattrs", b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
+                                        b'1970-01-01T00:00:00"}')
 
-# cftime arrays (i.e., integers with unit, epoch and calendar in attributes)
-# ...
+# cftime arrays - non standard
+tdata1 = xr.DataArray(
+    data=arr,
+    coords={"time": np.array([1])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"units": "months since 1970-01-01",
+           "calendar": "360_day"}
+)
+xr.Dataset({"data": tdata1}).to_zarr("memory://cfnontime1.zarr")
+fs.pipe("cfnontime1.zarr/time/.zattrs",
+        b'{"_ARRAY_DIMENSIONS": ["time"], "units": "months since 1970-01-01", "calendar": "360_day"}')
+
+tdata1 = xr.DataArray(
+    data=arr,
+    coords={"time": np.array([2])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"units": "months since 1970-01-01",
+           "calendar": "360_day"}
+)
+xr.Dataset({"data": tdata1}).to_zarr("memory://cfnontime2.zarr")
+fs.pipe("cfnontime2.zarr/time/.zattrs",
+        b'{"_ARRAY_DIMENSIONS": ["time"], "units": "months since 1970-01-01", "calendar": "360_day"}')
 
 
 @pytest.fixture(scope="module")
@@ -307,8 +347,6 @@ def test_var_and_dim(refs):
                           remote_protocol="memory", concat_dims=["var", "dim"],
                           coo_map={"dim": "attr:attr0"})
     out = mzz.translate()
-    m = fsspec.get_mapper("reference://",
-                          fo=out, remote_protocol="memory")
     z = xr.open_dataset(
         "reference://",
         backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
@@ -321,3 +359,49 @@ def test_var_and_dim(refs):
     assert z.data.shape == z.datum.shape == (2, 10, 10)
     assert z["dim"].values.tolist() == [3, 4]
     assert (z.data.values == np.vstack([arr, arr + 1])).all()
+
+
+@pytest.mark.parametrize(
+    "inps,expected",
+    [
+        ["time", ["1970-01-01T00:00:01", "1970-01-01T00:00:02"]],
+        ["cfstdtime", ["1970-01-01T00:00:01", "1970-01-01T00:00:02"]],
+        ["cfnontime", ["1970-02-01T00:00:00", "1970-03-01T00:00:00"]]
+    ]
+)
+def test_times(refs, inps, expected):
+    mapper = "data:time" if inps == "time" else "cf:time"
+    mzz = MultiZarrToZarr([refs[inps + "1"], refs[inps + "2"]],
+                          remote_protocol="memory", concat_dims=["time"],
+                          coo_map={"time": mapper})
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr",
+        chunks={}
+    )
+    if inps == "cfnontime":
+        assert [_.isoformat() for _ in z.time.values] == expected
+    else:
+        assert (z.time == np.array(expected, dtype="M8[ms]")).all()
+
+
+def test_cftimes_to_normal(refs):
+    mzz = MultiZarrToZarr([refs["cfnontime1"], refs["cfnontime2"]],
+                          remote_protocol="memory", concat_dims=["time"],
+                          coo_map={"time": "cf:time"}, coo_dtypes={"time": "M8[s]"})
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr",
+        chunks={}
+    )
+    import pdb
+    pdb.set_trace()
+    assert z.time.dtype == "M8[s]"
+    assert (z.time.values == np.array(["1970-02-01T00:00:00", "1970-03-01T00:00:00"], dtype="M8[s]")).all()
+

@@ -43,11 +43,16 @@ class MultiZarrToZarr:
             - "VARNAME" special value where a dataset contains multiple variables, just use the variable names as given
             - "INDEX" special value for the index of how far through the list of inputs we are so far
             - a string beginning "data:{var}" which will get the appropriate zarr array from each input dataset.
+            - "cf:{var}", interpret the value of var using cftime, returning a datetime. These will be
+              automatically re-encoded with cftime, *unless* you specify an "M8[*]" dtype for the coordinate,
+              in which case a conversion will be attempted.
             - a list with the values that are known beforehand
             - a function with signature (index, fs, var, fn) -> value, where index is an int counter, fs is the file system made for the current input, var is the variable we are probing may be "var") and fn is the filename or None if dicts were used as input
 
     :param coo_dtypes: map(str, str|np.dtype)
         Coerce the final type of coordinate arrays (otherwise use numpy default)
+    :param identical_dims: list[str]
+        Variables that are to be copied across from the first input dataset, because they do not vary.
     :param target_options: dict
         Storage options for opening ``path``
     :param remote_protocol: str
@@ -60,11 +65,10 @@ class MultiZarrToZarr:
         for an example.
     :param postprocess: callable
         Acts on output references dict before finally returning
-    :param cftime: list[str]
-        The variable names to interpret as datetimes using cftimes.
     """
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
+                 identical_dims=None,
                  target_options=None, remote_protocol=None, remote_options=None,
                  inline_threshold=500, preprocess=None, postprocess=None,
                  cftimes=None):
@@ -90,9 +94,12 @@ class MultiZarrToZarr:
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
         self.inline = inline_threshold
+        self.cf_units = None
+        self.identical_dims = identical_dims or []
+        if set(self.coo_map).intersection(set(self.identical_dims)):
+            raise ValueError("Values being mapped cannot also be identical")
         self.preprocess = preprocess
         self.postprocess = postprocess
-        self.cftimes = cftimes
         self.out = {}
 
     @property
@@ -160,6 +167,17 @@ class MultiZarrToZarr:
             o = z[var].attrs[item]
         elif selector.startswith("data:"):
             o = z[selector.split(":", 1)[1]][...]
+        elif selector.startswith("cf:"):
+            import cftime
+            datavar = z[selector.split(":", 1)[1]]
+            o = datavar[...]
+            units = datavar.attrs.get("units")
+            calendar = datavar.attrs.get("calendar", "standard")
+            o = cftime.num2date(o, units=units, calendar=calendar)
+            if self.cf_units is None:
+                self.cf_units = {}
+            if var not in self.cf_units:
+                self.cf_units[var] = dict(units=units, calendar=calendar)
         else:
             o = selector  # must be a non-number constant - error?
         logger.debug("Decode: %s -> %s", (selector, index, var, fn), o)
@@ -204,19 +222,36 @@ class MultiZarrToZarr:
                 continue
             # parametrize the threshold value below?
             compression = numcodecs.Zstd() if len(v) > 100 else None
-            if all([isinstance(_, (tuple, list)) for _ in v]):
+            if self.cf_units and k in self.cf_units:
+                if "M" in self.coo_dtypes.get(k, ""):
+                    # explicit time format
+                    data = np.array(
+                        [_.isoformat() for _ in v],
+                        dtype=self.coo_dtypes[k]
+                    )
+                else:
+                    import cftime
+                    data = cftime.date2num(v, **self.cf_units[k]).ravel()
+
+            elif all([isinstance(_, (tuple, list)) for _ in v]):
                 v = sum([list(_) if isinstance(_, tuple) else _ for _ in v], [])
                 data = np.array(v, dtype=self.coo_dtypes.get(k))
             else:
                 data = np.concatenate([np.atleast_1d(np.array(_, dtype=self.coo_dtypes.get(k)))
-                                       for _ in v])
-            arr = group.create_dataset(name=k, data=np.array(v).ravel(),
+                                       for _ in v]).ravel()
+            arr = group.create_dataset(name=k, data=data,
                                        overwrite=True, compressor=compression,
                                        dtype=self.coo_dtypes.get(k, data.dtype))
             if k in z:
                 # copy attributes if values came from an original variable
                 arr.attrs.update(z[k].attrs)
             arr.attrs["_ARRAY_DIMENSIONS"] = [k]
+            if self.cf_units and k in self.cf_units:
+                if "M" in self.coo_dtypes.get(k, ""):
+                    arr.attrs.pop("units", None)
+                    arr.attrs.pop("calendar", None)
+                else:
+                    arr.attrs.update(self.cf_units[k])
         logger.debug("Written coordinates")
         for fn in [".zgroup", ".zattrs"]:
             # top-level group attributes from first input
@@ -250,6 +285,13 @@ class MultiZarrToZarr:
                 if v in self.coo_map or v in skip or v.startswith(".z"):
                     # already made coordinate variables and metadata
                     continue
+                if v in self.identical_dims:
+                    if f"{v}/.zarray" in self.out:
+                        continue
+                    for k, val in fs.references.items():
+                        if k.startswith(f"{v}/"):
+                            self.out[k] = val
+                    continue
                 logger.debug("Second pass: %s, %s", i, v)
 
                 zarray = ujson.loads(m[f"{v}/.zarray"])
@@ -268,12 +310,6 @@ class MultiZarrToZarr:
                     for k in fs.ls(v, detail=False):
                         self.out[k] = fs.references[k]
                     continue
-
-                # TODO: identical check here, if array does not depend on a concat dim
-                #  This is only for the case that none of the data arrays depends on a concat dim
-                # if IKnowItsIdentical:
-                #     skip.add(v)
-                #     continue
 
                 dont_skip.add(v)  # don't check for coord or identical again
 
@@ -326,12 +362,9 @@ class MultiZarrToZarr:
                     self.out[key] = fs.references[fn]
 
     def consolidate(self):
-        """Turn raw references into output, inlining as needed"""
+        """Turn raw references into output"""
         out = {}
         for k, v in self.out.items():
-            if isinstance(v, list) and len(v) > 1 and v[2] < self.inline:
-                # TODO: check original file's size if not a range
-                v = self.fs.cat_file(v[0], start=v[1], end=v[1] + v[2])
             if isinstance(v, bytes):
                 try:
                     # easiest way to test if data is ascii
