@@ -400,8 +400,6 @@ def test_cftimes_to_normal(refs):
         engine="zarr",
         chunks={}
     )
-    import pdb
-    pdb.set_trace()
     assert z.time.dtype == "M8[s]"
     assert (z.time.values == np.array(["1970-02-01T00:00:00", "1970-03-01T00:00:00"], dtype="M8[s]")).all()
 
