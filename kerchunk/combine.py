@@ -348,9 +348,6 @@ class MultiZarrToZarr:
                             if isinstance(cv, (np.ndarray, list, tuple)):
                                 cv = tuple(sorted(set(cv)))[0]
                             ind = self.coos[c].index(cv)
-                            if key_parts == ["10", "3", "3"] and i > 1:
-                                import pdb
-                                #pdb.set_trace()
                             if c in coords:
                                 key += str(ind // ch[loc] + int(key_parts[coords.index(c)]))
                             else:
@@ -359,7 +356,11 @@ class MultiZarrToZarr:
                             key += key_parts[coords.index(c)]
                         key += "."
                     key = key.rstrip(".")
-                    self.out[key] = fs.references[fn]
+
+                    if fs.info(fn)["size"] < self.inline:
+                        self.out[key] = fs.cat(fn)
+                    else:
+                        self.out[key] = fs.references[fn]
 
     def consolidate(self):
         """Turn raw references into output"""

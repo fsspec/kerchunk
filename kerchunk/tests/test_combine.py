@@ -403,3 +403,25 @@ def test_cftimes_to_normal(refs):
     assert z.time.dtype == "M8[s]"
     assert (z.time.values == np.array(["1970-02-01T00:00:00", "1970-03-01T00:00:00"], dtype="M8[s]")).all()
 
+
+def test_inline(refs):
+    mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
+                          concat_dims=["time"], coo_dtypes={"time": "int16"},
+                          inline_threshold=50000)
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr",
+        decode_cf=False
+    )
+    ref = fsspec.filesystem("reference", fo=out, remote_protocol="memory")
+    assert z.time.dtype == "int16"  # default is int64, or float64 if decode_cf is True because or array special name
+    assert z.time.values.tolist() == [1, 2]
+    assert z.data.shape == (2, 10, 10)
+    assert (z.data[0].values == arr).all()
+    assert (z.data[1].values == arr).all()
+
+    assert isinstance(ref.references['data/0.0.0'], str)
+    assert ref.references['data/0.0.0'].startswith("base64:")
