@@ -70,8 +70,7 @@ class MultiZarrToZarr:
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
                  identical_dims=None,
                  target_options=None, remote_protocol=None, remote_options=None,
-                 inline_threshold=500, preprocess=None, postprocess=None,
-                 cftimes=None):
+                 inline_threshold=500, preprocess=None, postprocess=None):
         self._fss = None
         self._paths = None
         self.ds = None
