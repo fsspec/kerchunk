@@ -16,9 +16,9 @@ def test_ascii_table():
     # this one directly hits a remote server - should cache?
     url = "https://fits.gsfc.nasa.gov/samples/WFPC2u5780205r_c0fx.fits"
     out = kerchunk.fits.process_file(url, extension=1)
-    m = fsspec.get_mapper("reference://", fo=out, remote_protocol="http")
+    m = fsspec.get_mapper("reference://", fo=out, remote_protocol="https")
     g = zarr.open(m)
-    arr = g['u5780205r_cvt.c0h.tab']
+    arr = g['u5780205r_cvt.c0h.tab'][:]
     with fsspec.open("https://fits.gsfc.nasa.gov/samples/WFPC2u5780205r_c0fx.fits") as f:
         hdul = fits.open(f)
         hdu = hdul[1]
