@@ -397,4 +397,3 @@ def _reorganise(coos):
     for k, arr in coos.items():
         out[k] = list(sorted(arr))
     return out
-
