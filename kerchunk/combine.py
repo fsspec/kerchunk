@@ -261,7 +261,7 @@ class MultiZarrToZarr:
             ) for fo in fo_list
         ]
         self.fss = fss
-        self.fs = fss[0].fs
+        self.fs = fss[0].fss[None]
         self.mappers = [fs.get_mapper("") for fs in fss]
 
     def _determine_dims(self):
