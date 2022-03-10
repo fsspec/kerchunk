@@ -261,7 +261,12 @@ class MultiZarrToZarr:
             ) for fo in fo_list
         ]
         self.fss = fss
-        self.fs = fss[0].fss[None]
+        # the following condition is due to multi-protocol support in ReferenceFS and can be
+        # removed following fsspec release
+        if fsspec.__version__.split(".") > "2022.02.0".split("."):
+            self.fs = fss[0].fss[None]
+        else:
+            self.fs = fss[0].fs
         self.mappers = [fs.get_mapper("") for fs in fss]
 
     def _determine_dims(self):
