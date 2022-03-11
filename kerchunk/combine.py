@@ -221,6 +221,7 @@ class MultiZarrToZarr:
                 continue
             # parametrize the threshold value below?
             compression = numcodecs.Zstd() if len(v) > 100 else None
+            kw = {}
             if self.cf_units and k in self.cf_units:
                 if "M" in self.coo_dtypes.get(k, ""):
                     # explicit time format
@@ -231,6 +232,7 @@ class MultiZarrToZarr:
                 else:
                     import cftime
                     data = cftime.date2num(v, **self.cf_units[k]).ravel()
+                    kw["fill_value"] = 2**62
 
             elif all([isinstance(_, (tuple, list)) for _ in v]):
                 v = sum([list(_) if isinstance(_, tuple) else _ for _ in v], [])
@@ -240,7 +242,7 @@ class MultiZarrToZarr:
                                        for _ in v]).ravel()
             arr = group.create_dataset(name=k, data=data,
                                        overwrite=True, compressor=compression,
-                                       dtype=self.coo_dtypes.get(k, data.dtype))
+                                       dtype=self.coo_dtypes.get(k, data.dtype), **kw)
             if k in z:
                 # copy attributes if values came from an original variable
                 arr.attrs.update(z[k].attrs)
@@ -251,6 +253,7 @@ class MultiZarrToZarr:
                     arr.attrs.pop("calendar", None)
                 else:
                     arr.attrs.update(self.cf_units[k])
+            # TODO: rewrite .zarray/.zattrs with ujson to save space. Maybe make them by hand anyway.
         logger.debug("Written coordinates")
         for fn in [".zgroup", ".zattrs"]:
             # top-level group attributes from first input
