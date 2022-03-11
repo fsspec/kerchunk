@@ -89,8 +89,13 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.grib2.GRIBCodec" title="kerchunk.grib2.GRIBCodec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.GRIBCodec</span></code></a>(var)</p></td>
 <td><p>Read GRIB stream of bytes by writing to a temp file and calling cfgrib</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>(path, …)</p></td>
-<td><p>Combine multiple reference files into one</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>(path[, …])</p></td>
+<td><p><dl class="field-list simple">
+<dt class="field-odd">param path</dt>
+<dd class="field-odd"><p>str, list(str) or list(dict)</p>
+</dd>
+</dl>
+</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.fits.process_file" title="kerchunk.fits.process_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.fits.process_file</span></code></a>(url[, …])</p></td>
 <td><p>Create JSON references for a single FITS file as a zarr group</p></td>
@@ -208,26 +213,58 @@ returns a “reference” structure to be used with zarr/kerchunk</p>
 
 <dl class="class">
 <dt id="kerchunk.combine.MultiZarrToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">remote_protocol</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">xarray_open_kwargs=None</em>, <em class="sig-param">xarray_concat_args=None</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">storage_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
-<dd><p>Combine multiple reference files into one</p>
-<dl class="field-list simple">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>path: string, list of strings or list of dict</strong></dt><dd><p>List of JSON paths or a URL containing multiple JSONs. If a
-list of dicts, this is the json-decoded content of the
-files (such as the output of many calls to``kerchunk.hdf.SingleHdf5ToZarr()``).</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – str, list(str) or list(dict)
+Local paths, each containing a references JSON; or a list of references dicts</p></li>
+<li><p><strong>concat_dims</strong> – str or list(str)
+Names of the dimensions to expand with</p></li>
+<li><p><strong>coo_map</strong> – <p>dict(str, selector)
+The special key “var” means the variable name in the output, which will be
+“VARNAME” by default (i.e., variable names are the same as in the input
+datasets). The default for any other coordinate is <a class="reference external" href="data:varname">data:varname</a>, i.e., look
+for an array with that name.</p>
+<dl class="simple">
+<dt>Selectors (“how to get coordinate values from a dataset”) can be:</dt><dd><ul>
+<li><p>a constant value (usually str for a var name, number for a coordinate)</p></li>
+<li><p>a compiled regex <code class="docutils literal notranslate"><span class="pre">re.Pattern</span></code>, which will be applied to the filename. Should return exactly one value</p></li>
+<li><p>a string beginning “attr:” which will fetch this attribute from the zarr dataset of each path</p></li>
+<li><p>a string beginning “vattr:{var}:” as above, but the attribute is taken from the array named var</p></li>
+<li><p>”VARNAME” special value where a dataset contains multiple variables, just use the variable names as given</p></li>
+<li><p>”INDEX” special value for the index of how far through the list of inputs we are so far</p></li>
+<li><p>a string beginning “data:{var}” which will get the appropriate zarr array from each input dataset.</p></li>
+<li><p>”cf:{var}”, interpret the value of var using cftime, returning a datetime. These will be
+automatically re-encoded with cftime, <em>unless</em> you specify an “M8[*]” dtype for the coordinate,
+in which case a conversion will be attempted.</p></li>
+<li><p>a list with the values that are known beforehand</p></li>
+<li><p>a function with signature (index, fs, var, fn) -&gt; value, where index is an int counter, fs is the file system made for the current input, var is the variable we are probing may be “var”) and fn is the filename or None if dicts were used as input</p></li>
+</ul>
 </dd>
-<dt><strong>remote_protocol: string</strong></dt><dd><p>Protocol used to access remote files (e.g. ‘s3’, ‘az’, etc)</p>
+</dl>
+</p></li>
+<li><p><strong>coo_dtypes</strong> – map(str, str|np.dtype)
+Coerce the final type of coordinate arrays (otherwise use numpy default)</p></li>
+<li><p><strong>identical_dims</strong> – list[str]
+Variables that are to be copied across from the first input dataset, because they do not vary.</p></li>
+<li><p><strong>target_options</strong> – dict
+Storage options for opening <code class="docutils literal notranslate"><span class="pre">path</span></code></p></li>
+<li><p><strong>remote_protocol</strong> – str
+The protocol of the original data</p></li>
+<li><p><strong>remote_options</strong> – dict</p></li>
+<li><p><strong>inline_threshold</strong> – int
+Size below which binary blocks are included directly in the output</p></li>
+<li><p><strong>preprocess</strong> – callable
+Acts on the references dict of all inputs before processing. See <code class="docutils literal notranslate"><span class="pre">drop()</span></code>
+for an example.</p></li>
+<li><p><strong>postprocess</strong> – callable
+Acts on output references dict before finally returning</p></li>
+</ul>
 </dd>
-<dt><strong>remote_options</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to pass to <code class="docutils literal notranslate"><span class="pre">fsspec.filesystem()</span></code></p>
-</dd>
-<dt><strong>xarray_open_kwargs</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to pass to <code class="docutils literal notranslate"><span class="pre">xr.open_dataset()</span></code></p>
-</dd>
-<dt><strong>xarray_concat_args</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to pass to <code class="docutils literal notranslate"><span class="pre">xr.concat()</span></code></p>
-</dd>
-<dt><strong>preprocess</strong><span class="classifier">function</span></dt><dd><p>Function take takes in/returns a <code class="docutils literal notranslate"><span class="pre">xr.Dataset</span></code> to be processed before dataset concatenation</p>
-</dd>
-<dt><strong>storage_options</strong><span class="classifier">dict</span></dt><dd><p>Dictionary of args to pass to <code class="docutils literal notranslate"><span class="pre">fsspec.open_files()</span></code></p>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.fss" title="kerchunk.combine.MultiZarrToZarr.fss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fss</span></code></a></dt><dd><p>filesystem instances being analysed, one per input dataset</p>
 </dd>
 </dl>
 </dd>
@@ -239,34 +276,57 @@ files (such as the output of many calls to``kerchunk.hdf.SingleHdf5ToZarr()``).<
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([outpath, template_count, …])</p></td>
-<td><p>Translate the combined reference files and write to new file</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.consolidate" title="kerchunk.combine.MultiZarrToZarr.consolidate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">consolidate</span></code></a>()</p></td>
+<td><p>Turn raw references into output</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.first_pass" title="kerchunk.combine.MultiZarrToZarr.first_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">first_pass</span></code></a>()</p></td>
+<td><p>Accumulate the set of concat coords values across all inputs</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.second_pass" title="kerchunk.combine.MultiZarrToZarr.second_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">second_pass</span></code></a>()</p></td>
+<td><p>map every input chunk to the output</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.store_coords" title="kerchunk.combine.MultiZarrToZarr.store_coords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store_coords</span></code></a>()</p></td>
+<td><p>Write coordinate arrays into the output</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([filename, storage_options])</p></td>
+<td><p>Perform all stages and return the resultant references dict</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
+<dt id="kerchunk.combine.MultiZarrToZarr.consolidate">
+<code class="sig-name descname">consolidate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.consolidate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.consolidate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn raw references into output</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="kerchunk.combine.MultiZarrToZarr.first_pass">
+<code class="sig-name descname">first_pass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.first_pass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.first_pass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulate the set of concat coords values across all inputs</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="kerchunk.combine.MultiZarrToZarr.fss">
+<em class="property">property </em><code class="sig-name descname">fss</code><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.fss" title="Permalink to this definition">¶</a></dt>
+<dd><p>filesystem instances being analysed, one per input dataset</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="kerchunk.combine.MultiZarrToZarr.second_pass">
+<code class="sig-name descname">second_pass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.second_pass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.second_pass" title="Permalink to this definition">¶</a></dt>
+<dd><p>map every input chunk to the output</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="kerchunk.combine.MultiZarrToZarr.store_coords">
+<code class="sig-name descname">store_coords</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.store_coords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.store_coords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write coordinate arrays into the output</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="kerchunk.combine.MultiZarrToZarr.translate">
-<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">outpath=None</em>, <em class="sig-param">template_count=5</em>, <em class="sig-param">storage_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.translate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Translate the combined reference files and write to new file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>outpath</strong><span class="classifier">String (optional)</span></dt><dd><p>Path of file to be written. If left blank, <code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr.translate()</span></code> returns a dict.</p>
-</dd>
-<dt><strong>template_count</strong><span class="classifier">int or None (optional, default=5)</span></dt><dd><p>Set to <code class="docutils literal notranslate"><span class="pre">None</span></code> to disable templates</p>
-</dd>
-<dt><strong>storage_options</strong><span class="classifier">dict</span></dt><dd><p>When using an fsspec URL to write to remote</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt>dict or None</dt><dd><p>If outpath was given, the metadata is encoded as json and
-written to that file. If not, it is returned directly.</p>
-</dd>
-</dl>
-</dd>
-</dl>
+<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">filename=None</em>, <em class="sig-param">storage_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.translate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform all stages and return the resultant references dict</p>
 </dd></dl>
 
 </dd></dl>

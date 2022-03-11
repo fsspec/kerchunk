@@ -1,18 +1,20 @@
 Tutorial
 ********
 
-This is a run-through example for how to use this package.
+This is a run-through example for how to use this package. We scan a set of netCDF4/HDF5 files,
+and create a single emsemble, virtual dataset, which can be read in parallel from remote
+using ``zarr``.
 
 Single file JSONs
 =================
 
-This will create a ``.json`` file for each of the files defined in ``urllist`` into a file called
-``out.zip``.
+This will create a ``.json`` file for each of the files defined in ``urllist``. In this case,
+we simply keep the resultant reference sets in memory, but we could have written them into
+JSON files. Writing to files is useful, so that we can access the individual datasets, or
+redo the combine (which is the next step, below).
 
 .. code-block:: python
     
-    import os
-    import zipfile
     import kerchunk.hdf
     import fsspec
 
@@ -31,47 +33,63 @@ This will create a ``.json`` file for each of the files defined in ``urllist`` i
     so = dict(
         anon=True, default_fill_cache=False, default_cache_type='first'
     )
-    with zipfile.ZipFile("out.zip", mode="w") as zf:
-        for u in urls:
-            with fsspec.open(u, **so) as inf:
-                h5chunks = kerchunk.hdf.SingleHdf5ToZarr(inf, u, inline_threshold=100)
-                with zf.open(os.path.basename(u) + ".json", 'w') as outf:
-                    outf.write(json.dumps(h5chunks.translate()).encode())
+    singles = []
+    for u in urls:
+        with fsspec.open(u, **so) as inf:
+            h5chunks = kerchunk.hdf.SingleHdf5ToZarr(inf, u, inline_threshold=100)
+            singles.append(h5chunks.translate())
 
 
 Multi-file JSONs
 ================
 
-This code will read the ``out.zip`` file generated above and create a single ``.zarr`` 
-or ``.json`` reference file that points to all the individual files as a single dataset.
+This code uses the output generated above to create a single ensemble dataset, with
+on set of references pointing to all of the chunks in the individual files.
 
 .. code-block:: python
 
+    from kerchunk.combine import MultiZarrToZarr
     mzz = MultiZarrToZarr(
-        "zip://*.json::out.zip",
+        singles,
         remote_protocol="s3",
         remote_options={'anon': True},
-        xarray_kwargs={
-            "preprocess": drop_coords,
-            "decode_cf": False,
-            "mask_and_scale": False,
-            "decode_times": False,
-            "decode_timedelta": False,
-            "use_cftime": False,
-            "decode_coords": False
-        },
+        concat_dims=["time"]
     )
 
+    out = mzz.translate()
 
-    mzz.translate("output.zarr")
-
-    # This can also be written as a json
-    mzz.translate("output.json")
-
+Again, ``out`` could be written to a JSON file by providing arguments to
+``translate()``. Crucially, there is no restriction on where
+this lives, it can be anywhere that fsspec can read from.
 
 Using the output
 ================
 
-See the `runnable notebook`_
+This is what a user of the generated dataset would do. This person does not need to have
+``kerchunk`` installed, or even ``h5py`` (the library we used to initially scan the files).
 
-.. _runnable notebook: https://binder.pangeo.io/v2/gh/lsterzinger/fsspec-reference-maker-tutorial/main
+.. code-block:: python
+
+    import xarray as xr
+    ds = xr.open_dataset(
+        "reference://", engine="zarr",
+        backend_kwargs={
+            "storage_options": {
+                "fo": out,
+                "remote_protocol": "s3",
+                "remote_options": {"anon": True}
+            },
+            "consolidated": False
+        }
+    )
+    # do analysis...
+    ds.velocity.mean()
+
+Since the invocation for xarray to read this data is a little involved, we recommend
+declaring the data set in an ``intake`` catalog. Alternatively, you might split the command
+into mlutiple lines by first constructing the filesystem or mapper (you will see this in some
+examples).
+
+Note that, if the combining was done previously and saved to a JSON file, then the path to
+it should replace ``out``, above, along with a ``target_options`` for any additional
+arguments fsspec might to access it
