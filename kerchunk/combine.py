@@ -100,6 +100,7 @@ class MultiZarrToZarr:
         self.preprocess = preprocess
         self.postprocess = postprocess
         self.out = {}
+        self.done = set()
 
     @property
     def fss(self):
@@ -206,12 +207,14 @@ class MultiZarrToZarr:
 
         self.coos = _reorganise(coos)
         logger.debug("Created coordinates map")
+        self.done.add(1)
         return coos
 
     def store_coords(self):
         """
         Write coordinate arrays into the output
         """
+        self.out.clear()
         group = zarr.open(self.out)
         m = self.fss[0].get_mapper("")
         z = zarr.open(m)
@@ -260,9 +263,12 @@ class MultiZarrToZarr:
             if fn in m:
                 self.out[fn] = ujson.dumps(ujson.loads(m[fn]))
         logger.debug("Written global metadata")
+        self.done.add(2)
 
     def second_pass(self):
         """map every input chunk to the output"""
+        # TODO: this stage cannot be rerun without clearing and rerunning store_coords too,
+        #  because some code runs dependant on the current state f self.out
         chunk_sizes = {}  #
         skip = set()
         dont_skip = set()
@@ -363,6 +369,7 @@ class MultiZarrToZarr:
                         self.out[key] = fs.cat(fn)
                     else:
                         self.out[key] = fs.references[fn]
+        self.done.add(3)
 
     def consolidate(self):
         """Turn raw references into output"""
@@ -378,13 +385,17 @@ class MultiZarrToZarr:
                 out[k] = v
         if self.postprocess is not None:
             out = self.postprocess(out)
+        self.done.add(4)
         return {"version": 1, "refs": out}
 
     def translate(self, filename=None, storage_options=None):
         """Perform all stages and return the resultant references dict"""
-        self.first_pass()
-        self.store_coords()
-        self.second_pass()
+        if 1 not in self.done:
+            self.first_pass()
+        if 2 not in self.done:
+            self.store_coords()
+        if 3 not in self.done:
+            self.second_pass()
         out = self.consolidate()
         if filename is None:
             return out
