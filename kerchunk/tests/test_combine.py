@@ -276,6 +276,25 @@ def test_single(refs):
     assert (z.data[1].values == arr).all()
 
 
+def test_run_twice(refs):
+    mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
+                          concat_dims=["time"], coo_dtypes={"time": "int16"})
+    mzz.translate()
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr",
+        decode_cf=False
+    )
+    assert z.time.dtype == "int16"  # default is int64, or float64 if decode_cf is True because or array special name
+    assert z.time.values.tolist() == [1, 2]
+    assert z.data.shape == (2, 10, 10)
+    assert (z.data[0].values == arr).all()
+    assert (z.data[1].values == arr).all()
+
+
 def test_outfile_postprocess(refs):
     def post_process(ref):
         # renamed "data" array to "a_data"; to rename a coordinate, one would nee
