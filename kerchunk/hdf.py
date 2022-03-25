@@ -173,6 +173,8 @@ class SingleHdf5ToZarr:
                 compression = None
             if h5obj.dtype.kind in "UVS":
                 fill = h5obj.fillvalue or " "
+            elif _is_netcdf_datetime(h5obj):
+                fill = None
             else:
                 fill = h5obj.fillvalue
             
@@ -302,3 +304,12 @@ class SingleHdf5ToZarr:
                     [a // b for a, b in zip(blob.chunk_offset, chunk_size)])
                 stinfo[key] = {'offset': blob.byte_offset, 'size': blob.size}
             return stinfo
+
+
+def _is_netcdf_datetime(dataset: h5py.Dataset):
+    units = dataset.attrs.get("units")
+    if isinstance(units, bytes):
+        units = units.decode("utf-8")
+    # This is the same heuristic used by xarray
+    # https://github.com/pydata/xarray/blob/f8bae5974ee2c3f67346298da12621af4cae8cf8/xarray/coding/times.py#L670
+    return units and "since" in units
