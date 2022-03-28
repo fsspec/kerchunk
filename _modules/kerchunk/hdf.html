@@ -247,6 +247,8 @@
                 <span class="n">compression</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;UVS&quot;</span><span class="p">:</span>
                 <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span> <span class="ow">or</span> <span class="s2">&quot; &quot;</span>
+            <span class="k">elif</span> <span class="n">_is_netcdf_datetime</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
+                <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span>
             
@@ -376,6 +378,15 @@
                     <span class="p">[</span><span class="n">a</span> <span class="o">//</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">blob</span><span class="o">.</span><span class="n">chunk_offset</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">)])</span>
                 <span class="n">stinfo</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;offset&#39;</span><span class="p">:</span> <span class="n">blob</span><span class="o">.</span><span class="n">byte_offset</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="n">blob</span><span class="o">.</span><span class="n">size</span><span class="p">}</span>
             <span class="k">return</span> <span class="n">stinfo</span></div>
+
+
+<span class="k">def</span> <span class="nf">_is_netcdf_datetime</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;units&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+    <span class="c1"># This is the same heuristic used by xarray</span>
+    <span class="c1"># https://github.com/pydata/xarray/blob/f8bae5974ee2c3f67346298da12621af4cae8cf8/xarray/coding/times.py#L670</span>
+    <span class="k">return</span> <span class="n">units</span> <span class="ow">and</span> <span class="s2">&quot;since&quot;</span> <span class="ow">in</span> <span class="n">units</span>
 </pre></div>
 
            </div>
