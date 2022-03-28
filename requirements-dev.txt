@@ -1,0 +1,10 @@
+cftime
+dask
+h5netcdf
+h5py
+jinja2
+mypy
+pytest
+s3fs
+types-ujson
+xarray

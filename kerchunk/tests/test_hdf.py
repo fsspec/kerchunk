@@ -86,3 +86,35 @@ def generate_mzz():
         preprocess=drop("reference_time")
     )
     return mzz
+
+
+def test_times(tmpdir):
+    # Test taken from https://github.com/fsspec/kerchunk/issues/115#issue-1091163872
+    lat = xr.DataArray(np.linspace(-90, 90, 10), dims=["lat"], name="lat")
+    lon = xr.DataArray(np.linspace(-90, 90, 10), dims=["lon"], name="lon")
+    time_attrs = {'axis': 'T', 'long_name': 'time', 'standard_name': 'time'}
+    time1 = xr.DataArray(
+        np.arange(-631108800000000000, -630158390000000000, 86400000000000).view("datetime64[ns]"),
+        dims=["time"], name="time", attrs=time_attrs
+    )
+
+    x1 = xr.DataArray(
+        np.zeros((12, 10, 10)),
+        dims=["time", "lat", "lon"],
+        coords={"time": time1, "lat": lat, "lon": lon},
+        name="prcp",
+    )
+    url = str(tmpdir.join("x1.nc"))
+    x1.to_netcdf(url, engine="h5netcdf")
+
+    with fsspec.open(url) as f:
+        h5chunks = SingleHdf5ToZarr(f, url)
+        test_dict = h5chunks.translate()
+
+    m = fsspec.get_mapper(
+        "reference://",
+        fo=test_dict,
+    )
+    result = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    expected = x1.to_dataset()
+    xr.testing.assert_equal(result, expected)
