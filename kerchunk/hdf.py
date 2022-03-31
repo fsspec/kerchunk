@@ -171,7 +171,7 @@ class SingleHdf5ToZarr:
                 compression = numcodecs.Zlib(level=h5obj.compression_opts)
             else:
                 compression = None
-            if h5obj.dtype.kind in "UVS":
+            if h5obj.dtype.kind in "US":
                 fill = h5obj.fillvalue or " "
             else:
                 fill = h5obj.fillvalue
