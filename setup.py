@@ -16,6 +16,12 @@ setup(
     long_description=(open('README.md').read() if exists('README.md') else ''),
     long_description_content_type='text/markdown',
     install_requires=list(open('requirements.txt').read().strip().split('\n')),
+    extras_require={
+        "cftime": ["cftime"],
+        "fits": ["xarray"],
+        "hdf": ["h5py", "xarray"],
+        "grib2": ["cfgrib"],
+    },
     entry_points={
         'numcodecs.codecs': [
             'grib = kerchunk.grib2:GRIBCodec',

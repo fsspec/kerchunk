@@ -1,2 +1,5 @@
 fsspec
+numcodecs
+numpy
 ujson
+zarr
