@@ -143,8 +143,8 @@ class SingleHdf5ToZarr:
             try:
                 zobj.attrs[n] = v
             except TypeError:
-                lggr.exception(
-                    f'Caught TypeError: {n}@{h5obj.name} = {v} ({type(v)})')
+                lggr.debug(
+                    f'TypeError transferring attr, skipping:\n {n}@{h5obj.name} = {v} ({type(v)})')
 
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file.
@@ -171,11 +171,16 @@ class SingleHdf5ToZarr:
                 compression = numcodecs.Zlib(level=h5obj.compression_opts)
             else:
                 compression = None
+            kwargs = {}
             if h5obj.dtype.kind in "US":
                 fill = h5obj.fillvalue or " "
+            elif h5obj.dtype.kind == "O":
+                kwargs["data"] = h5obj[:]
+                kwargs["object_codec"] = numcodecs.MsgPack()
+                fill = None
             else:
                 fill = h5obj.fillvalue
-            
+
             # Add filter for shuffle
             filters = []
             if h5obj.shuffle:
