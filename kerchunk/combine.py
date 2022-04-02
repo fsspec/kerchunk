@@ -84,7 +84,7 @@ class MultiZarrToZarr:
         self.coo_map = coo_map or {}
         self.coo_map.update({
             c: "VARNAME" if c == "var" else f"data:{c}"
-            for c in concat_dims if c not in self.coo_map
+            for c in self.concat_dims if c not in self.coo_map
         })
         logger.debug("Concat dims: %s", self.concat_dims)
         logger.debug("Coord map: %s", self.coo_map)
