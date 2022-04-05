@@ -87,7 +87,7 @@ This is what a user of the generated dataset would do. This person does not need
 
 Since the invocation for xarray to read this data is a little involved, we recommend
 declaring the data set in an ``intake`` catalog. Alternatively, you might split the command
-into mlutiple lines by first constructing the filesystem or mapper (you will see this in some
+into multiple lines by first constructing the filesystem or mapper (you will see this in some
 examples).
 
 Note that, if the combining was done previously and saved to a JSON file, then the path to
