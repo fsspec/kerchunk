@@ -31,11 +31,3 @@ def tiff_to_zarr(urlpath, remote_options=None, inline_threshold=0, target=None, 
         with fsspec.open(target, **(target_options or {})) as of:
             ujson.dump(out, of)
     return out
-
-
-remote_options = {
-    'anon': True,
-    'client_kwargs': {'endpoint_url': 'https://mghp.osn.xsede.org'},
-}
-fs = fsspec.filesystem('s3', **remote_options)
-files = [f's3://{f}' for f in fs.ls('/rsignellbucket1/lcmap/cog')][0]
