@@ -3,6 +3,8 @@ import glob
 import fsspec
 import os.path
 import zarr
+import pytest
+pytest.importorskip("tifffile")
 files = glob.glob(os.path.join(os.path.dirname(__file__), "lc*tif"))
 
 
