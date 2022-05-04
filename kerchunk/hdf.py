@@ -177,6 +177,7 @@ class SingleHdf5ToZarr:
             elif h5obj.dtype.kind == "O":
                 kwargs["data"] = h5obj[:]
                 kwargs["object_codec"] = numcodecs.MsgPack()
+                fill = None
             elif _is_netcdf_datetime(h5obj):
                 fill = None
             else:

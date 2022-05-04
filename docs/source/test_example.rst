@@ -44,7 +44,7 @@ Multi-file JSONs
 ================
 
 This code uses the output generated above to create a single ensemble dataset, with
-on set of references pointing to all of the chunks in the individual files.
+one set of references pointing to all of the chunks in the individual files.
 
 .. code-block:: python
 

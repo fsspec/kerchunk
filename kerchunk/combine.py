@@ -10,7 +10,6 @@ import numcodecs
 import ujson
 import zarr
 logger = logging.getLogger("kerchunk.combine")
-# fsspec.utils.setup_logging(logger)
 
 
 def drop(fields):
@@ -281,7 +280,7 @@ class MultiZarrToZarr:
 
             if no_deps is None:
                 # done first time only
-                deps = [z[_].attrs["_ARRAY_DIMENSIONS"] for _ in z]
+                deps = [z[_].attrs.get("_ARRAY_DIMENSIONS", []) for _ in z]
                 all_deps = set(sum(deps, []))
                 no_deps = set(self.coo_map) - all_deps
 
@@ -309,8 +308,10 @@ class MultiZarrToZarr:
                 else:
                     assert chunk_sizes[v] == zarray["chunks"], "Found chunk size mismatch"
                 chunks = chunk_sizes[v]
-                zattrs = ujson.loads(m[f"{v}/.zattrs"])
-                coords = zattrs["_ARRAY_DIMENSIONS"]
+                zattrs = ujson.loads(m.get(f"{v}/.zattrs", "{}"))
+                coords = zattrs.get("_ARRAY_DIMENSIONS", [])
+                if zarray["shape"] and not coords:
+                    coords = list("ikjlm")[:len(zarray["shape"])]
 
                 if v not in dont_skip and v in all_deps:
                     # this is an input coordinate
