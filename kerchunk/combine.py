@@ -274,6 +274,7 @@ class MultiZarrToZarr:
         no_deps = None
 
         for i, fs in enumerate(self.fss):
+            to_download = {}
             m = fs.get_mapper("")
             z = zarr.open(m)
 
@@ -367,9 +368,13 @@ class MultiZarrToZarr:
                     key = key.rstrip(".")
 
                     if fs.info(fn)["size"] < self.inline:
-                        self.out[key] = fs.cat(fn)
+                        to_download[key] = fn
                     else:
                         self.out[key] = fs.references[fn]
+            if to_download:
+                bits = fs.cat(list(to_download.values()))
+                for key, fn in to_download.items():
+                    self.out[key] = bits[fn]
         self.done.add(3)
 
     def consolidate(self):
