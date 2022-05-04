@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     # Standard drop-in approach that should work for most people.
-    - uses: ammaraskar/sphinx-action@master
+    - uses: lsterzinger/sphinx-action@update_sphinx
       with:
         docs-folder: "docs/"
     # # Example of using a custom build-command.
