@@ -15,6 +15,7 @@ class netcdf_recording_file(netcdf_file):
         self.chunks = {}
         with fsspec.open(filename, **(storage_options or {})) as fp:
             super().__init__(fp, *args, mmap=False, mode="r", maskandscale=False, **kwargs)
+        self.filename = filename
 
     def _read_var_array(self):
         header = self.fp.read(4)
@@ -51,14 +52,16 @@ class netcdf_recording_file(netcdf_file):
             else:  # not a record variable
                 # Calculate size to avoid problems with vsize (above)
                 a_size = reduce(mul, shape, 1) * size
-                pos = self.fp.tell()
-                self.fp.seek(begin_)
-                self.chunks.setdefault(name, []).append((begin_, a_size, dtype_, shape))
-                # data = frombuffer(self.fp.read(a_size), dtype=dtype_
-                #                   ).copy()
-                # data.shape = shape
-                data = np.empty(1, dtype=dtype_)
-                self.fp.seek(pos)
+                self.chunks[name] = [begin_, a_size, dtype_, shape]
+                if name in ["latitude", "longitude", "time"]:
+                    pos = self.fp.tell()
+                    self.fp.seek(begin_)
+                    data = np.frombuffer(self.fp.read(a_size), dtype=dtype_
+                                         ).copy()
+                    # data.shape = shape
+                    self.fp.seek(pos)
+                else:
+                    data = np.empty(1, dtype=dtype_)
 
             # Add variable.
             self.variables[name] = netcdf_variable(
@@ -82,19 +85,28 @@ class netcdf_recording_file(netcdf_file):
     def translate(self, threshold=500):
         out = {}
         z = zarr.open(out, mode='w')
-        for dim, shape in self.dimensions.items():
-            var = self.variables[dim]
-            if shape is None or (len(shape) and shape[0] is None):
-                # fails, we didn't make the data and need to extract it - but these are recarray strides
-                data = var[:]
-                arr = z.create_dataset(name=var, data=data, chunks=data.shape, compression=None)
-                arr.attrs.update(var._attributes)
+        for dim, var in self.variables.items():
+            if dim in self.dimensions:
+                shape = self.dimensions[dim]
             else:
-                assert len(self.chunks[dim]) == 1  # cloud subchunk here
-                arr = z.empty(name=var, shape=shape, dtype=var.dtype, chunks=shape)
-                arr.attrs.update(var._attributes)
+                shape = self.chunks[dim][-1]
+            if isinstance(shape, int):
+                shape = shape,
+            if shape is None or (len(shape) and shape[0] is None):
+                # record array: either simple chunks, or use codec
+                data = var[:]
+                arr = z.create_dataset(name=dim, data=data, chunks=data.shape, compression=None)
+            else:
+                # simple array block
+                arr = z.empty(name=dim, shape=shape, dtype=var.data.dtype, chunks=shape,
+                              compression=None)
                 part = ".".join(["0"] * len(shape)) or "0"
                 out[f"{dim}/{part}"] = [self.filename] + self.chunks[dim][:2]
+            arr.attrs.update(
+                {k: v.decode() if isinstance(v, bytes) else str(v)
+                 for k, v in var._attributes.items()}
+            )
+            arr.attrs['_ARRAY_DIMENSIONS'] = list(var.dimensions)
         return out
 
 
