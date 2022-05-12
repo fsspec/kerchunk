@@ -101,7 +101,7 @@ class netcdf_recording_file(netcdf_file):
                 arr = z.empty(name=dim, shape=shape, dtype=var.data.dtype, chunks=shape,
                               compression=None)
                 part = ".".join(["0"] * len(shape)) or "0"
-                out[f"{dim}/{part}"] = [self.filename] + self.chunks[dim][:2]
+                out[f"{dim}/{part}"] = [self.filename] + [int(self.chunks[dim][0]), int(self.chunks[dim][1])]
             arr.attrs.update(
                 {k: v.decode() if isinstance(v, bytes) else str(v)
                  for k, v in var._attributes.items()}
