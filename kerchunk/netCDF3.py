@@ -1,7 +1,10 @@
+from functools import reduce
+from operator import mul
+
 from numcodecs.abc import Codec
 import numpy as np
 # TODO: defer input or allow to skip to get access to codec when we don't have scipy
-from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, reduce, mul, netcdf_variable
+from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
 import zarr
 
 import fsspec
