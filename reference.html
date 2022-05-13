@@ -95,8 +95,8 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.fits.process_file" title="kerchunk.fits.process_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.fits.process_file</span></code></a>(url[, …])</p></td>
 <td><p>Create JSON references for a single FITS file as a zarr group</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr" title="kerchunk.tiff.tiff_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></a>(urlpath[, …])</p></td>
+<td><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></p></td>
 <td><p></p></td>
@@ -358,6 +358,31 @@ uses the first data extension</p>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
 <dt>dict of the references</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="kerchunk.tiff.tiff_to_zarr">
+<code class="sig-prename descclassname">kerchunk.tiff.</code><code class="sig-name descname">tiff_to_zarr</code><span class="sig-paren">(</span><em class="sig-param">urlpath</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">target=None</em>, <em class="sig-param">target_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/tiff.html#tiff_to_zarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.tiff.tiff_to_zarr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>urlpath: str</strong></dt><dd><p>Location of input TIFF</p>
+</dd>
+<dt><strong>remote_options: dict</strong></dt><dd><p>pass these to fsspec when opening urlpath</p>
+</dd>
+<dt><strong>target: str</strong></dt><dd><p>Write JSON to this location. If not given, no file is output</p>
+</dd>
+<dt><strong>target_options: dict</strong></dt><dd><p>pass these to fsspec when opening target</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>references dict</dt><dd></dd>
 </dl>
 </dd>
 </dl>
