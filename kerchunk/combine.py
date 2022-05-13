@@ -24,6 +24,8 @@ def drop(fields):
 
 class MultiZarrToZarr:
     """
+    Combine multiple kerchunk'd datasets into a single logical aggregate dataset
+
     :param path: str, list(str) or list(dict)
         Local paths, each containing a references JSON; or a list of references dicts
     :param concat_dims: str or list(str)
