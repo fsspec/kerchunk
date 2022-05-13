@@ -1,8 +1,5 @@
-import json
 import io
 import fsspec
-import zarr
-import tifffile
 import enum
 import ujson
 
@@ -26,6 +23,7 @@ def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None)
     -------
     references dict
     """
+    import tifffile
     with fsspec.open(urlpath, **(remote_options or {})) as of:
         url, name = urlpath.rsplit('/', 1)
 
