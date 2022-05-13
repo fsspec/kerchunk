@@ -16,6 +16,7 @@ dependencies:
   - pytest-cov
   - fsspec
   - dask
+  - scipy
   - s3fs
   - python-blosc
   - flake8
