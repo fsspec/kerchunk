@@ -20,3 +20,7 @@ dependencies:
   - python-blosc
   - flake8
   - black
+  - pip
+  - tifffile
+  - pip:
+      - git+https://github.com/fsspec/filesystem_spec

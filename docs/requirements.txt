@@ -1,5 +1,5 @@
 sphinx-rtd-theme
-numpydoc
+numpydoc==1.2.1
 autodoc
 numpy
 fsspec

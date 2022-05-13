@@ -124,7 +124,7 @@ class SingleHdf5ToZarr:
 
             # Fix some attribute values to avoid JSON encoding exceptions...
             if isinstance(v, bytes):
-                v = v.decode('utf-8')
+                v = v.decode('utf-8') or " "
             elif isinstance(v, (np.ndarray, np.number, np.bool_)):
                 if v.dtype.kind == 'S':
                     v = v.astype(str)
@@ -143,8 +143,8 @@ class SingleHdf5ToZarr:
             try:
                 zobj.attrs[n] = v
             except TypeError:
-                lggr.exception(
-                    f'Caught TypeError: {n}@{h5obj.name} = {v} ({type(v)})')
+                lggr.debug(
+                    f'TypeError transferring attr, skipping:\n {n}@{h5obj.name} = {v} ({type(v)})')
 
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file.
@@ -171,7 +171,18 @@ class SingleHdf5ToZarr:
                 compression = numcodecs.Zlib(level=h5obj.compression_opts)
             else:
                 compression = None
-            
+            kwargs = {}
+            if h5obj.dtype.kind in "US":
+                fill = h5obj.fillvalue or " "
+            elif h5obj.dtype.kind == "O":
+                kwargs["data"] = h5obj[:]
+                kwargs["object_codec"] = numcodecs.MsgPack()
+                fill = None
+            elif _is_netcdf_datetime(h5obj):
+                fill = None
+            else:
+                fill = h5obj.fillvalue
+
             # Add filter for shuffle
             filters = []
             if h5obj.shuffle:
@@ -183,13 +194,15 @@ class SingleHdf5ToZarr:
                 return
 
             # Create a Zarr array equivalent to this HDF5 dataset...
-            za = self._zroot.create_dataset(h5obj.name, shape=h5obj.shape,
-                                            dtype=h5obj.dtype,
-                                            chunks=h5obj.chunks or False,
-                                            fill_value=h5obj.fillvalue,
-                                            compression=compression,
-                                            filters=filters,
-                                            overwrite=True)
+            za = self._zroot.create_dataset(
+                h5obj.name, shape=h5obj.shape,
+                dtype=h5obj.dtype,
+                chunks=h5obj.chunks or False,
+                fill_value=fill,
+                compression=compression,
+                filters=filters,
+                overwrite=True,
+                **kwargs)
             lggr.debug(f'Created Zarr array: {za}')
             self._transfer_attrs(h5obj, za)
 
@@ -298,3 +311,12 @@ class SingleHdf5ToZarr:
                     [a // b for a, b in zip(blob.chunk_offset, chunk_size)])
                 stinfo[key] = {'offset': blob.byte_offset, 'size': blob.size}
             return stinfo
+
+
+def _is_netcdf_datetime(dataset: h5py.Dataset):
+    units = dataset.attrs.get("units")
+    if isinstance(units, bytes):
+        units = units.decode("utf-8")
+    # This is the same heuristic used by xarray
+    # https://github.com/pydata/xarray/blob/f8bae5974ee2c3f67346298da12621af4cae8cf8/xarray/coding/times.py#L670
+    return units and "since" in units
