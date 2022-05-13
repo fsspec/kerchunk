@@ -7,7 +7,25 @@ import enum
 import ujson
 
 
-def tiff_to_zarr(urlpath, remote_options=None, inline_threshold=0, target=None, target_options=None):
+def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None):
+    """
+    Wraps TIFFFile's fsspec writer to extract metadata as attributes
+
+    Parameters
+    ----------
+    urlpath: str
+        Location of input TIFF
+    remote_options: dict
+        pass these to fsspec when opening urlpath
+    target: str
+        Write JSON to this location. If not given, no file is output
+    target_options: dict
+        pass these to fsspec when opening target
+
+    Returns
+    -------
+    references dict
+    """
     with fsspec.open(urlpath, **(remote_options or {})) as of:
         url, name = urlpath.rsplit('/', 1)
 
