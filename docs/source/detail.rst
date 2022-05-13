@@ -22,7 +22,7 @@ read them in parallel and/or concurrently within a single indexible aggregate da
    requests, and only pay the overhead cost once (they all wait together), then a large speedup
    is possible.
 
-   ``kerchunk`` with ``dask`` and ``zarr`` allows to make use of both these techniques
+   ``kerchunk`` with ``dask`` and ``zarr`` allows us to make use of both these techniques
    simultaneously.
 
 Binary buffers
