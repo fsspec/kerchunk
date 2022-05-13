@@ -98,11 +98,11 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr" title="kerchunk.tiff.tiff_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></a>(urlpath[, …])</p></td>
 <td><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.netcdf_recording_file" title="kerchunk.netCDF3.netcdf_recording_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></a>(…)</p></td>
+<td><p>Generate references for a netCDF3 file</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.RecordArrayMember</span></code></p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.netCDF3.RecordArrayMember" title="kerchunk.netCDF3.RecordArrayMember"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.RecordArrayMember</span></code></a>(member, dtype)</p></td>
+<td><p>Read components of a record array (complex dtype)</p></td>
 </tr>
 </tbody>
 </table>
@@ -386,6 +386,83 @@ uses the first data extension</p>
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="kerchunk.netCDF3.netcdf_recording_file">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">netcdf_recording_file</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">*args</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#netcdf_recording_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate references for a netCDF3 file</p>
+<p>Uses scipy’s netCDF3 reader, but only reads the metadata. Note that instances
+do behave like actual scipy netcdf files, but contain no valid data.</p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.netcdf_recording_file.translate" title="kerchunk.netCDF3.netcdf_recording_file.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([threshold, max_chunk_size])</p></td>
+<td><p>Produce references dictionary</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="kerchunk.netCDF3.netcdf_recording_file.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">*args</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#netcdf_recording_file.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>filename: str</strong></dt><dd><p>location of the input</p>
+</dd>
+<dt><strong>storage_options: dict</strong></dt><dd><p>passed to fsspec when opening filename</p>
+</dd>
+<dt><strong>args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="kerchunk.netCDF3.netcdf_recording_file.translate">
+<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">threshold=0</em>, <em class="sig-param">max_chunk_size=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#netcdf_recording_file.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file.translate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produce references dictionary</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>threshold: int</strong></dt><dd><p>values with fewer bytes are inlined into the output</p>
+</dd>
+<dt><strong>max_chunk_size: int</strong></dt><dd><p>How big a chunk can be before triggering subchunking. If 0, there is no
+subchunking, and there is never subchunking for coordinate/dimension arrays.
+E.g., if an array contains 10,000bytes, and this value is 6000, there will
+be two output chunks, split on the biggest available dimension.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="kerchunk.netCDF3.RecordArrayMember">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">RecordArrayMember</code><span class="sig-paren">(</span><em class="sig-param">member</em>, <em class="sig-param">dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#RecordArrayMember"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.RecordArrayMember" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read components of a record array (complex dtype)</p>
+<dl class="method">
+<dt id="kerchunk.netCDF3.RecordArrayMember.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">member</em>, <em class="sig-param">dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#RecordArrayMember.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.RecordArrayMember.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>member: str</strong></dt><dd><p>name of desired subarray</p>
+</dd>
+<dt><strong>dtype: list of lists</strong></dt><dd><p>description of the complex dtype of the overall record array. Must be both
+parsable by <code class="docutils literal notranslate"><span class="pre">np.dtype()</span></code> and also be JSON serialisable</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </div>
