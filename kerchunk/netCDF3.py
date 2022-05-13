@@ -6,8 +6,7 @@ import numpy as np
 try:
     from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
 except ImportError:
-    netcdf_variable = object
-import zarr
+    netcdf_file = object
 
 import fsspec
 
@@ -121,6 +120,7 @@ class netcdf_recording_file(netcdf_file):
             E.g., if an array contains 10,000bytes, and this value is 6000, there will
             be two output chunks, split on the biggest available dimension.
         """
+        import zarr
         if threshold or max_chunk_size:
             raise NotImplementedError
         out = {}
