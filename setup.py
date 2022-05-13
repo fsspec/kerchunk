@@ -21,11 +21,13 @@ setup(
         "fits": ["xarray"],
         "hdf": ["h5py", "xarray"],
         "grib2": ["cfgrib"],
+        "netcdf3": ["scipy"]
     },
     entry_points={
         'numcodecs.codecs': [
             'grib = kerchunk.grib2:GRIBCodec',
-            'FITSAscii = kerchunk.fits:AsciiTableCodec'
+            'FITSAscii = kerchunk.fits:AsciiTableCodec',
+            "record_member = kerchunk.netCDF3.RecordArrayMember"
         ],
     },
     zip_safe=False

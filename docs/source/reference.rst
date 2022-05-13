@@ -9,6 +9,9 @@ API Reference
    kerchunk.grib2.GRIBCodec
    kerchunk.combine.MultiZarrToZarr
    kerchunk.fits.process_file
+   kerchunk.tiff.tiff_to_zarr
+   kerchunk.netCDF3.netcdf_recording_file
+   kerchunk.netCDF3.RecordArrayMember
 
 .. autoclass:: kerchunk.hdf.SingleHdf5ToZarr
     :members:
@@ -21,3 +24,11 @@ API Reference
     :members:
 
 .. autofunction:: kerchunk.fits.process_file
+
+.. autofunction:: kerchunk.tiff.tiff_to_zarr
+
+.. autoclass:: kerchunk.netCDF3.netcdf_recording_file
+    :members: __init__, translate
+
+.. autoclass:: kerchunk.netCDF3.RecordArrayMember
+    :members: __init__

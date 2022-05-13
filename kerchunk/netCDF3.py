@@ -1,5 +1,6 @@
 from numcodecs.abc import Codec
 import numpy as np
+# TODO: defer input or allow to skip to get access to codec when we don't have scipy
 from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, reduce, mul, netcdf_variable
 import zarr
 
@@ -7,8 +8,22 @@ import fsspec
 
 
 class netcdf_recording_file(netcdf_file):
+    """Generate references for a netCDF3 file
+
+    Uses scipy's netCDF3 reader, but only reads the metadata. Note that instances
+    do behave like actual scipy netcdf files, but contain no valid data.
+    """
 
     def __init__(self, filename, *args, storage_options=None, **kwargs):
+        """
+        Parameters
+        ----------
+        filename: str
+            location of the input
+        storage_options: dict
+            passed to fsspec when opening filename
+        args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
+        """
         assert kwargs.pop("mmap", False) is False
         assert kwargs.pop("mode", "r") == "r"
         assert kwargs.pop("maskandscale", False) is False
@@ -30,6 +45,9 @@ class netcdf_recording_file(netcdf_file):
             (name, dimensions, shape, attributes,
              typecode, size, dtype_, begin_, vsize) = self._read_var()
             if shape and shape[0] is None:  # record variable
+                # TODO: when there is only one variable, this is easy
+                #  when more than one, need a choice of read mechanism, simple or rec
+                raise NotImplementedError
                 rec_vars.append(name)
                 # The netCDF "record size" is calculated as the sum of
                 # the vsize's of all the record variables.
@@ -82,7 +100,22 @@ class netcdf_recording_file(netcdf_file):
             # rec_array.shape = (self._recs,)
             self.fp.seek(pos)
 
-    def translate(self, threshold=500):
+    def translate(self, threshold=0, max_chunk_size=0):
+        """
+        Produce references dictionary
+
+        Parameters
+        ----------
+        threshold: int
+            values with fewer bytes are inlined into the output
+        max_chunk_size: int
+            How big a chunk can be before triggering subchunking. If 0, there is no
+            subchunking, and there is never subchunking for coordinate/dimension arrays.
+            E.g., if an array contains 10,000bytes, and this value is 6000, there will
+            be two output chunks, split on the biggest available dimension.
+        """
+        if threshold or max_chunk_size:
+            raise NotImplementedError
         out = {}
         z = zarr.open(out, mode='w')
         for dim, var in self.variables.items():
@@ -111,9 +144,19 @@ class netcdf_recording_file(netcdf_file):
 
 
 class RecordArrayMember(Codec):
+    """Read components of a record array (complex dtype)"""
     codec_id = "record_member"
 
     def __init__(self, member, dtype):
+        """
+        Parameters
+        ----------
+        member: str
+            name of desired subarray
+        dtype: list of lists
+            description of the complex dtype of the overall record array. Must be both
+            parsable by ``np.dtype()`` and also be JSON serialisable
+        """
         self.member = member
         self.dtype = dtype
 
