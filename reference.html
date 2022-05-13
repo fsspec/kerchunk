@@ -90,12 +90,7 @@
 <td><p>Read GRIB stream of bytes by writing to a temp file and calling cfgrib</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>(path[, …])</p></td>
-<td><p><dl class="field-list simple">
-<dt class="field-odd">param path</dt>
-<dd class="field-odd"><p>str, list(str) or list(dict)</p>
-</dd>
-</dl>
-</p></td>
+<td><p>Combine multiple kerchunk’d datasets into a single logical aggregate dataset</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.fits.process_file" title="kerchunk.fits.process_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.fits.process_file</span></code></a>(url[, …])</p></td>
 <td><p>Create JSON references for a single FITS file as a zarr group</p></td>
@@ -223,7 +218,8 @@ returns a “reference” structure to be used with zarr/kerchunk</p>
 <dl class="class">
 <dt id="kerchunk.combine.MultiZarrToZarr">
 <em class="property">class </em><code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Combine multiple kerchunk’d datasets into a single logical aggregate dataset</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>path</strong> – str, list(str) or list(dict)
