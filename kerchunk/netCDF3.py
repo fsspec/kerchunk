@@ -3,8 +3,10 @@ from operator import mul
 
 from numcodecs.abc import Codec
 import numpy as np
-# TODO: defer input or allow to skip to get access to codec when we don't have scipy
-from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
+try:
+    from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
+except ImportError:
+    netcdf_variable = object
 import zarr
 
 import fsspec
@@ -27,6 +29,8 @@ class netcdf_recording_file(netcdf_file):
             passed to fsspec when opening filename
         args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
         """
+        if netcdf_file is object:
+            raise ImportError("scipy was not imported, and is required for netCDF3")
         assert kwargs.pop("mmap", False) is False
         assert kwargs.pop("mode", "r") == "r"
         assert kwargs.pop("maskandscale", False) is False
