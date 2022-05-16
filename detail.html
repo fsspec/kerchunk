@@ -98,7 +98,7 @@ system. For the particular case of cloud storage, the latency to get the first b
 can be comparable or dominate the total time for a request. So if you can launch many
 requests, and only pay the overhead cost once (they all wait together), then a large speedup
 is possible.</p>
-<p><code class="docutils literal notranslate"><span class="pre">kerchunk</span></code> with <code class="docutils literal notranslate"><span class="pre">dask</span></code> and <code class="docutils literal notranslate"><span class="pre">zarr</span></code> allows to make use of both these techniques
+<p><code class="docutils literal notranslate"><span class="pre">kerchunk</span></code> with <code class="docutils literal notranslate"><span class="pre">dask</span></code> and <code class="docutils literal notranslate"><span class="pre">zarr</span></code> allows us to make use of both these techniques
 simultaneously.</p>
 </div>
 <div class="section" id="binary-buffers">
@@ -107,7 +107,7 @@ simultaneously.</p>
 For example, if the data type is int32, then 4 bytes are used per value, and an array of
 total N elements is stored in a single Nx4 block of bytes. This remains true for multiple
 dimensions.</p>
-<p>If you want to store such data to disk, you cannot be more efficient that to take the buffer
+<p>If you want to store such data to disk, you cannot be more efficient than to take the buffer
 representation, perhaps pass it through some codecs (e.g., compression) and write those bytes
 directly. HDF5 does this, and so do almost all other binary formats. An HDF5 is made up of
 binary chunks and metadata areas, describing the types and sizes of the binary chunks, how
