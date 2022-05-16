@@ -22,7 +22,7 @@ read them in parallel and/or concurrently within a single indexible aggregate da
    requests, and only pay the overhead cost once (they all wait together), then a large speedup
    is possible.
 
-   ``kerchunk`` with ``dask`` and ``zarr`` allows to make use of both these techniques
+   ``kerchunk`` with ``dask`` and ``zarr`` allows us to make use of both these techniques
    simultaneously.
 
 Binary buffers
@@ -33,7 +33,7 @@ For example, if the data type is int32, then 4 bytes are used per value, and an 
 total N elements is stored in a single Nx4 block of bytes. This remains true for multiple
 dimensions.
 
-If you want to store such data to disk, you cannot be more efficient that to take the buffer
+If you want to store such data to disk, you cannot be more efficient than to take the buffer
 representation, perhaps pass it through some codecs (e.g., compression) and write those bytes
 directly. HDF5 does this, and so do almost all other binary formats. An HDF5 is made up of
 binary chunks and metadata areas, describing the types and sizes of the binary chunks, how
