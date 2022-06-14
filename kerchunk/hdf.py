@@ -38,7 +38,7 @@ class SingleHdf5ToZarr:
     inline_threshold : int
         Include chunks smaller than this value directly in the output. Zero or negative
         to disable
-    error: "warn" | "pdb"
+    error: "warn" (default) | "pdb" | "ignore"
     """
 
     def __init__(self, h5f: BinaryIO, url: str,
@@ -176,6 +176,13 @@ class SingleHdf5ToZarr:
                 else:
                     compression = None
                 kwargs = {}
+                if h5obj.dtype.kind == "V":
+                    # compound/"void" dtype
+                    # TODO: needs test case
+                    dt = {k: ("S16" if v.kind == "O" else v) for k, v in d.fields.items()}
+                    fill = None
+                else:
+                    dt = None
                 if h5obj.dtype.kind in "US":
                     fill = h5obj.fillvalue or " "
                 elif h5obj.dtype.kind == "O":
@@ -201,7 +208,7 @@ class SingleHdf5ToZarr:
                 # Create a Zarr array equivalent to this HDF5 dataset...
                 za = self._zroot.create_dataset(
                     h5obj.name, shape=h5obj.shape,
-                    dtype=h5obj.dtype,
+                    dtype=dt or h5obj.dtype,
                     chunks=h5obj.chunks or False,
                     fill_value=fill,
                     compression=compression,
@@ -228,7 +235,13 @@ class SingleHdf5ToZarr:
                 zgrp = self._zroot.create_group(h5obj.name)
                 self._transfer_attrs(h5obj, zgrp)
         except Exception as e:
-            if self.error == "warn":
+            if self.error == "ignore":
+                return
+            elif self.error == "pdb":
+                import pdb
+                pdb.post_mortem()
+            else:
+                # "warn" or anything else, the default
                 import warnings
                 import traceback
                 msg = "\n".join([
@@ -238,9 +251,6 @@ class SingleHdf5ToZarr:
                 ])
                 del e  # garbage collect
                 warnings.warn(msg)
-            else:
-                import pdb
-                pdb.post_mortem()
 
     def _get_array_dims(self, dset):
         """Get a list of dimension scale names attached to input HDF5 dataset.
