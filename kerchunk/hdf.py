@@ -179,7 +179,8 @@ class SingleHdf5ToZarr:
                 if h5obj.dtype.kind == "V":
                     # compound/"void" dtype
                     # TODO: needs test case
-                    dt = {k: ("S16" if v.kind == "O" else v) for k, v in d.fields.items()}
+                    dt = {k: ("S16" if v.kind == "O" else v)
+                          for k, v in h5obj.dtype.fields.items()}
                     fill = None
                 else:
                     dt = None
