@@ -38,10 +38,12 @@ class SingleHdf5ToZarr:
     inline_threshold : int
         Include chunks smaller than this value directly in the output. Zero or negative
         to disable
+    error: "warn" (default) | "pdb" | "ignore"
     """
 
     def __init__(self, h5f: BinaryIO, url: str,
-                 spec=1, inline_threshold=100):
+                 spec=1, inline_threshold=100,
+                 error="warn"):
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
         self.input_file = h5f
@@ -53,6 +55,7 @@ class SingleHdf5ToZarr:
         self._zroot = zarr.group(store=self.store, overwrite=True)
 
         self._uri = url
+        self.error = error
         lggr.debug(f'HDF5 file URI: {self._uri}')
 
     def translate(self):
@@ -149,79 +152,106 @@ class SingleHdf5ToZarr:
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file.
         """
-        refs = {}
-        if isinstance(h5obj, h5py.Dataset):
-            lggr.debug(f'HDF5 dataset: {h5obj.name}')
-            if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
-                RuntimeError(
-                    f'Compact HDF5 datasets not yet supported: <{h5obj.name} '
-                    f'{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>')
+        try:  # method must not raise exception
+            refs = {}
+            if isinstance(h5obj, h5py.Dataset):
+                lggr.debug(f'HDF5 dataset: {h5obj.name}')
+                if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
+                    RuntimeError(
+                        f'Compact HDF5 datasets not yet supported: <{h5obj.name} '
+                        f'{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>')
+                    return
+
+                #
+                # check for unsupported HDF encoding/filters
+                #
+                if h5obj.scaleoffset:
+                    raise RuntimeError(
+                        f'{h5obj.name} uses HDF5 scaleoffset filter - not supported by reference-maker')
+                if h5obj.compression in ('szip', 'lzf'):
+                    raise RuntimeError(
+                        f'{h5obj.name} uses szip or lzf compression - not supported by reference-maker')
+                if h5obj.compression == 'gzip':
+                    compression = numcodecs.Zlib(level=h5obj.compression_opts)
+                else:
+                    compression = None
+                kwargs = {}
+                if h5obj.dtype.kind == "V":
+                    # compound/"void" dtype
+                    # TODO: needs test case
+                    dt = {k: ("S16" if v.kind == "O" else v)
+                          for k, v in h5obj.dtype.fields.items()}
+                    fill = None
+                else:
+                    dt = None
+                if h5obj.dtype.kind in "US":
+                    fill = h5obj.fillvalue or " "
+                elif h5obj.dtype.kind == "O":
+                    kwargs["data"] = h5obj[:]
+                    kwargs["object_codec"] = numcodecs.MsgPack()
+                    fill = None
+                elif _is_netcdf_datetime(h5obj):
+                    fill = None
+                else:
+                    fill = h5obj.fillvalue
+
+                # Add filter for shuffle
+                filters = []
+                if h5obj.shuffle and h5obj.dtype.kind != "O":
+                    # cannot use shuffle if we materialised objects
+                    filters.append(numcodecs.Shuffle(elementsize=h5obj.dtype.itemsize))
+
+                # Get storage info of this HDF5 dataset...
+                cinfo = self._storage_info(h5obj)
+                if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
+                    return
+
+                # Create a Zarr array equivalent to this HDF5 dataset...
+                za = self._zroot.create_dataset(
+                    h5obj.name, shape=h5obj.shape,
+                    dtype=dt or h5obj.dtype,
+                    chunks=h5obj.chunks or False,
+                    fill_value=fill,
+                    compression=compression,
+                    filters=filters,
+                    overwrite=True,
+                    **kwargs)
+                lggr.debug(f'Created Zarr array: {za}')
+                self._transfer_attrs(h5obj, za)
+
+                adims = self._get_array_dims(h5obj)
+                za.attrs['_ARRAY_DIMENSIONS'] = adims
+                lggr.debug(f'_ARRAY_DIMENSIONS = {adims}')
+
+                # Store chunk location metadata...
+                if cinfo:
+                    for k, v in cinfo.items():
+                        if h5obj.fletcher32:
+                            logging.info("Discarding fletcher32 checksum")
+                            v['size'] -= 4
+                        self.store[za._chunk_key(k)] = [self._uri, v['offset'], v['size']]
+
+            elif isinstance(h5obj, h5py.Group):
+                lggr.debug(f'HDF5 group: {h5obj.name}')
+                zgrp = self._zroot.create_group(h5obj.name)
+                self._transfer_attrs(h5obj, zgrp)
+        except Exception as e:
+            if self.error == "ignore":
                 return
-
-            #
-            # check for unsupported HDF encoding/filters
-            #
-            if h5obj.scaleoffset:
-                raise RuntimeError(
-                    f'{h5obj.name} uses HDF5 scaleoffset filter - not supported by reference-maker')
-            if h5obj.compression in ('szip', 'lzf'):
-                raise RuntimeError(
-                    f'{h5obj.name} uses szip or lzf compression - not supported by reference-maker')
-            if h5obj.compression == 'gzip':
-                compression = numcodecs.Zlib(level=h5obj.compression_opts)
+            elif self.error == "pdb":
+                import pdb
+                pdb.post_mortem()
             else:
-                compression = None
-            kwargs = {}
-            if h5obj.dtype.kind in "US":
-                fill = h5obj.fillvalue or " "
-            elif h5obj.dtype.kind == "O":
-                kwargs["data"] = h5obj[:]
-                kwargs["object_codec"] = numcodecs.MsgPack()
-                fill = None
-            elif _is_netcdf_datetime(h5obj):
-                fill = None
-            else:
-                fill = h5obj.fillvalue
-
-            # Add filter for shuffle
-            filters = []
-            if h5obj.shuffle:
-                filters.append(numcodecs.Shuffle(elementsize=h5obj.dtype.itemsize))
-
-            # Get storage info of this HDF5 dataset...
-            cinfo = self._storage_info(h5obj)
-            if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
-                return
-
-            # Create a Zarr array equivalent to this HDF5 dataset...
-            za = self._zroot.create_dataset(
-                h5obj.name, shape=h5obj.shape,
-                dtype=h5obj.dtype,
-                chunks=h5obj.chunks or False,
-                fill_value=fill,
-                compression=compression,
-                filters=filters,
-                overwrite=True,
-                **kwargs)
-            lggr.debug(f'Created Zarr array: {za}')
-            self._transfer_attrs(h5obj, za)
-
-            adims = self._get_array_dims(h5obj)
-            za.attrs['_ARRAY_DIMENSIONS'] = adims
-            lggr.debug(f'_ARRAY_DIMENSIONS = {adims}')
-
-            # Store chunk location metadata...
-            if cinfo:
-                for k, v in cinfo.items():
-                    if h5obj.fletcher32:
-                        logging.info("Discarding fletcher32 checksum")
-                        v['size'] -= 4
-                    self.store[za._chunk_key(k)] = [self._uri, v['offset'], v['size']]
-
-        elif isinstance(h5obj, h5py.Group):
-            lggr.debug(f'HDF5 group: {h5obj.name}')
-            zgrp = self._zroot.create_group(h5obj.name)
-            self._transfer_attrs(h5obj, zgrp)
+                # "warn" or anything else, the default
+                import warnings
+                import traceback
+                msg = "\n".join([
+                    f"The following excepion was caught and quashed while traversing HDF5",
+                    str(e),
+                    traceback.format_exc(limit=5)
+                ])
+                del e  # garbage collect
+                warnings.warn(msg)
 
     def _get_array_dims(self, dset):
         """Get a list of dimension scale names attached to input HDF5 dataset.
