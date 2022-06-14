@@ -112,10 +112,12 @@
 <span class="sd">    inline_threshold : int</span>
 <span class="sd">        Include chunks smaller than this value directly in the output. Zero or negative</span>
 <span class="sd">        to disable</span>
+<span class="sd">    error: &quot;warn&quot; (default) | &quot;pdb&quot; | &quot;ignore&quot;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5f</span><span class="p">:</span> <span class="n">BinaryIO</span><span class="p">,</span> <span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                 <span class="n">spec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+                 <span class="n">spec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                 <span class="n">error</span><span class="o">=</span><span class="s2">&quot;warn&quot;</span><span class="p">):</span>
         <span class="c1"># Open HDF5 file in read mode...</span>
         <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 file: </span><span class="si">{h5f}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_file</span> <span class="o">=</span> <span class="n">h5f</span>
@@ -127,6 +129,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_uri</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="n">error</span>
         <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 file URI: </span><span class="si">{self._uri}</span><span class="s1">&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SingleHdf5ToZarr.translate"><a class="viewcode-back" href="../../reference.html#kerchunk.hdf.SingleHdf5ToZarr.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -223,79 +226,106 @@
     <span class="k">def</span> <span class="nf">_translator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">h5obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">]):</span>
         <span class="sd">&quot;&quot;&quot;Produce Zarr metadata for all groups and datasets in the HDF5 file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">refs</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
-            <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 dataset: </span><span class="si">{h5obj.name}</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">get_create_plist</span><span class="p">()</span><span class="o">.</span><span class="n">get_layout</span><span class="p">()</span> <span class="o">==</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5d</span><span class="o">.</span><span class="n">COMPACT</span><span class="p">:</span>
-                <span class="ne">RuntimeError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s1">&#39;Compact HDF5 datasets not yet supported: &lt;</span><span class="si">{h5obj.name}</span><span class="s1"> &#39;</span>
-                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.shape}</span><span class="s1"> </span><span class="si">{h5obj.dtype}</span><span class="s1"> </span><span class="si">{h5obj.nbytes}</span><span class="s1"> bytes&gt;&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>  <span class="c1"># method must not raise exception</span>
+            <span class="n">refs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+                <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 dataset: </span><span class="si">{h5obj.name}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">get_create_plist</span><span class="p">()</span><span class="o">.</span><span class="n">get_layout</span><span class="p">()</span> <span class="o">==</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5d</span><span class="o">.</span><span class="n">COMPACT</span><span class="p">:</span>
+                    <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;Compact HDF5 datasets not yet supported: &lt;</span><span class="si">{h5obj.name}</span><span class="s1"> &#39;</span>
+                        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.shape}</span><span class="s1"> </span><span class="si">{h5obj.dtype}</span><span class="s1"> </span><span class="si">{h5obj.nbytes}</span><span class="s1"> bytes&gt;&#39;</span><span class="p">)</span>
+                    <span class="k">return</span>
+
+                <span class="c1">#</span>
+                <span class="c1"># check for unsupported HDF encoding/filters</span>
+                <span class="c1">#</span>
+                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">scaleoffset</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.name}</span><span class="s1"> uses HDF5 scaleoffset filter - not supported by reference-maker&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;szip&#39;</span><span class="p">,</span> <span class="s1">&#39;lzf&#39;</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.name}</span><span class="s1"> uses szip or lzf compression - not supported by reference-maker&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="s1">&#39;gzip&#39;</span><span class="p">:</span>
+                    <span class="n">compression</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">Zlib</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">compression_opts</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">compression</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span>
+                    <span class="c1"># compound/&quot;void&quot; dtype</span>
+                    <span class="c1"># TODO: needs test case</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;S16&quot;</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span> <span class="k">else</span> <span class="n">v</span><span class="p">)</span>
+                          <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;US&quot;</span><span class="p">:</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span> <span class="ow">or</span> <span class="s2">&quot; &quot;</span>
+                <span class="k">elif</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">MsgPack</span><span class="p">()</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">elif</span> <span class="n">_is_netcdf_datetime</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span>
+
+                <span class="c1"># Add filter for shuffle</span>
+                <span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">shuffle</span> <span class="ow">and</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
+                    <span class="c1"># cannot use shuffle if we materialised objects</span>
+                    <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">Shuffle</span><span class="p">(</span><span class="n">elementsize</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">))</span>
+
+                <span class="c1"># Get storage info of this HDF5 dataset...</span>
+                <span class="n">cinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_info</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5ds</span><span class="o">.</span><span class="n">is_scale</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cinfo</span><span class="p">:</span>
+                    <span class="k">return</span>
+
+                <span class="c1"># Create a Zarr array equivalent to this HDF5 dataset...</span>
+                <span class="n">za</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                    <span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span> <span class="ow">or</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">chunks</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">chunks</span> <span class="ow">or</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="n">fill_value</span><span class="o">=</span><span class="n">fill</span><span class="p">,</span>
+                    <span class="n">compression</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span>
+                    <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span>
+                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Created Zarr array: </span><span class="si">{za}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">za</span><span class="p">)</span>
+
+                <span class="n">adims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array_dims</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                <span class="n">za</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;_ARRAY_DIMENSIONS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">adims</span>
+                <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_ARRAY_DIMENSIONS = </span><span class="si">{adims}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+                <span class="c1"># Store chunk location metadata...</span>
+                <span class="k">if</span> <span class="n">cinfo</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cinfo</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fletcher32</span><span class="p">:</span>
+                            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Discarding fletcher32 checksum&quot;</span><span class="p">)</span>
+                            <span class="n">v</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">4</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">[</span><span class="n">za</span><span class="o">.</span><span class="n">_chunk_key</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_uri</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]]</span>
+
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
+                <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 group: </span><span class="si">{h5obj.name}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">zgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">zgrp</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">==</span> <span class="s2">&quot;ignore&quot;</span><span class="p">:</span>
                 <span class="k">return</span>
-
-            <span class="c1">#</span>
-            <span class="c1"># check for unsupported HDF encoding/filters</span>
-            <span class="c1">#</span>
-            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">scaleoffset</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.name}</span><span class="s1"> uses HDF5 scaleoffset filter - not supported by reference-maker&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;szip&#39;</span><span class="p">,</span> <span class="s1">&#39;lzf&#39;</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{h5obj.name}</span><span class="s1"> uses szip or lzf compression - not supported by reference-maker&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="s1">&#39;gzip&#39;</span><span class="p">:</span>
-                <span class="n">compression</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">Zlib</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">compression_opts</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">==</span> <span class="s2">&quot;pdb&quot;</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">pdb</span>
+                <span class="n">pdb</span><span class="o">.</span><span class="n">post_mortem</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">compression</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;US&quot;</span><span class="p">:</span>
-                <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span> <span class="ow">or</span> <span class="s2">&quot; &quot;</span>
-            <span class="k">elif</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
-                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">MsgPack</span><span class="p">()</span>
-                <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">elif</span> <span class="n">_is_netcdf_datetime</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
-                <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span>
-
-            <span class="c1"># Add filter for shuffle</span>
-            <span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">shuffle</span><span class="p">:</span>
-                <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">Shuffle</span><span class="p">(</span><span class="n">elementsize</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">))</span>
-
-            <span class="c1"># Get storage info of this HDF5 dataset...</span>
-            <span class="n">cinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_info</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5ds</span><span class="o">.</span><span class="n">is_scale</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cinfo</span><span class="p">:</span>
-                <span class="k">return</span>
-
-            <span class="c1"># Create a Zarr array equivalent to this HDF5 dataset...</span>
-            <span class="n">za</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
-                <span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="n">chunks</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">chunks</span> <span class="ow">or</span> <span class="kc">False</span><span class="p">,</span>
-                <span class="n">fill_value</span><span class="o">=</span><span class="n">fill</span><span class="p">,</span>
-                <span class="n">compression</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span>
-                <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span>
-                <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Created Zarr array: </span><span class="si">{za}</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">za</span><span class="p">)</span>
-
-            <span class="n">adims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array_dims</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
-            <span class="n">za</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;_ARRAY_DIMENSIONS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">adims</span>
-            <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_ARRAY_DIMENSIONS = </span><span class="si">{adims}</span><span class="s1">&#39;</span><span class="p">)</span>
-
-            <span class="c1"># Store chunk location metadata...</span>
-            <span class="k">if</span> <span class="n">cinfo</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cinfo</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fletcher32</span><span class="p">:</span>
-                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Discarding fletcher32 checksum&quot;</span><span class="p">)</span>
-                        <span class="n">v</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">4</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">[</span><span class="n">za</span><span class="o">.</span><span class="n">_chunk_key</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_uri</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;offset&#39;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;size&#39;</span><span class="p">]]</span>
-
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
-            <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;HDF5 group: </span><span class="si">{h5obj.name}</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="n">zgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">zgrp</span><span class="p">)</span>
+                <span class="c1"># &quot;warn&quot; or anything else, the default</span>
+                <span class="kn">import</span> <span class="nn">warnings</span>
+                <span class="kn">import</span> <span class="nn">traceback</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                    <span class="sa">f</span><span class="s2">&quot;The following excepion was caught and quashed while traversing HDF5&quot;</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
+                    <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+                <span class="p">])</span>
+                <span class="k">del</span> <span class="n">e</span>  <span class="c1"># garbage collect</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_array_dims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dset</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Get a list of dimension scale names attached to input HDF5 dataset.</span>
