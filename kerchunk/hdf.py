@@ -176,14 +176,6 @@ class SingleHdf5ToZarr:
                 else:
                     compression = None
                 kwargs = {}
-                if h5obj.dtype.kind == "V":
-                    # compound/"void" dtype
-                    # TODO: needs test case
-                    dt = {k: ("S16" if v.kind == "O" else v)
-                          for k, v in h5obj.dtype.fields.items()}
-                    fill = None
-                else:
-                    dt = None
                 if h5obj.dtype.kind in "US":
                     fill = h5obj.fillvalue or " "
                 elif h5obj.dtype.kind == "O":
@@ -194,6 +186,14 @@ class SingleHdf5ToZarr:
                     fill = None
                 else:
                     fill = h5obj.fillvalue
+                if h5obj.dtype.kind == "V":
+                    # compound/"void" dtype
+                    # TODO: needs test case
+                    dt = [(v, ("S16" if h5obj.dtype[v].kind == "O" else h5obj.dtype[v]))
+                          for v in h5obj.dtype.names]
+                    fill = None
+                else:
+                    dt = None
 
                 # Add filter for shuffle
                 filters = []
