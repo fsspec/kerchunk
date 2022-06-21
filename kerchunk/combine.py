@@ -65,7 +65,8 @@ class MultiZarrToZarr:
         Acts on the references dict of all inputs before processing. See ``drop()``
         for an example.
     :param postprocess: callable
-        Acts on output references dict before finally returning
+        Acts on the references dict before output. 
+        postprocess(dict)-> dict
     """
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
