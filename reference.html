@@ -265,7 +265,8 @@ Size below which binary blocks are included directly in the output</p></li>
 Acts on the references dict of all inputs before processing. See <code class="docutils literal notranslate"><span class="pre">drop()</span></code>
 for an example.</p></li>
 <li><p><strong>postprocess</strong> – callable
-Acts on output references dict before finally returning</p></li>
+Acts on the references dict before output. 
+postprocess(dict)-&gt; dict</p></li>
 </ul>
 </dd>
 <dt class="field-even">Attributes</dt>
@@ -282,29 +283,20 @@ Acts on output references dict before finally returning</p></li>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.consolidate" title="kerchunk.combine.MultiZarrToZarr.consolidate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">consolidate</span></code></a>()</p></td>
-<td><p>Turn raw references into output</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.first_pass" title="kerchunk.combine.MultiZarrToZarr.first_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">first_pass</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.first_pass" title="kerchunk.combine.MultiZarrToZarr.first_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">first_pass</span></code></a>()</p></td>
 <td><p>Accumulate the set of concat coords values across all inputs</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.second_pass" title="kerchunk.combine.MultiZarrToZarr.second_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">second_pass</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.second_pass" title="kerchunk.combine.MultiZarrToZarr.second_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">second_pass</span></code></a>()</p></td>
 <td><p>map every input chunk to the output</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.store_coords" title="kerchunk.combine.MultiZarrToZarr.store_coords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store_coords</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.store_coords" title="kerchunk.combine.MultiZarrToZarr.store_coords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store_coords</span></code></a>()</p></td>
 <td><p>Write coordinate arrays into the output</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([filename, storage_options])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([filename, storage_options])</p></td>
 <td><p>Perform all stages and return the resultant references dict</p></td>
 </tr>
 </tbody>
 </table>
-<dl class="method">
-<dt id="kerchunk.combine.MultiZarrToZarr.consolidate">
-<code class="sig-name descname">consolidate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.consolidate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.consolidate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Turn raw references into output</p>
-</dd></dl>
-
 <dl class="method">
 <dt id="kerchunk.combine.MultiZarrToZarr.first_pass">
 <code class="sig-name descname">first_pass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.first_pass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.first_pass" title="Permalink to this definition">¶</a></dt>
