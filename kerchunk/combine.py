@@ -65,7 +65,8 @@ class MultiZarrToZarr:
         Acts on the references dict of all inputs before processing. See ``drop()``
         for an example.
     :param postprocess: callable
-        Acts on output references dict before finally returning
+        Acts on the references dict before output. 
+        postprocess(dict)-> dict
     """
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
@@ -378,24 +379,8 @@ class MultiZarrToZarr:
                 for key, fn in to_download.items():
                     self.out[key] = bits[fn]
         self.done.add(3)
-
-    def consolidate(self):
-        """Turn raw references into output"""
-        out = {}
-        for k, v in self.out.items():
-            if isinstance(v, bytes):
-                try:
-                    # easiest way to test if data is ascii
-                    out[k] = v.decode('ascii')
-                except UnicodeDecodeError:
-                    out[k] = (b"base64:" + base64.b64encode(v)).decode()
-            else:
-                out[k] = v
-        if self.postprocess is not None:
-            out = self.postprocess(out)
-        self.done.add(4)
-        return {"version": 1, "refs": out}
-
+        
+            
     def translate(self, filename=None, storage_options=None):
         """Perform all stages and return the resultant references dict"""
         if 1 not in self.done:
@@ -404,13 +389,32 @@ class MultiZarrToZarr:
             self.store_coords()
         if 3 not in self.done:
             self.second_pass()
-        out = self.consolidate()
+        if 4 not in self.done:
+            if self.postprocess is not None:
+                self.out = self.postprocess(self.out)
+            self.done.add(4)
+        out = consolidate(self.out)
         if filename is None:
             return out
         else:
             with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
                 ujson.dump(out, f)
 
+                          
+def consolidate(refs):
+    """Turn raw references into output"""
+    out = {}
+    for k, v in refs.items():
+        if isinstance(v, bytes):
+            try:
+                # easiest way to test if data is ascii
+                out[k] = v.decode('ascii')
+            except UnicodeDecodeError:
+                out[k] = (b"base64:" + base64.b64encode(v)).decode()
+        else:
+            out[k] = v
+    return {"version": 1, "refs": out}
+    
 
 def _reorganise(coos):
     # reorganise and sort coordinate values
