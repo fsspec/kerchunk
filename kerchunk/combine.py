@@ -390,7 +390,7 @@ class MultiZarrToZarr:
             self.second_pass()
         if 4 not in self.done:
             if self.postprocess is not None:
-                self.postprocess(self.out)
+                self.out = self.postprocess(self.out)
             self.done.add(4)
         out = consolidate(self.out)
         if filename is None:

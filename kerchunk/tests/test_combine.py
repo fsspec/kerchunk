@@ -6,6 +6,7 @@ import pytest
 import xarray as xr
 import zarr
 
+import kerchunk.combine
 from kerchunk.zarr import single_zarr
 from kerchunk.combine import MultiZarrToZarr
 
@@ -258,7 +259,7 @@ def test_single(refs):
     mzz.first_pass()
     mzz.store_coords()
     mzz.second_pass()
-    out = mzz.consolidate()
+    out = kerchunk.combine.consolidate(mzz.out)
     z = xr.open_dataset(
         "reference://",
         backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
