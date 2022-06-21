@@ -148,6 +148,9 @@ class SingleHdf5ToZarr:
             except TypeError:
                 lggr.debug(
                     f'TypeError transferring attr, skipping:\n {n}@{h5obj.name} = {v} ({type(v)})')
+        if isinstance(zobj, zarr.Array) and getattr(zobj, "fill_value") is not None:
+            lggr.debug(f"Udated _FillValue for {zobj}")
+            zobj.attrs["_FillValue"] = encode_fill_value(zobj.fill_value, zobj.dtype)
 
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file.
