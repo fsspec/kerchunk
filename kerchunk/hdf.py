@@ -132,7 +132,7 @@ class SingleHdf5ToZarr:
                 if v.dtype.kind == 'S':
                     v = v.astype(str)
                 if n == '_FillValue':
-                    v = encode_fill_value(v, v.dtype)
+                    continue  # strip it out!
                 elif v.size == 1:
                     v = v.flatten()[0]
                     if isinstance(v, (np.ndarray, np.number, np.bool_)):
@@ -148,9 +148,6 @@ class SingleHdf5ToZarr:
             except TypeError:
                 lggr.debug(
                     f'TypeError transferring attr, skipping:\n {n}@{h5obj.name} = {v} ({type(v)})')
-        if isinstance(zobj, zarr.Array) and getattr(zobj, "fill_value") is not None:
-            lggr.debug(f"Udated _FillValue for {zobj}")
-            zobj.attrs["_FillValue"] = encode_fill_value(zobj.fill_value, zobj.dtype)
 
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file.
@@ -208,6 +205,8 @@ class SingleHdf5ToZarr:
                 cinfo = self._storage_info(h5obj)
                 if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
                     return
+                if h5obj.attrs.get("_FillValue") is not None:
+                    fill = encode_fill_value(h5obj.attrs.get("_FillValue"), dt or h5obj.dtype)
 
                 # Create a Zarr array equivalent to this HDF5 dataset...
                 za = self._zroot.create_dataset(
