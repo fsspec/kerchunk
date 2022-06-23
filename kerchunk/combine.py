@@ -1,5 +1,6 @@
 import base64
 import collections.abc
+import functools
 import logging
 import re
 
@@ -291,6 +292,12 @@ class MultiZarrToZarr:
             cvalues = {c: self._get_value(i, z, c, fn=self._paths[i])
                        for c in self.coo_map}
             var = cvalues.get("var", None)
+            for c, cv in cvalues.copy().items():
+                if isinstance(cv, np.ndarray):
+                    cv = cv.ravel()
+                if isinstance(cv, (np.ndarray, list, tuple)):
+                    cv = tuple(sorted(set(cv)))[0]
+                    cvalues[c] = cv
 
             for v in fs.ls("", detail=False):
                 if v in self.coo_map or v in skip or v.startswith(".z"):
@@ -356,11 +363,7 @@ class MultiZarrToZarr:
                     for loc, c in enumerate(coord_order):
                         if c in self.coos:
                             cv = cvalues[c]
-                            if isinstance(cv, np.ndarray):
-                                cv = cv.ravel()
-                            if isinstance(cv, (np.ndarray, list, tuple)):
-                                cv = tuple(sorted(set(cv)))[0]
-                            ind = self.coos[c].index(cv)
+                            ind = np.searchsorted(self.coos[c], cv)
                             if c in coords:
                                 key += str(ind // ch[loc] + int(key_parts[coords.index(c)]))
                             else:
@@ -370,7 +373,11 @@ class MultiZarrToZarr:
                         key += "."
                     key = key.rstrip(".")
 
-                    if fs.info(fn)["size"] < self.inline:
+                    ref = fs.references.get(fn)
+                    if isinstance(ref, list) and (
+                            (len(ref) > 1 and ref[2] < self.inline)
+                        or fs.info(fn)["size"] < self.inline
+                    ):
                         to_download[key] = fn
                     else:
                         self.out[key] = fs.references[fn]
@@ -421,5 +428,5 @@ def _reorganise(coos):
     # extracted here to enable testing
     out = {}
     for k, arr in coos.items():
-        out[k] = list(sorted(arr))
+        out[k] = np.array(sorted(arr))
     return out
