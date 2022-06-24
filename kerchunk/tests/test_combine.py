@@ -232,7 +232,7 @@ def test_get_coos(refs, selector, expected):
     mzz = MultiZarrToZarr([refs["single1"], refs["single2"]], remote_protocol="memory",
                           concat_dims=["time"], coo_map={"time": selector})
     mzz.first_pass()
-    assert mzz.coos["time"] == expected
+    assert mzz.coos["time"].tolist() == expected
     mzz.store_coords()
     g = zarr.open(mzz.out)
     assert g['time'][:].tolist() == expected
@@ -243,14 +243,14 @@ def test_coo_vars(refs):
     mzz = MultiZarrToZarr([refs["simple1"], refs["simple_var1"]], remote_protocol="memory",
                           concat_dims=["var"])
     mzz.first_pass()
-    assert mzz.coos["var"] == ["data", "datum"]
+    assert mzz.coos["var"].tolist() == ["data", "datum"]
 
     mzz = MultiZarrToZarr([refs["simple1"], refs["simple2"], refs["simple_var1"], refs["simple_var2"]],
                           remote_protocol="memory",
                           concat_dims=["var", "time"], coo_map={"time": "attr:attr0"})
     mzz.first_pass()
-    assert mzz.coos["var"] == ["data", "datum"]
-    assert mzz.coos["time"] == [3, 4]
+    assert mzz.coos["var"].tolist() == ["data", "datum"]
+    assert mzz.coos["time"].tolist() == [3, 4]
 
 
 def test_single(refs):
@@ -360,6 +360,24 @@ def test_var(refs):
     assert z.data.shape == z.datum.shape == (10, 10)
     assert (z.data.values == arr).all()
     assert (z.datum.values == arr).all()
+
+
+def test_var_dimension(refs):
+    mzz = MultiZarrToZarr([refs["simple1"], refs["simple_var1"]], remote_protocol="memory",
+                          coo_map={"varname": "VARNAME", "var": "output"})
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr",
+        chunks={}
+    )
+    assert list(z) == ["output"]
+    assert list(z.dims) == ["varname", "x", "y"]
+    assert list(z.varname) == ["data", "datum"]
+    assert z.output.shape == (2, 10, 10)
+    assert (z.output.values == arr).all()
 
 
 def test_var_and_dim(refs):
