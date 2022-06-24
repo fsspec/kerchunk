@@ -78,8 +78,12 @@
 <span class="kn">from</span> <span class="nn">numcodecs.abc</span> <span class="kn">import</span> <span class="n">Codec</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="k">try</span><span class="p">:</span>
+    <span class="c1"># causes warning on newer scipy, all moved to scipy.io</span>
+    <span class="c1"># TODO: this construct is only here to make the codec importable without</span>
+    <span class="c1">#  scipy. Should instead move to separate module.</span>
     <span class="kn">from</span> <span class="nn">scipy.io.netcdf</span> <span class="kn">import</span> <span class="n">ZERO</span><span class="p">,</span> <span class="n">NC_VARIABLE</span><span class="p">,</span> <span class="n">netcdf_file</span><span class="p">,</span> <span class="n">netcdf_variable</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+
     <span class="n">netcdf_file</span> <span class="o">=</span> <span class="nb">object</span>
 
 <span class="kn">import</span> <span class="nn">fsspec</span>
