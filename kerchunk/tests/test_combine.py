@@ -362,6 +362,24 @@ def test_var(refs):
     assert (z.datum.values == arr).all()
 
 
+def test_var_dimension(refs):
+    mzz = MultiZarrToZarr([refs["simple1"], refs["simple_var1"]], remote_protocol="memory",
+                          coo_map={"varname": "VARNAME", "var": "output"})
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={"storage_options": {"fo": out, "remote_protocol": "memory"},
+                        "consolidated": False},
+        engine="zarr",
+        chunks={}
+    )
+    assert list(z) == ["output"]
+    assert list(z.dims) == ["varname", "x", "y"]
+    assert list(z.varname) == ["data", "datum"]
+    assert z.output.shape == (2, 10, 10)
+    assert (z.output.values == arr).all()
+
+
 def test_var_and_dim(refs):
     mzz = MultiZarrToZarr([refs["simple1"], refs["simple2"], refs["simple_var1"], refs["simple_var2"]],
                           remote_protocol="memory", concat_dims=["var", "dim"],

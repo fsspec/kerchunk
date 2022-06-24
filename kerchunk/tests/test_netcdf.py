@@ -12,8 +12,10 @@ data = xr.DataArray(
     dims=["x", "y"],
     name="data",
 )
-bdata = xr.Dataset({"data": data}, attrs={"attr0": 3}
-                  ).to_netcdf(format="NETCDF3_CLASSIC")
+bdata = xr.Dataset(
+    {"data": data}, attrs={"attr0": 3}
+).to_netcdf(format="NETCDF3_CLASSIC")
+
 m = fsspec.filesystem("memory")
 m.pipe("data.nc3", bdata)
 
