@@ -1,5 +1,6 @@
 import base64
 import collections.abc
+import functools
 import logging
 import re
 
@@ -65,7 +66,8 @@ class MultiZarrToZarr:
         Acts on the references dict of all inputs before processing. See ``drop()``
         for an example.
     :param postprocess: callable
-        Acts on output references dict before finally returning
+        Acts on the references dict before output. 
+        postprocess(dict)-> dict
     """
 
     def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
@@ -290,6 +292,12 @@ class MultiZarrToZarr:
             cvalues = {c: self._get_value(i, z, c, fn=self._paths[i])
                        for c in self.coo_map}
             var = cvalues.get("var", None)
+            for c, cv in cvalues.copy().items():
+                if isinstance(cv, np.ndarray):
+                    cv = cv.ravel()
+                if isinstance(cv, (np.ndarray, list, tuple)):
+                    cv = tuple(sorted(set(cv)))[0]
+                    cvalues[c] = cv
 
             for v in fs.ls("", detail=False):
                 if v in self.coo_map or v in skip or v.startswith(".z"):
@@ -355,11 +363,7 @@ class MultiZarrToZarr:
                     for loc, c in enumerate(coord_order):
                         if c in self.coos:
                             cv = cvalues[c]
-                            if isinstance(cv, np.ndarray):
-                                cv = cv.ravel()
-                            if isinstance(cv, (np.ndarray, list, tuple)):
-                                cv = tuple(sorted(set(cv)))[0]
-                            ind = self.coos[c].index(cv)
+                            ind = np.searchsorted(self.coos[c], cv)
                             if c in coords:
                                 key += str(ind // ch[loc] + int(key_parts[coords.index(c)]))
                             else:
@@ -369,7 +373,11 @@ class MultiZarrToZarr:
                         key += "."
                     key = key.rstrip(".")
 
-                    if fs.info(fn)["size"] < self.inline:
+                    ref = fs.references.get(fn)
+                    if isinstance(ref, list) and (
+                            (len(ref) > 1 and ref[2] < self.inline)
+                        or fs.info(fn)["size"] < self.inline
+                    ):
                         to_download[key] = fn
                     else:
                         self.out[key] = fs.references[fn]
@@ -378,24 +386,8 @@ class MultiZarrToZarr:
                 for key, fn in to_download.items():
                     self.out[key] = bits[fn]
         self.done.add(3)
-
-    def consolidate(self):
-        """Turn raw references into output"""
-        out = {}
-        for k, v in self.out.items():
-            if isinstance(v, bytes):
-                try:
-                    # easiest way to test if data is ascii
-                    out[k] = v.decode('ascii')
-                except UnicodeDecodeError:
-                    out[k] = (b"base64:" + base64.b64encode(v)).decode()
-            else:
-                out[k] = v
-        if self.postprocess is not None:
-            out = self.postprocess(out)
-        self.done.add(4)
-        return {"version": 1, "refs": out}
-
+        
+            
     def translate(self, filename=None, storage_options=None):
         """Perform all stages and return the resultant references dict"""
         if 1 not in self.done:
@@ -404,18 +396,37 @@ class MultiZarrToZarr:
             self.store_coords()
         if 3 not in self.done:
             self.second_pass()
-        out = self.consolidate()
+        if 4 not in self.done:
+            if self.postprocess is not None:
+                self.out = self.postprocess(self.out)
+            self.done.add(4)
+        out = consolidate(self.out)
         if filename is None:
             return out
         else:
             with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
                 ujson.dump(out, f)
 
+                          
+def consolidate(refs):
+    """Turn raw references into output"""
+    out = {}
+    for k, v in refs.items():
+        if isinstance(v, bytes):
+            try:
+                # easiest way to test if data is ascii
+                out[k] = v.decode('ascii')
+            except UnicodeDecodeError:
+                out[k] = (b"base64:" + base64.b64encode(v)).decode()
+        else:
+            out[k] = v
+    return {"version": 1, "refs": out}
+    
 
 def _reorganise(coos):
     # reorganise and sort coordinate values
     # extracted here to enable testing
     out = {}
     for k, arr in coos.items():
-        out[k] = list(sorted(arr))
+        out[k] = np.array(sorted(arr))
     return out

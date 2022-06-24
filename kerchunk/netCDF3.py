@@ -4,8 +4,12 @@ from operator import mul
 from numcodecs.abc import Codec
 import numpy as np
 try:
+    # causes warning on newer scipy, all moved to scipy.io
+    # TODO: this construct is only here to make the codec importable without
+    #  scipy. Should instead move to separate module.
     from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
 except ImportError:
+
     netcdf_file = object
 
 import fsspec
