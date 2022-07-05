@@ -30,12 +30,10 @@ class FillStringsCodec(Codec):
     def decode(self, buf, out=None):
         arr = np.frombuffer(buf, dtype=self.dtype)
         if arr.dtype.kind in "SU":
-            if self.id_map is None:
-                arr = np.zeros(arr.shape, dtype="O")
-            elif isinstance(self.id_map, (str, bytes)):
-                arr = np.full(arr.shape, self.id_map, dtype="O")
-            else:
+            if isinstance(self.id_map, dict):
                 arr = np.array([self.id_map[_.decode()] for _ in arr], dtype="O")
+            else:
+                arr = np.full(arr.shape, self.id_map, dtype="O")
         elif arr.dtype.kind == "V":
             for name in arr.dtype.names:
                 if arr[name].dtype.kind in "SU":

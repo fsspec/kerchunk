@@ -145,8 +145,8 @@ def test_string_null():
     out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     z = zarr.open(fs.get_mapper())
-    assert z.vlen_str.dtype == "S16"
-    assert (z.vlen_str[:] == b"").all()
+    assert z.vlen_str.dtype == "O"
+    assert (z.vlen_str[:] == None).all()
 
 
 def test_string_leave():

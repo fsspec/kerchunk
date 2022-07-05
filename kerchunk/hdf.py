@@ -197,7 +197,7 @@ class SingleHdf5ToZarr:
                         kwargs["object_codec"] = numcodecs.JSON()
                         fill = None
                     elif self.vlen == "null":
-                        dt = "S16"
+                        dt = "O"
                         filters.append(FillStringsCodec(dtype="S16"))
                         fill = " "
                     elif self.vlen == "leave":
