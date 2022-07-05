@@ -6,6 +6,7 @@ import h5py
 import zarr
 from zarr.meta import encode_fill_value
 import numcodecs
+from .codecs import FillStringsCodec
 
 lggr = logging.getLogger('h5-to-zarr')
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -43,12 +44,15 @@ class SingleHdf5ToZarr:
 
     def __init__(self, h5f: BinaryIO, url: str,
                  spec=1, inline_threshold=100,
-                 error="warn"):
+                 error="warn", vlen_encode="embed"):
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
         self.input_file = h5f
         self.spec = spec
         self.inline = inline_threshold
+        if vlen_encode not in ["embed", "null", "leave", "encode"]:
+            raise NotImplementedError
+        self.vlen = vlen_encode
         self._h5f = h5py.File(h5f, mode='r')
 
         self.store = {}
@@ -83,7 +87,10 @@ class SingleHdf5ToZarr:
                 if isinstance(v, list):
                     self.store[k][0] = "{{u}}"
                 else:
-                    self.store[k] = v.decode()
+                    try:
+                        self.store[k] = v.decode() if isinstance(v, bytes) else v
+                    except UnicodeDecodeError:
+                        self.store[k] = "base64:" + base64.b64encode(v).decode()
             return {
                 "version": 1,
                 "templates": {
@@ -176,12 +183,38 @@ class SingleHdf5ToZarr:
                 else:
                     compression = None
                 kwargs = {}
+                filters = []
+                dt = None
+                # Get storage info of this HDF5 dataset...
+                cinfo = self._storage_info(h5obj)
+
+                # encodings
                 if h5obj.dtype.kind in "US":
-                    fill = h5obj.fillvalue or " "
+                    fill = h5obj.fillvalue or " "  # cannot be None
                 elif h5obj.dtype.kind == "O":
-                    kwargs["data"] = h5obj[:]
-                    kwargs["object_codec"] = numcodecs.MsgPack()
-                    fill = None
+                    if self.vlen == "embed":
+                        kwargs["data"] = [_.decode() for _ in h5obj[:]]
+                        kwargs["object_codec"] = numcodecs.JSON()
+                        fill = None
+                    elif self.vlen == "null":
+                        dt = "S16"
+                        filters.append(FillStringsCodec(dtype="S16"))
+                        fill = " "
+                    elif self.vlen == "leave":
+                        dt = "S16"
+                        fill = " "
+                    elif self.vlen == "encode":
+                        assert len(cinfo) == 1
+                        v = list(cinfo.values())[0]
+                        data = _read_block(self.input_file, v['offset'], v['size'])
+                        indexes = np.frombuffer(data, dtype="S16")
+                        labels = h5obj[:]
+                        mapping = {index.decode(): label.decode()
+                                   for index, label in zip(indexes, labels)}
+                        kwargs["object_codec"] = FillStringsCodec(dtype="S16", id_map=mapping)
+                        fill = " "
+                    else:
+                        raise NotImplementedError
                 elif _is_netcdf_datetime(h5obj):
                     fill = None
                 else:
@@ -192,17 +225,12 @@ class SingleHdf5ToZarr:
                     dt = [(v, ("S16" if h5obj.dtype[v].kind == "O" else h5obj.dtype[v]))
                           for v in h5obj.dtype.names]
                     fill = None
-                else:
-                    dt = None
 
                 # Add filter for shuffle
-                filters = []
                 if h5obj.shuffle and h5obj.dtype.kind != "O":
                     # cannot use shuffle if we materialised objects
                     filters.append(numcodecs.Shuffle(elementsize=h5obj.dtype.itemsize))
 
-                # Get storage info of this HDF5 dataset...
-                cinfo = self._storage_info(h5obj)
                 if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
                     return
                 if h5obj.attrs.get("_FillValue") is not None:
@@ -220,6 +248,8 @@ class SingleHdf5ToZarr:
                     **kwargs)
                 lggr.debug(f'Created Zarr array: {za}')
                 self._transfer_attrs(h5obj, za)
+                if "data" in kwargs:
+                    return  # embedded bytes, no chunks to copy
 
                 adims = self._get_array_dims(h5obj)
                 za.attrs['_ARRAY_DIMENSIONS'] = adims
@@ -343,6 +373,14 @@ class SingleHdf5ToZarr:
                     [a // b for a, b in zip(blob.chunk_offset, chunk_size)])
                 stinfo[key] = {'offset': blob.byte_offset, 'size': blob.size}
             return stinfo
+
+
+def _read_block(open_file, offset, size):
+    place = open_file.tell()
+    open_file.seek(offset)
+    data = open_file.read(size)
+    open_file.seek(place)
+    return data
 
 
 def _is_netcdf_datetime(dataset: h5py.Dataset):

@@ -138,9 +138,6 @@ class AsciiTableCodec(numcodecs.abc.Codec):
 
 
 numcodecs.register_codec(AsciiTableCodec, "FITSAscii")
-ncv = [int(i) for i in numcodecs.__version__.split(".")[:3]]
-if ncv < [0, 10]:
-    numcodecs.register_codec(AsciiTableCodec, "FITSAscii")
 
 
 def add_wcs_coords(hdu, zarr_group=None, dataset=None, dtype="float32"):
