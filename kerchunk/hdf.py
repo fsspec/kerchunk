@@ -240,7 +240,9 @@ class SingleHdf5ToZarr:
                     elif self.vlen == "null":
                         dt = [(v, ("S16" if h5obj.dtype[v].kind == "O" else str(h5obj.dtype[v])))
                               for v in h5obj.dtype.names]
-                        filters.append(FillStringsCodec(dtype=str(dt)))
+                        kwargs["object_codec"] = FillStringsCodec(dtype=str(dt))
+                        dt = [(v, ("O" if h5obj.dtype[v].kind == "O" else str(h5obj.dtype[v])))
+                              for v in h5obj.dtype.names]
                     elif self.vlen == "leave":
                         dt = [(v, ("S16" if h5obj.dtype[v].kind == "O" else h5obj.dtype[v]))
                               for v in h5obj.dtype.names]

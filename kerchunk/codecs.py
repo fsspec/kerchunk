@@ -53,7 +53,10 @@ class FillStringsCodec(Codec):
             arr2 = np.empty(arr.shape, dtype=dt2)
             for name in arr.dtype.names:
                 if arr[name].dtype.kind in "SU":
-                    arr2[name][:] = [self.id_map[_.decode()] for _ in arr[name]]
+                    if isinstance(self.id_map, dict):
+                        arr2[name][:] = [self.id_map[_.decode()] for _ in arr[name]]
+                    else:
+                        arr2[name][:] = self.id_map
                 else:
                     arr2[name][:] = arr[name]
 

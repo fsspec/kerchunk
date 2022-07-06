@@ -181,9 +181,9 @@ def test_compound_string_null():
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     z = zarr.open(fs.get_mapper())
-    assert z.vlen_str[0].tolist() == (10, b"")
+    assert z.vlen_str[0].tolist() == (10, None)
     assert (z.vlen_str["ints"][1:] == 0).all()
-    assert (z.vlen_str["strs"][1:] == b"").all()
+    assert (z.vlen_str["strs"][1:] == None).all()
 
 
 def test_compound_string_leave():
