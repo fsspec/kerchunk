@@ -198,7 +198,7 @@ class SingleHdf5ToZarr:
                         fill = None
                     elif self.vlen == "null":
                         dt = "O"
-                        filters.append(FillStringsCodec(dtype="S16"))
+                        kwargs["object_codec"] = FillStringsCodec(dtype="S16")
                         fill = " "
                     elif self.vlen == "leave":
                         dt = "S16"
@@ -220,11 +220,33 @@ class SingleHdf5ToZarr:
                 else:
                     fill = h5obj.fillvalue
                 if h5obj.dtype.kind == "V":
-                    # compound/"void" dtype
-                    # TODO: needs test case
-                    dt = [(v, ("S16" if h5obj.dtype[v].kind == "O" else h5obj.dtype[v]))
-                          for v in h5obj.dtype.names]
                     fill = None
+                    if self.vlen == "encode":
+                        assert len(cinfo) == 1
+                        v = list(cinfo.values())[0]
+                        dt = [(v, ("S16" if h5obj.dtype[v].kind == "O" else str(h5obj.dtype[v])))
+                              for v in h5obj.dtype.names]
+                        data = _read_block(self.input_file, v['offset'], v['size'])
+                        labels = h5obj[:]
+                        arr = np.frombuffer(data, dtype=dt)
+                        mapping = {}
+                        for field in labels.dtype.names:
+                            if labels[field].dtype == "O":
+                                mapping.update({index.decode(): label.decode()
+                                                for index, label in zip(arr[field], labels[field])})
+                        kwargs["object_codec"] = FillStringsCodec(dtype=str(dt), id_map=mapping)
+                        dt = [(v, ("O" if h5obj.dtype[v].kind == "O" else str(h5obj.dtype[v])))
+                              for v in h5obj.dtype.names]
+                    elif self.vlen == "null":
+                        dt = [(v, ("S16" if h5obj.dtype[v].kind == "O" else str(h5obj.dtype[v])))
+                              for v in h5obj.dtype.names]
+                        filters.append(FillStringsCodec(dtype=str(dt)))
+                    elif self.vlen == "leave":
+                        dt = [(v, ("S16" if h5obj.dtype[v].kind == "O" else h5obj.dtype[v]))
+                              for v in h5obj.dtype.names]
+                    else:
+                        # embed fails due to https://github.com/zarr-developers/numcodecs/issues/333
+                        raise NotImplementedError
 
                 # Add filter for shuffle
                 if h5obj.shuffle and h5obj.dtype.kind != "O":
@@ -268,22 +290,23 @@ class SingleHdf5ToZarr:
                 zgrp = self._zroot.create_group(h5obj.name)
                 self._transfer_attrs(h5obj, zgrp)
         except Exception as e:
+            import traceback
+            msg = "\n".join([
+                f"The following excepion was caught and quashed while traversing HDF5",
+                str(e),
+                traceback.format_exc(limit=5)
+            ])
             if self.error == "ignore":
                 return
             elif self.error == "pdb":
+                print(msg)
                 import pdb
                 pdb.post_mortem()
             else:
                 # "warn" or anything else, the default
                 import warnings
-                import traceback
-                msg = "\n".join([
-                    f"The following excepion was caught and quashed while traversing HDF5",
-                    str(e),
-                    traceback.format_exc(limit=5)
-                ])
-                del e  # garbage collect
                 warnings.warn(msg)
+            del e  # garbage collect
 
     def _get_array_dims(self, dset):
         """Get a list of dimension scale names attached to input HDF5 dataset.
@@ -373,6 +396,16 @@ class SingleHdf5ToZarr:
                     [a // b for a, b in zip(blob.chunk_offset, chunk_size)])
                 stinfo[key] = {'offset': blob.byte_offset, 'size': blob.size}
             return stinfo
+
+
+def _simple_type(x):
+    if isinstance(x, bytes):
+        return x.decode()
+    if isinstance(x, np.number):
+        if x.dtype.kind == "i":
+            return int(x)
+        return float(x)
+    return x
 
 
 def _read_block(open_file, offset, size):

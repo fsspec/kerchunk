@@ -125,6 +125,7 @@ def test_times(tmpdir):
     xr.testing.assert_equal(result, expected)
 
 
+# https://stackoverflow.com/a/43935389/3821154
 txt = "the change of water into water vapour"
 
 def test_string_embed():
@@ -168,7 +169,44 @@ def test_string_decode():
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     assert txt in fs.cat("vlen_str/.zarray").decode()  # stored in filter def
-    fs = fsspec.filesystem("reference", fo=out)
     z = zarr.open(fs.get_mapper())
     assert z.vlen_str[0] == txt
     assert (z.vlen_str[1:] == "").all()
+
+
+def test_compound_string_null():
+    fn = osp.join(here, "vlen2.h5")
+    with open(fn, "rb") as f:
+        h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="null", inline_threshold=0)
+        out = h.translate()
+    fs = fsspec.filesystem("reference", fo=out)
+    z = zarr.open(fs.get_mapper())
+    assert z.vlen_str[0].tolist() == (10, b"")
+    assert (z.vlen_str["ints"][1:] == 0).all()
+    assert (z.vlen_str["strs"][1:] == b"").all()
+
+
+def test_compound_string_leave():
+    fn = osp.join(here, "vlen2.h5")
+    with open(fn, "rb") as f:
+        h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="leave", inline_threshold=0)
+        out = h.translate()
+    fs = fsspec.filesystem("reference", fo=out)
+    z = zarr.open(fs.get_mapper())
+    assert z.vlen_str["ints"][0] == 10
+    assert z.vlen_str["strs"][0]  # random ID
+    assert (z.vlen_str["ints"][1:] == 0).all()
+    assert (z.vlen_str["strs"][1:] == b"").all()
+
+
+def test_compound_string_encode():
+    fn = osp.join(here, "vlen2.h5")
+    with open(fn, "rb") as f:
+        h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="encode", inline_threshold=0)
+        out = h.translate()
+    fs = fsspec.filesystem("reference", fo=out)
+    z = zarr.open(fs.get_mapper())
+    assert z.vlen_str["ints"][0] == 10
+    assert z.vlen_str["strs"][0] == "water"
+    assert (z.vlen_str["ints"][1:] == 0).all()
+    assert (z.vlen_str["strs"][1:] == "").all()
