@@ -108,13 +108,13 @@
 </table>
 <dl class="class">
 <dt id="kerchunk.hdf.SingleHdf5ToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO</em>, <em class="sig-param">url: str</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">error='warn'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO</em>, <em class="sig-param">url: str</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">error='warn'</em>, <em class="sig-param">vlen_encode='embed'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate the content of one HDF5 file into Zarr metadata.</p>
 <p>HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array
 chunks remain in the HDF5 file.</p>
-<dl class="field-list simple">
+<dl class="field-list">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
+<dd class="field-odd"><dl>
 <dt><strong>h5f</strong><span class="classifier">file-like</span></dt><dd><p>Input HDF5 file as a binary Python file-like object (duck-typed, adhering
 to BinaryIO is optional)</p>
 </dd>
@@ -126,6 +126,19 @@ to BinaryIO is optional)</p>
 to disable</p>
 </dd>
 <dt><strong>error: “warn” (default) | “pdb” | “ignore”</strong></dt><dd></dd>
+<dt><strong>vlen_encode: [“embed”, “null”, “leave”, “encode”]</strong></dt><dd><p>What to do with VLEN string variables or columns of tabular variables
+leave: pass through the 16byte garbage IDs unaffected, but requires no codec
+null: set all the strings to None or empty; required that this library is available</p>
+<blockquote>
+<div><p>at read time</p>
+</div></blockquote>
+<p>embed: include all the values in the output JSON (should not be used for large tables)
+encode: save the ID-to-value mapping in a codec, to produce the real values at read</p>
+<blockquote>
+<div><p>time; requires this library to be available. Can be efficient storage where there
+are few unique values.</p>
+</div></blockquote>
+</dd>
 </dl>
 </dd>
 </dl>
