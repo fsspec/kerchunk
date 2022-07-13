@@ -14,7 +14,7 @@ JSON files. Writing to files is useful, so that we can access the individual dat
 redo the combine (which is the next step, below).
 
 .. code-block:: python
-    
+
     import kerchunk.hdf
     import fsspec
 

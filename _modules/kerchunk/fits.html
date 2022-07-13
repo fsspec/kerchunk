@@ -72,23 +72,36 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.fits</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">fsspec</span>
+<span></span><span class="kn">import</span> <span class="nn">fsspec</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">numcodecs</span>
 <span class="kn">import</span> <span class="nn">numcodecs.abc</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">zarr</span>
 
+
+<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span>
+
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;fits-to-zarr&quot;</span><span class="p">)</span>
 
 
-<span class="n">BITPIX2DTYPE</span> <span class="o">=</span> <span class="p">{</span><span class="mi">8</span><span class="p">:</span> <span class="s1">&#39;uint8&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">:</span> <span class="s1">&#39;&gt;i2&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">:</span> <span class="s1">&#39;&gt;i4&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">:</span> <span class="s1">&#39;&gt;i8&#39;</span><span class="p">,</span>
-                <span class="o">-</span><span class="mi">32</span><span class="p">:</span> <span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">64</span><span class="p">:</span> <span class="s1">&#39;float64&#39;</span><span class="p">}</span>  <span class="c1"># always bigendian</span>
+<span class="n">BITPIX2DTYPE</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;uint8&quot;</span><span class="p">,</span>
+    <span class="mi">16</span><span class="p">:</span> <span class="s2">&quot;&gt;i2&quot;</span><span class="p">,</span>
+    <span class="mi">32</span><span class="p">:</span> <span class="s2">&quot;&gt;i4&quot;</span><span class="p">,</span>
+    <span class="mi">64</span><span class="p">:</span> <span class="s2">&quot;&gt;i8&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">32</span><span class="p">:</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">64</span><span class="p">:</span> <span class="s2">&quot;float64&quot;</span><span class="p">,</span>
+<span class="p">}</span>  <span class="c1"># always bigendian</span>
 
 
-<div class="viewcode-block" id="process_file"><a class="viewcode-back" href="../../reference.html#kerchunk.fits.process_file">[docs]</a><span class="k">def</span> <span class="nf">process_file</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">primary_attr_to_group</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="process_file"><a class="viewcode-back" href="../../reference.html#kerchunk.fits.process_file">[docs]</a><span class="k">def</span> <span class="nf">process_file</span><span class="p">(</span>
+    <span class="n">url</span><span class="p">,</span>
+    <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">extension</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">primary_attr_to_group</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create JSON references for a single FITS file as a zarr group</span>
 
@@ -101,6 +114,8 @@
 <span class="sd">    extension: list(int | str) | int | str or None</span>
 <span class="sd">        Which extensions to include. Can be ordinal integer(s), the extension name (str) or if None,</span>
 <span class="sd">        uses the first data extension</span>
+<span class="sd">    inline_threshold: int</span>
+<span class="sd">        (not yet implemented)</span>
 <span class="sd">    primary_attr_to_group: bool</span>
 <span class="sd">        Whether the output top-level group contains the attributes of the primary extension</span>
 <span class="sd">        (which often contains no data, just a general description)</span>
@@ -110,6 +125,7 @@
 <span class="sd">    dict of the references</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+
     <span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
@@ -136,19 +152,19 @@
             <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">is_image</span><span class="p">:</span>
                 <span class="c1"># for images/cubes (i.e., ndarrays with simple type)</span>
                 <span class="n">nax</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NAXIS&quot;</span><span class="p">]</span>
-                <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;NAXIS</span><span class="si">{i}</span><span class="s1">&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nax</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-                <span class="n">dtype</span> <span class="o">=</span> <span class="n">BITPIX2DTYPE</span><span class="p">[</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;BITPIX&#39;</span><span class="p">]]</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;NAXIS</span><span class="si">{i}</span><span class="s2">&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nax</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">BITPIX2DTYPE</span><span class="p">[</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;BITPIX&quot;</span><span class="p">]]</span>
                 <span class="n">length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span>
                 <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">:</span>
                     <span class="n">length</span> <span class="o">*=</span> <span class="n">s</span>
 
-                <span class="k">if</span> <span class="s1">&#39;BSCALE&#39;</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span> <span class="ow">or</span> <span class="s1">&#39;BZERO&#39;</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;BSCALE&quot;</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span> <span class="ow">or</span> <span class="s2">&quot;BZERO&quot;</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">:</span>
                     <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span>
                         <span class="n">numcodecs</span><span class="o">.</span><span class="n">FixedScaleOffset</span><span class="p">(</span>
                             <span class="n">offset</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BZERO&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
                             <span class="n">scale</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BSCALE&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
                             <span class="n">astype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-                            <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span>
+                            <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
                         <span class="p">)</span>
                     <span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
@@ -156,18 +172,23 @@
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">fits</span><span class="o">.</span><span class="n">hdu</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">TableHDU</span><span class="p">):</span>
                 <span class="c1"># ascii table</span>
                 <span class="n">spans</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">_spans</span>
-                <span class="n">outdtype</span> <span class="o">=</span> <span class="p">[[</span><span class="n">name</span><span class="p">,</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">recformat</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">names</span><span class="p">]</span>
-                <span class="n">indtypes</span> <span class="o">=</span> <span class="p">[[</span><span class="n">name</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;S{i + 1}&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">spans</span><span class="p">)]</span>
+                <span class="n">outdtype</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">[</span><span class="n">name</span><span class="p">,</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">recformat</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">names</span>
+                <span class="p">]</span>
+                <span class="n">indtypes</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">[</span><span class="n">name</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;S{i + 1}&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">spans</span><span class="p">)</span>
+                <span class="p">]</span>
                 <span class="n">nrows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NAXIS2&quot;</span><span class="p">])</span>
-                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrows</span><span class="p">,</span> <span class="p">)</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrows</span><span class="p">,)</span>
                 <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="n">AsciiTableCodec</span><span class="p">(</span><span class="n">indtypes</span><span class="p">,</span> <span class="n">outdtype</span><span class="p">)]</span>
                 <span class="n">dtype</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">outdtype</span><span class="p">]</span>
                 <span class="n">length</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">spans</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">spans</span><span class="p">))</span> <span class="o">*</span> <span class="n">nrows</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">fits</span><span class="o">.</span><span class="n">hdu</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">BinTableHDU</span><span class="p">):</span>
                 <span class="c1"># binary table</span>
-                <span class="n">dtype</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">newbyteorder</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">)</span> <span class="c1"># always big endian</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">newbyteorder</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">)</span>  <span class="c1"># always big endian</span>
                 <span class="n">nrows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NAXIS2&quot;</span><span class="p">])</span>
-                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrows</span><span class="p">,</span> <span class="p">)</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrows</span><span class="p">,)</span>
                 <span class="n">filters</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="n">length</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="n">nrows</span>
             <span class="k">else</span><span class="p">:</span>
@@ -176,11 +197,22 @@
             <span class="c1"># one chunk for whole thing.</span>
             <span class="c1"># TODO: we could sub-chunk on biggest dimension</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
-            <span class="n">arr</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                          <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">)</span>
-            <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span> <span class="k">else</span> <span class="n">v</span>
-                              <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;COMMENT&quot;</span><span class="p">})</span>
-            <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">):]</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+                <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+                <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="n">k</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span> <span class="k">else</span> <span class="n">v</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;COMMENT&quot;</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+            <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="p">:]</span>
             <span class="n">loc</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">fileinfo</span><span class="p">()[</span><span class="s2">&quot;datLoc&quot;</span><span class="p">]</span>
             <span class="n">parts</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
             <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{name}</span><span class="s2">/</span><span class="si">{parts}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">url</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">length</span><span class="p">]</span>
@@ -188,9 +220,17 @@
             <span class="c1"># copy attributes of primary extension to top-level group</span>
             <span class="n">hdu</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
-            <span class="n">g</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span> <span class="k">else</span> <span class="n">v</span>
-                            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">dict</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;COMMENT&quot;</span><span class="p">})</span>
+            <span class="n">g</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="n">k</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span> <span class="k">else</span> <span class="n">v</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">dict</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;COMMENT&quot;</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span></div>
+
+
+<span class="n">FitsToZarr</span> <span class="o">=</span> <span class="n">class_factory</span><span class="p">(</span><span class="n">process_file</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">AsciiTableCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
@@ -253,25 +293,32 @@
     <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">fits</span><span class="o">.</span><span class="n">hdu</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">_BaseHDU</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;`hdu` must be a FITS HDU or dict&quot;</span><span class="p">)</span>
     <span class="n">nax</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NAXIS&quot;</span><span class="p">]</span>
-    <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;NAXIS</span><span class="si">{i}</span><span class="s1">&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nax</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;NAXIS</span><span class="si">{i}</span><span class="s2">&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nax</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
 
     <span class="n">wcs</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">hdu</span><span class="p">)</span>
-    <span class="n">coords</span> <span class="o">=</span> <span class="p">[</span><span class="n">coo</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="k">for</span> <span class="n">coo</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">sh</span><span class="p">)</span> <span class="k">for</span> <span class="n">sh</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">))]</span>  <span class="c1"># ?[::-1]</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">coo</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="k">for</span> <span class="n">coo</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">sh</span><span class="p">)</span> <span class="k">for</span> <span class="n">sh</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">))</span>
+    <span class="p">]</span>  <span class="c1"># ?[::-1]</span>
     <span class="n">world_coords</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">(</span><span class="o">*</span><span class="n">coords</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">world_coord</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">axis_type_names</span><span class="p">,</span> <span class="n">world_coords</span><span class="p">)):</span>
-        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">][</span><span class="mi">3</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">):]</span>
-        <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="n">world_coord</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                 <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CTYPE{i + 1}&quot;</span><span class="p">],</span>
-                 <span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">:</span> <span class="n">dims</span><span class="p">}</span>
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">][</span><span class="mi">3</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="p">:]</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="n">world_coord</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CTYPE{i + 1}&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">:</span> <span class="n">dims</span><span class="p">,</span>
+        <span class="p">}</span>
         <span class="k">if</span> <span class="n">zarr_group</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">arr</span> <span class="o">=</span> <span class="n">zarr_group</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
-                                   <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">zarr_group</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span>
+            <span class="p">)</span>
             <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
             <span class="n">arr</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">world_coord</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
-            <span class="n">coo</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Coordinate</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">world_coord</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-                                <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span><span class="p">)</span>
+
+            <span class="n">coo</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Coordinate</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">world_coord</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span>
+            <span class="p">)</span>
             <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">assign_coordinates</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">coo</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">dataset</span>

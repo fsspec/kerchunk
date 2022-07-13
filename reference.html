@@ -80,10 +80,10 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr" title="kerchunk.hdf.SingleHdf5ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.hdf.SingleHdf5ToZarr</span></code></a>(h5f, url[, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr" title="kerchunk.hdf.SingleHdf5ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.hdf.SingleHdf5ToZarr</span></code></a>(h5f[, url, …])</p></td>
 <td><p>Translate the content of one HDF5 file into Zarr metadata.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.grib2.scan_grib" title="kerchunk.grib2.scan_grib"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.scan_grib</span></code></a>(url, common_vars, …)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.grib2.scan_grib" title="kerchunk.grib2.scan_grib"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.scan_grib</span></code></a>(url[, common_vars, …])</p></td>
 <td><p>Generate references for a GRIB2 file</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.grib2.GRIBCodec" title="kerchunk.grib2.GRIBCodec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.GRIBCodec</span></code></a>(var)</p></td>
@@ -98,8 +98,8 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr" title="kerchunk.tiff.tiff_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></a>(urlpath[, …])</p></td>
 <td><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.netcdf_recording_file" title="kerchunk.netCDF3.netcdf_recording_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></a>(…)</p></td>
-<td><p>Generate references for a netCDF3 file</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.netcdf_recording_file" title="kerchunk.netCDF3.netcdf_recording_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></a></p></td>
+<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.netCDF3.RecordArrayMember" title="kerchunk.netCDF3.RecordArrayMember"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.RecordArrayMember</span></code></a>(member, dtype)</p></td>
 <td><p>Read components of a record array (complex dtype)</p></td>
@@ -108,22 +108,25 @@
 </table>
 <dl class="class">
 <dt id="kerchunk.hdf.SingleHdf5ToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO</em>, <em class="sig-param">url: str</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">error='warn'</em>, <em class="sig-param">vlen_encode='embed'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO | str</em>, <em class="sig-param">url: str = None</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">error='warn'</em>, <em class="sig-param">vlen_encode='embed'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate the content of one HDF5 file into Zarr metadata.</p>
 <p>HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array
 chunks remain in the HDF5 file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl>
-<dt><strong>h5f</strong><span class="classifier">file-like</span></dt><dd><p>Input HDF5 file as a binary Python file-like object (duck-typed, adhering
-to BinaryIO is optional)</p>
+<dt><strong>h5f</strong><span class="classifier">file-like or str</span></dt><dd><p>Input HDF5 file. Can be a binary Python file-like object (duck-typed, adhering
+to BinaryIO is optional), in which case must also provide url. If a str,
+file will be opened using fsspec and storage_options.</p>
 </dd>
-<dt><strong>url</strong><span class="classifier">string</span></dt><dd><p>URI of the HDF5 file.</p>
+<dt><strong>url</strong><span class="classifier">string</span></dt><dd><p>URI of the HDF5 file, if passing a file-like object</p>
 </dd>
 <dt><strong>spec</strong><span class="classifier">int</span></dt><dd><p>The version of output to produce (see README of this repo)</p>
 </dd>
 <dt><strong>inline_threshold</strong><span class="classifier">int</span></dt><dd><p>Include chunks smaller than this value directly in the output. Zero or negative
 to disable</p>
+</dd>
+<dt><strong>storage_options: dict</strong></dt><dd><p>passed to fsspec if h5f is a str</p>
 </dd>
 <dt><strong>error: “warn” (default) | “pdb” | “ignore”</strong></dt><dd></dd>
 <dt><strong>vlen_encode: [“embed”, “null”, “leave”, “encode”]</strong></dt><dd><p>What to do with VLEN string variables or columns of tabular variables
@@ -175,7 +178,7 @@ returns a “reference” structure to be used with zarr/kerchunk</p>
 
 <dl class="function">
 <dt id="kerchunk.grib2.scan_grib">
-<code class="sig-prename descclassname">kerchunk.grib2.</code><code class="sig-name descname">scan_grib</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">common_vars</em>, <em class="sig-param">storage_options</em>, <em class="sig-param">inline_threashold=100</em>, <em class="sig-param">skip=0</em>, <em class="sig-param">filter={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/grib2.html#scan_grib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.grib2.scan_grib" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">kerchunk.grib2.</code><code class="sig-name descname">scan_grib</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">common_vars=None</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">inline_threashold=100</em>, <em class="sig-param">skip=0</em>, <em class="sig-param">filter={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/grib2.html#scan_grib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.grib2.scan_grib" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate references for a GRIB2 file</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -248,17 +251,26 @@ for an array with that name.</p>
 <dl class="simple">
 <dt>Selectors (“how to get coordinate values from a dataset”) can be:</dt><dd><ul>
 <li><p>a constant value (usually str for a var name, number for a coordinate)</p></li>
-<li><p>a compiled regex <code class="docutils literal notranslate"><span class="pre">re.Pattern</span></code>, which will be applied to the filename. Should return exactly one value</p></li>
-<li><p>a string beginning “attr:” which will fetch this attribute from the zarr dataset of each path</p></li>
-<li><p>a string beginning “vattr:{var}:” as above, but the attribute is taken from the array named var</p></li>
-<li><p>”VARNAME” special value where a dataset contains multiple variables, just use the variable names as given</p></li>
-<li><p>”INDEX” special value for the index of how far through the list of inputs we are so far</p></li>
-<li><p>a string beginning “data:{var}” which will get the appropriate zarr array from each input dataset.</p></li>
-<li><p>”cf:{var}”, interpret the value of var using cftime, returning a datetime. These will be
-automatically re-encoded with cftime, <em>unless</em> you specify an “M8[*]” dtype for the coordinate,
-in which case a conversion will be attempted.</p></li>
+<li><p>a compiled regex <code class="docutils literal notranslate"><span class="pre">re.Pattern</span></code>, which will be applied to the filename.
+Should return exactly one value</p></li>
+<li><p>a string beginning “attr:” which will fetch this attribute from the zarr
+dataset of each path</p></li>
+<li><p>a string beginning “vattr:{var}:” as above, but the attribute is taken from
+the array named var</p></li>
+<li><p>”VARNAME” special value where a dataset contains multiple variables, just use
+the variable names as given</p></li>
+<li><p>”INDEX” special value for the index of how far through the list of inputs
+we are so far</p></li>
+<li><p>a string beginning “data:{var}” which will get the appropriate zarr array
+from each input dataset.</p></li>
+<li><p>”cf:{var}”, interpret the value of var using cftime, returning a datetime.
+These will be automatically re-encoded with cftime, <em>unless</em> you specify an
+“M8[*]” dtype for the coordinate, in which case a conversion will be attempted.</p></li>
 <li><p>a list with the values that are known beforehand</p></li>
-<li><p>a function with signature (index, fs, var, fn) -&gt; value, where index is an int counter, fs is the file system made for the current input, var is the variable we are probing may be “var”) and fn is the filename or None if dicts were used as input</p></li>
+<li><p>a function with signature (index, fs, var, fn) -&gt; value, where index is an int
+counter, fs is the file system made for the current input, var is the variable
+we are probing may be “var”) and fn is the filename or None if dicts were used
+as input</p></li>
 </ul>
 </dd>
 </dl>
@@ -278,7 +290,7 @@ Size below which binary blocks are included directly in the output</p></li>
 Acts on the references dict of all inputs before processing. See <code class="docutils literal notranslate"><span class="pre">drop()</span></code>
 for an example.</p></li>
 <li><p><strong>postprocess</strong> – callable
-Acts on the references dict before output. 
+Acts on the references dict before output.
 postprocess(dict)-&gt; dict</p></li>
 </ul>
 </dd>
@@ -344,7 +356,7 @@ postprocess(dict)-&gt; dict</p></li>
 
 <dl class="function">
 <dt id="kerchunk.fits.process_file">
-<code class="sig-prename descclassname">kerchunk.fits.</code><code class="sig-name descname">process_file</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">extension=None</em>, <em class="sig-param">primary_attr_to_group=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/fits.html#process_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.fits.process_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">kerchunk.fits.</code><code class="sig-name descname">process_file</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">extension=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">primary_attr_to_group=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/fits.html#process_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.fits.process_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create JSON references for a single FITS file as a zarr group</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -355,6 +367,8 @@ postprocess(dict)-&gt; dict</p></li>
 </dd>
 <dt><strong>extension: list(int | str) | int | str or None</strong></dt><dd><p>Which extensions to include. Can be ordinal integer(s), the extension name (str) or if None,
 uses the first data extension</p>
+</dd>
+<dt><strong>inline_threshold: int</strong></dt><dd><p>(not yet implemented)</p>
 </dd>
 <dt><strong>primary_attr_to_group: bool</strong></dt><dd><p>Whether the output top-level group contains the attributes of the primary extension
 (which often contains no data, just a general description)</p>
@@ -394,59 +408,10 @@ uses the first data extension</p>
 </dl>
 </dd></dl>
 
-<dl class="class">
+<dl class="attribute">
 <dt id="kerchunk.netCDF3.netcdf_recording_file">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">netcdf_recording_file</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">*args</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#netcdf_recording_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate references for a netCDF3 file</p>
-<p>Uses scipy’s netCDF3 reader, but only reads the metadata. Note that instances
-do behave like actual scipy netcdf files, but contain no valid data.</p>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.netcdf_recording_file.translate" title="kerchunk.netCDF3.netcdf_recording_file.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([threshold, max_chunk_size])</p></td>
-<td><p>Produce references dictionary</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="kerchunk.netCDF3.netcdf_recording_file.__init__">
-<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">*args</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#netcdf_recording_file.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>filename: str</strong></dt><dd><p>location of the input</p>
-</dd>
-<dt><strong>storage_options: dict</strong></dt><dd><p>passed to fsspec when opening filename</p>
-</dd>
-<dt><strong>args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``</strong></dt><dd></dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="kerchunk.netCDF3.netcdf_recording_file.translate">
-<code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">threshold=0</em>, <em class="sig-param">max_chunk_size=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#netcdf_recording_file.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file.translate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Produce references dictionary</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>threshold: int</strong></dt><dd><p>values with fewer bytes are inlined into the output</p>
-</dd>
-<dt><strong>max_chunk_size: int</strong></dt><dd><p>How big a chunk can be before triggering subchunking. If 0, there is no
-subchunking, and there is never subchunking for coordinate/dimension arrays.
-E.g., if an array contains 10,000bytes, and this value is 6000, there will
-be two output chunks, split on the biggest available dimension.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
+<code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">netcdf_recording_file</code><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></p>
 </dd></dl>
 
 <dl class="class">
