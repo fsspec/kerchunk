@@ -15,7 +15,7 @@ except ImportError:
 import fsspec
 
 
-class netcdf_recording_file(netcdf_file):
+class NetCDF3ToZarr(netcdf_file):
     """Generate references for a netCDF3 file
 
     Uses scipy's netCDF3 reader, but only reads the metadata. Note that instances
@@ -55,9 +55,6 @@ class netcdf_recording_file(netcdf_file):
             (name, dimensions, shape, attributes,
              typecode, size, dtype_, begin_, vsize) = self._read_var()
             if shape and shape[0] is None:  # record variable
-                # TODO: when there is only one variable, this is easy
-                #  when more than one, need a choice of read mechanism, simple or rec
-                raise NotImplementedError
                 rec_vars.append(name)
                 # The netCDF "record size" is calculated as the sum of
                 # the vsize's of all the record variables.
@@ -152,6 +149,9 @@ class netcdf_recording_file(netcdf_file):
             )
             arr.attrs['_ARRAY_DIMENSIONS'] = list(var.dimensions)
         return out
+
+
+netcdf_recording_file = NetCDF3ToZarr
 
 
 class RecordArrayMember(Codec):

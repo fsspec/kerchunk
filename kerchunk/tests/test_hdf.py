@@ -74,7 +74,7 @@ def test_multizarr(generate_mzz):
 
 @pytest.fixture(scope="module")
 def generate_mzz():
-    """This function generates a MultiZarrToZarr class for use with the ``example_multizarr*.py`` testss"""
+    """This function generates a MultiZarrToZarr class for tests"""
 
     dict_list = []
 
@@ -93,8 +93,8 @@ def generate_mzz():
     return mzz
 
 
-def test_times(tmpdir):
-    # Test taken from https://github.com/fsspec/kerchunk/issues/115#issue-1091163872
+@pytest.fixture()
+def times_data(tmpdir):
     lat = xr.DataArray(np.linspace(-90, 90, 10), dims=["lat"], name="lat")
     lon = xr.DataArray(np.linspace(-90, 90, 10), dims=["lon"], name="lon")
     time_attrs = {'axis': 'T', 'long_name': 'time', 'standard_name': 'time'}
@@ -111,10 +111,31 @@ def test_times(tmpdir):
     )
     url = str(tmpdir.join("x1.nc"))
     x1.to_netcdf(url, engine="h5netcdf")
+    return x1, url
 
+
+def test_times(times_data):
+    x1, url = times_data
+    # Test taken from https://github.com/fsspec/kerchunk/issues/115#issue-1091163872
     with fsspec.open(url) as f:
         h5chunks = SingleHdf5ToZarr(f, url)
         test_dict = h5chunks.translate()
+
+    m = fsspec.get_mapper(
+        "reference://",
+        fo=test_dict,
+    )
+    result = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    expected = x1.to_dataset()
+    xr.testing.assert_equal(result, expected)
+
+
+def test_times_str(times_data):
+    # as test above, but using str input for SingleHdf5ToZarr file
+    x1, url = times_data
+    # Test taken from https://github.com/fsspec/kerchunk/issues/115#issue-1091163872
+    h5chunks = SingleHdf5ToZarr(url)
+    test_dict = h5chunks.translate()
 
     m = fsspec.get_mapper(
         "reference://",

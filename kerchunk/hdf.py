@@ -1,6 +1,8 @@
 import base64
-from typing import Union, BinaryIO
 import logging
+from typing import Union, BinaryIO
+
+import fsspec.core
 import numpy as np
 import h5py
 import zarr
@@ -29,16 +31,19 @@ class SingleHdf5ToZarr:
 
     Parameters
     ----------
-    h5f : file-like
-        Input HDF5 file as a binary Python file-like object (duck-typed, adhering
-        to BinaryIO is optional)
+    h5f : file-like or str
+        Input HDF5 file. Can be a binary Python file-like object (duck-typed, adhering
+        to BinaryIO is optional), in which case must also provide url. If a str,
+        file will be opened using fsspec and storage_options.
     url : string
-        URI of the HDF5 file.
+        URI of the HDF5 file, if passing a file-like object
     spec : int
         The version of output to produce (see README of this repo)
     inline_threshold : int
         Include chunks smaller than this value directly in the output. Zero or negative
         to disable
+    storage_options: dict
+        passed to fsspec if h5f is a str
     error: "warn" (default) | "pdb" | "ignore"
     vlen_encode: ["embed", "null", "leave", "encode"]
         What to do with VLEN string variables or columns of tabular variables
@@ -51,12 +56,18 @@ class SingleHdf5ToZarr:
             are few unique values.
     """
 
-    def __init__(self, h5f: BinaryIO, url: str,
+    def __init__(self, h5f: "BinaryIO | str", url: str=None,
                  spec=1, inline_threshold=100,
+                 storage_options=None,
                  error="warn", vlen_encode="embed"):
         # Open HDF5 file in read mode...
         lggr.debug(f'HDF5 file: {h5f}')
-        self.input_file = h5f
+        if isinstance(h5f, str):
+            fs, path = fsspec.core.url_to_fs(h5f, **(storage_options or {}))
+            self.input_file = fs.open(path, "rb")
+            url = h5f
+        else:
+            self.input_file = h5f
         self.spec = spec
         self.inline = inline_threshold
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
