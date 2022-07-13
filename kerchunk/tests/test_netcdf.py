@@ -3,6 +3,7 @@ import io
 import numpy as np
 import pytest
 from kerchunk import netCDF3
+
 xr = pytest.importorskip("xarray")
 
 arr = np.random.rand(1, 10, 10)
@@ -12,9 +13,9 @@ data = xr.DataArray(
     dims=["x", "y"],
     name="data",
 )
-bdata = xr.Dataset(
-    {"data": data}, attrs={"attr0": 3}
-).to_netcdf(format="NETCDF3_CLASSIC")
+bdata = xr.Dataset({"data": data}, attrs={"attr0": 3}).to_netcdf(
+    format="NETCDF3_CLASSIC"
+)
 
 m = fsspec.filesystem("memory")
 m.pipe("data.nc3", bdata)
@@ -26,7 +27,9 @@ def test_one():
     ds = xr.open_dataset(
         "reference://",
         engine="zarr",
-        backend_kwargs={"consolidated": False,
-                        "storage_options": {"fo": out, "remote_protocol": "memory"}}
+        backend_kwargs={
+            "consolidated": False,
+            "storage_options": {"fo": out, "remote_protocol": "memory"},
+        },
     )
     assert (ds.data == data).all()

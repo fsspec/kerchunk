@@ -27,7 +27,7 @@ Notebook: https://github.com/fsspec/kerchunk/raw/main/examples/earthbigdata.ipyn
 Solar Dynamics Observatory
 --------------------------
 
-Native data format: FITS. 
+Native data format: FITS.
 
 Effective in-memory data size: 400GB
 
@@ -39,7 +39,7 @@ Notebook: https://github.com/fsspec/kerchunk/raw/main/examples/SDO.ipynb
 National Water Model
 --------------------
 
-Native data format: NetCDF4/HDF5. 
+Native data format: NetCDF4/HDF5.
 
 Effective in-memory size: 80TB
 
@@ -65,7 +65,7 @@ See the notebook for how to establish NASA Earthdata credentials necessary for d
 HRRR
 ----
 
-Native format: GRIB2. 
+Native format: GRIB2.
 
 Effective in-memory size: 7.5GB (200-file subset)
 

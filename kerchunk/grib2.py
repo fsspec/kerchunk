@@ -10,6 +10,8 @@ import fsspec
 import zarr
 import numpy as np
 
+from kerchunk.utils import class_factory
+
 logger = logging.getLogger("grib2-to-zarr")
 
 
@@ -62,10 +64,10 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
             b = data.build_array().tobytes()
         try:
             # easiest way to test if data is ascii
-            b.decode('ascii')
+            b.decode("ascii")
         except UnicodeDecodeError:
             b = b"base64:" + base64.b64encode(data)
-        store[f"{var}/0"] = b.decode('ascii')
+        store[f"{var}/0"] = b.decode("ascii")
     else:
         logger.debug(f"Store {var} reference")
         d = z.create_dataset(
@@ -76,13 +78,20 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
             fill_value=getattr(data, "missing_value", 0),
             filters=[GRIBCodec(var=var)],
             compressor=False,
-            overwrite=True
+            overwrite=True,
         )
         store[f"{var}/" + ".".join(["0"] * len(shape))] = ["{{u}}", offset, size]
     d.attrs.update(attr)
 
 
-def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, filter={}):
+def scan_grib(
+    url,
+    common_vars=None,
+    storage_options=None,
+    inline_threashold=100,
+    skip=0,
+    filter={},
+):
     """
     Generate references for a GRIB2 file
 
@@ -107,12 +116,14 @@ def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, 
 
     dict: references dict in Version 1 format.
     """
+    common_vars = common_vars or []
+    storage_options = storage_options or {}
     if filter:
         assert "typeOfLevel" in filter
     logger.debug(f"Open {url}")
 
     store = {}
-    z = zarr.open_group(store, mode='w')
+    z = zarr.open_group(store, mode="w")
     common = False
     with fsspec.open(url, "rb", **storage_options) as f:
         for fn, offset, size in _split_file(f, skip=skip):
@@ -122,13 +133,23 @@ def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, 
                 var = filter["typeOfLevel"]
                 if var not in ds.variables:
                     continue
-                if "level" in filter and ds.variables[var].data not in np.array(filter["level"]):
+                if "level" in filter and ds.variables[var].data not in np.array(
+                    filter["level"]
+                ):
                     continue
                 attr = ds.variables[var].attributes or {}
-                attr['_ARRAY_DIMENSIONS'] = []
+                attr["_ARRAY_DIMENSIONS"] = []
                 if var not in z:
-                    _store_array(store, z, np.array(ds.variables[var].data), var, 100000, 0, 0,
-                                 attr)
+                    _store_array(
+                        store,
+                        z,
+                        np.array(ds.variables[var].data),
+                        var,
+                        100000,
+                        0,
+                        0,
+                        attr,
+                    )
             if common is False:
                 # done for first valid message
                 logger.debug("Common variables")
@@ -136,27 +157,51 @@ def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, 
                 for var in common_vars:
                     # assume grid, etc is the same across all messages
                     attr = ds.variables[var].attributes or {}
-                    attr['_ARRAY_DIMENSIONS'] = ds.variables[var].dimensions
-                    _store_array(store, z, ds.variables[var].data, var, inline_threashold, offset, size,
-                                 attr)
+                    attr["_ARRAY_DIMENSIONS"] = ds.variables[var].dimensions
+                    _store_array(
+                        store,
+                        z,
+                        ds.variables[var].data,
+                        var,
+                        inline_threashold,
+                        offset,
+                        size,
+                        attr,
+                    )
                 common = True
 
             for var in ds.variables:
                 if (
-                    var not in common_vars and getattr(ds.variables[var].data, "shape", None)
+                    var not in common_vars
+                    and getattr(ds.variables[var].data, "shape", None)
                     and var != filter.get("typeOfLevel", "")
                 ):
 
                     attr = ds.variables[var].attributes or {}
                     if "(deprecated)" in attr.get("GRIB_name", ""):
                         continue
-                    attr['_ARRAY_DIMENSIONS'] = ds.variables[var].dimensions
-                    _store_array(store, z, ds.variables[var].data, var, inline_threashold, offset, size,
-                         attr)
+                    attr["_ARRAY_DIMENSIONS"] = ds.variables[var].dimensions
+                    _store_array(
+                        store,
+                        z,
+                        ds.variables[var].data,
+                        var,
+                        inline_threashold,
+                        offset,
+                        size,
+                        attr,
+                    )
     logger.debug("Done")
-    return {"version": 1,
-            "refs": {k: v.decode() if isinstance(v, bytes) else v for k, v in store.items()},
-            "templates": {"u": url}}
+    return {
+        "version": 1,
+        "refs": {
+            k: v.decode() if isinstance(v, bytes) else v for k, v in store.items()
+        },
+        "templates": {"u": url},
+    }
+
+
+GribToZarr = class_factory(scan_grib)
 
 
 class GRIBCodec(numcodecs.abc.Codec):
@@ -164,7 +209,7 @@ class GRIBCodec(numcodecs.abc.Codec):
     Read GRIB stream of bytes by writing to a temp file and calling cfgrib
     """
 
-    codec_id = 'grib'
+    codec_id = "grib"
 
     def __init__(self, var):
         self.var = var
@@ -193,20 +238,23 @@ class GRIBCodec(numcodecs.abc.Codec):
 numcodecs.register_codec(GRIBCodec, "grib")
 
 
-def example_multi(filter={'typeOfLevel': 'heightAboveGround', 'level': 2}):
+def example_multi(filter={"typeOfLevel": "heightAboveGround", "level": 2}):
     import json
+
     # 1GB of data files, forming a time-series
-    files = ['s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t22z.wrfsfcf01.grib2',
-             's3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t23z.wrfsfcf01.grib2',
-             's3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t00z.wrfsfcf01.grib2',
-             's3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t01z.wrfsfcf01.grib2',
-             's3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t02z.wrfsfcf01.grib2',
-             's3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t03z.wrfsfcf01.grib2',
-             's3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t04z.wrfsfcf01.grib2',
-             's3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t05z.wrfsfcf01.grib2',
-             's3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t06z.wrfsfcf01.grib2']
+    files = [
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t22z.wrfsfcf01.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t23z.wrfsfcf01.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t00z.wrfsfcf01.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t01z.wrfsfcf01.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t02z.wrfsfcf01.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t03z.wrfsfcf01.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t04z.wrfsfcf01.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t05z.wrfsfcf01.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t06z.wrfsfcf01.grib2",
+    ]
     so = {"anon": True, "default_cache_type": "readahead"}
-    common = ['time', 'step', 'latitude', 'longitude', 'valid_time']
+    common = ["time", "step", "latitude", "longitude", "valid_time"]
     for url in files:
         out = scan_grib(url, common, so, inline_threashold=100, filter=filter)
         with open(os.path.basename(url).replace("grib2", "json"), "w") as f:
@@ -215,15 +263,22 @@ def example_multi(filter={'typeOfLevel': 'heightAboveGround', 'level': 2}):
 
 def example_combine():
     from kerchunk.combine import MultiZarrToZarr
-    files = ['hrrr.t22z.wrfsfcf01.json',
-     'hrrr.t23z.wrfsfcf01.json',
-     'hrrr.t00z.wrfsfcf01.json',
-     'hrrr.t01z.wrfsfcf01.json',
-     'hrrr.t02z.wrfsfcf01.json',
-     'hrrr.t03z.wrfsfcf01.json',
-     'hrrr.t04z.wrfsfcf01.json',
-     'hrrr.t05z.wrfsfcf01.json',
-     'hrrr.t06z.wrfsfcf01.json']
-    mzz = MultiZarrToZarr(files, remote_protocol="s3", remote_options={"anon": True},
-                          xarray_concat_args={"dim": 'valid_time'})
+
+    files = [
+        "hrrr.t22z.wrfsfcf01.json",
+        "hrrr.t23z.wrfsfcf01.json",
+        "hrrr.t00z.wrfsfcf01.json",
+        "hrrr.t01z.wrfsfcf01.json",
+        "hrrr.t02z.wrfsfcf01.json",
+        "hrrr.t03z.wrfsfcf01.json",
+        "hrrr.t04z.wrfsfcf01.json",
+        "hrrr.t05z.wrfsfcf01.json",
+        "hrrr.t06z.wrfsfcf01.json",
+    ]
+    mzz = MultiZarrToZarr(
+        files,
+        remote_protocol="s3",
+        remote_options={"anon": True},
+        xarray_concat_args={"dim": "valid_time"},
+    )
     mzz.translate("hrrr.total.json")

@@ -5,7 +5,7 @@ The reference files currently stored in JSON format and can be readily interpret
 in any language, as documented in detail in the :doc:`spec`.
 The contents of each key
 is either encoded binary data or a URL/offset/size set. It can be loaded as long
-as the language being used can access the particular URL type.  
+as the language being used can access the particular URL type.
 
 To interpret the blocks as parts of a zarr dataset, the language should
 have an `implementation of zarr`_, as well as whichever binary codecs the target
