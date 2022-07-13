@@ -152,8 +152,6 @@ class NetCDF3ToZarr(netcdf_file):
         """
         import zarr
 
-        if self.threshold or self.max_chunk_size:
-            raise NotImplementedError
         out = {}
         z = zarr.open(out, mode="w")
         for dim, var in self.variables.items():
