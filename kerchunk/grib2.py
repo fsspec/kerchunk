@@ -82,6 +82,21 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
     d.attrs.update(attr)
 
 
+class GribToZarr:
+    def __int__(self, url, common_vars=None, storage_options=None,
+                inline_threshold=100, skip=0, filter=None):
+        self.url = url
+        self.common_vars = common_vars or []
+        self.inline_threshold= inline_threshold
+        self.storage_options = storage_options or {}
+        self.skip = skip
+        self.filter = filter or {}
+
+    def translate(self):
+        return scan_grib(self.url, self.common_vars, self.storage_options, self.inline_threshold,
+                         self.skip, self.filter)
+
+
 def scan_grib(url, common_vars, storage_options, inline_threashold=100, skip=0, filter={}):
     """
     Generate references for a GRIB2 file

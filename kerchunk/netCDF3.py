@@ -22,7 +22,8 @@ class NetCDF3ToZarr(netcdf_file):
     do behave like actual scipy netcdf files, but contain no valid data.
     """
 
-    def __init__(self, filename, *args, storage_options=None, **kwargs):
+    def __init__(self, filename, *args, storage_options=None,
+                 inline_threshold=100, **kwargs):
         """
         Parameters
         ----------
@@ -30,6 +31,8 @@ class NetCDF3ToZarr(netcdf_file):
             location of the input
         storage_options: dict
             passed to fsspec when opening filename
+        inline_threshold: int
+            Byte size below which an array will be embedded in the output
         args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
         """
         if netcdf_file is object:
@@ -38,6 +41,7 @@ class NetCDF3ToZarr(netcdf_file):
         assert kwargs.pop("mode", "r") == "r"
         assert kwargs.pop("maskandscale", False) is False
         self.chunks = {}
+        self.inline = inline_threshold
         with fsspec.open(filename, **(storage_options or {})) as fp:
             super().__init__(fp, *args, mmap=False, mode="r", maskandscale=False, **kwargs)
         self.filename = filename
@@ -107,14 +111,12 @@ class NetCDF3ToZarr(netcdf_file):
             # rec_array.shape = (self._recs,)
             self.fp.seek(pos)
 
-    def translate(self, threshold=0, max_chunk_size=0):
+    def translate(self, max_chunk_size=0):
         """
         Produce references dictionary
 
         Parameters
         ----------
-        threshold: int
-            values with fewer bytes are inlined into the output
         max_chunk_size: int
             How big a chunk can be before triggering subchunking. If 0, there is no
             subchunking, and there is never subchunking for coordinate/dimension arrays.
