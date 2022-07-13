@@ -33,13 +33,13 @@ We provide the following things:
 Introduction
 ------------
 
-This library was created to solve the problem of reading existing scientific datatypes as efficiently as possible in the cloud. The amount of observed and simulated data 
+This library was created to solve the problem of reading existing scientific datatypes as efficiently as possible in the cloud. The amount of observed and simulated data
 is now too large to be handled effectively via download and local processing.  In the cloud era, the answer is to move compute to the data in the Cloud, process in
-parallel, and access the data *in situ*, and only as much as needed to solve a problem or use case. 
+parallel, and access the data *in situ*, and only as much as needed to solve a problem or use case.
 
-Datasets are stored in many different file formats, and often as collections of files. 
+Datasets are stored in many different file formats, and often as collections of files.
 Many of these formats are designed for on-premises filesystems and are hard or inefficient
-to use seamlessly in the cloud. 
+to use seamlessly in the cloud.
 
 For binary storage of array data, essentially all formats involve taking blocks of in-memory
 C buffers and encoding/compressing them to disc, with some additional metadata describing

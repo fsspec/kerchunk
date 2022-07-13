@@ -9,41 +9,38 @@ import zarr
 
 from kerchunk.hdf import SingleHdf5ToZarr
 from kerchunk.combine import MultiZarrToZarr, drop
+
 here = osp.dirname(__file__)
 
 
 def test_single():
     """Test creating references for a single HDF file"""
-    url = 's3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp'
-    so = dict(
-        anon=True, default_fill_cache=False, default_cache_type="none"
-    )
+    url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
+    so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
     with fsspec.open(url, **so) as f:
         h5chunks = SingleHdf5ToZarr(f, url)
         test_dict = h5chunks.translate()
 
     m = fsspec.get_mapper(
-         "reference://",
-         fo=test_dict,
-         remote_protocol="s3",
-         remote_options=so
+        "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
     ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
 
     with fsspec.open(url, **so) as f:
         expected = xr.open_dataset(f, engine="h5netcdf")
-    
-        xr.testing.assert_equal(ds.drop_vars('crs'), expected.drop_vars('crs'))
+
+        xr.testing.assert_equal(ds.drop_vars("crs"), expected.drop_vars("crs"))
 
 
-urls = ["s3://" + p for p in [
-    'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp',
-    'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010100.CHRTOUT_DOMAIN1.comp',
-    'noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010200.CHRTOUT_DOMAIN1.comp',
-]]
-so = dict(
-    anon=True, default_fill_cache=False, default_cache_type='first'
-)
+urls = [
+    "s3://" + p
+    for p in [
+        "noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp",
+        "noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010100.CHRTOUT_DOMAIN1.comp",
+        "noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010200.CHRTOUT_DOMAIN1.comp",
+    ]
+]
+so = dict(anon=True, default_fill_cache=False, default_cache_type="first")
 
 
 def test_multizarr(generate_mzz):
@@ -52,10 +49,7 @@ def test_multizarr(generate_mzz):
     test_dict = mzz.translate()
 
     m = fsspec.get_mapper(
-        "reference://",
-        fo=test_dict,
-        remote_protocol="s3",
-        remote_options=so
+        "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
     ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
 
@@ -65,8 +59,12 @@ def test_multizarr(generate_mzz):
 
         assert set(ds) == set(expected)
         for name in ds:
-            exp = {k: (v.tolist() if v.size > 1 else v[0]) if isinstance(v, np.ndarray) else v for k, v in
-                   expected[name].attrs.items()}
+            exp = {
+                k: (v.tolist() if v.size > 1 else v[0])
+                if isinstance(v, np.ndarray)
+                else v
+                for k, v in expected[name].attrs.items()
+            }
             assert dict(ds[name].attrs) == dict(exp)
         for coo in ds.coords:
             assert (ds[coo].values == expected[coo].values).all()
@@ -86,9 +84,9 @@ def generate_mzz():
     mzz = MultiZarrToZarr(
         dict_list,
         remote_protocol="s3",
-        remote_options={'anon': True},
+        remote_options={"anon": True},
         concat_dims=["time"],
-        preprocess=drop("reference_time")
+        preprocess=drop("reference_time"),
     )
     return mzz
 
@@ -97,10 +95,14 @@ def generate_mzz():
 def times_data(tmpdir):
     lat = xr.DataArray(np.linspace(-90, 90, 10), dims=["lat"], name="lat")
     lon = xr.DataArray(np.linspace(-90, 90, 10), dims=["lon"], name="lon")
-    time_attrs = {'axis': 'T', 'long_name': 'time', 'standard_name': 'time'}
+    time_attrs = {"axis": "T", "long_name": "time", "standard_name": "time"}
     time1 = xr.DataArray(
-        np.arange(-631108800000000000, -630158390000000000, 86400000000000).view("datetime64[ns]"),
-        dims=["time"], name="time", attrs=time_attrs
+        np.arange(-631108800000000000, -630158390000000000, 86400000000000).view(
+            "datetime64[ns]"
+        ),
+        dims=["time"],
+        name="time",
+        attrs=time_attrs,
     )
 
     x1 = xr.DataArray(
@@ -149,6 +151,7 @@ def test_times_str(times_data):
 # https://stackoverflow.com/a/43935389/3821154
 txt = "the change of water into water vapour"
 
+
 def test_string_embed():
     fn = osp.join(here, "vlen.h5")
     h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="embed")
@@ -157,7 +160,7 @@ def test_string_embed():
     assert txt in fs.references["vlen_str/0"]
     z = zarr.open(fs.get_mapper())
     assert z.vlen_str.dtype == "O"
-    assert  z.vlen_str[0] == txt
+    assert z.vlen_str[0] == txt
     assert (z.vlen_str[1:] == "").all()
 
 
@@ -174,7 +177,9 @@ def test_string_null():
 def test_string_leave():
     fn = osp.join(here, "vlen.h5")
     with open(fn, "rb") as f:
-        h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="leave", inline_threshold=0)
+        h = kerchunk.hdf.SingleHdf5ToZarr(
+            f, fn, vlen_encode="leave", inline_threshold=0
+        )
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     z = zarr.open(fs.get_mapper())
@@ -186,7 +191,9 @@ def test_string_leave():
 def test_string_decode():
     fn = osp.join(here, "vlen.h5")
     with open(fn, "rb") as f:
-        h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="encode", inline_threshold=0)
+        h = kerchunk.hdf.SingleHdf5ToZarr(
+            f, fn, vlen_encode="encode", inline_threshold=0
+        )
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     assert txt in fs.cat("vlen_str/.zarray").decode()  # stored in filter def
@@ -210,7 +217,9 @@ def test_compound_string_null():
 def test_compound_string_leave():
     fn = osp.join(here, "vlen2.h5")
     with open(fn, "rb") as f:
-        h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="leave", inline_threshold=0)
+        h = kerchunk.hdf.SingleHdf5ToZarr(
+            f, fn, vlen_encode="leave", inline_threshold=0
+        )
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     z = zarr.open(fs.get_mapper())
@@ -223,7 +232,9 @@ def test_compound_string_leave():
 def test_compound_string_encode():
     fn = osp.join(here, "vlen2.h5")
     with open(fn, "rb") as f:
-        h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="encode", inline_threshold=0)
+        h = kerchunk.hdf.SingleHdf5ToZarr(
+            f, fn, vlen_encode="encode", inline_threshold=0
+        )
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     z = zarr.open(fs.get_mapper())

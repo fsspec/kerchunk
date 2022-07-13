@@ -24,8 +24,9 @@ def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None)
     references dict
     """
     import tifffile
+
     with fsspec.open(urlpath, **(remote_options or {})) as of:
-        url, name = urlpath.rsplit('/', 1)
+        url, name = urlpath.rsplit("/", 1)
 
         with tifffile.TiffFile(of, name=name) as tif:
             with tif.series[0].aszarr() as store:

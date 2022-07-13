@@ -2,10 +2,11 @@ from numcodecs.abc import Codec
 import numpy as np
 import numcodecs
 
+
 class StringDict(Codec):
     # similar to "categorize", but the keys are preassigned
 
-    codec_id = 'string_dict'
+    codec_id = "string_dict"
 
     def __init__(self, mapping, dtype=None):
         self.mapping = mapping
@@ -27,7 +28,7 @@ class StringDict(Codec):
 class ComplexStringDict(Codec):
     # specifically for HDF's tables (compound dtypes) with embedded string pointers
 
-    codec_id = 'comlpex_string_dict'
+    codec_id = "comlpex_string_dict"
 
     def __init__(self, mapping):
         self.mapping = mapping
@@ -55,9 +56,8 @@ class DebugCodec(Codec):
 
     def decode(self, buf, out=None):
         import pdb
-        pdb.set_trace(
 
-        )
+        pdb.set_trace()
         return buf
 
 

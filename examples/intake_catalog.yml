@@ -111,4 +111,3 @@ sources:
         remote_options:
           anon: True
         remote_protocol: s3
-

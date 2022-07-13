@@ -1,6 +1,5 @@
 import base64
 import collections.abc
-import functools
 import logging
 import re
 
@@ -10,16 +9,19 @@ import numpy as np
 import numcodecs
 import ujson
 import zarr
+
 logger = logging.getLogger("kerchunk.combine")
 
 
 def drop(fields):
     """Generate example preprocessor removing given fields"""
+
     def preproc(refs):
         for k in list(refs):
             if k.startswith(fields):
                 refs.pop(k)
         return refs
+
     return preproc
 
 
@@ -35,21 +37,30 @@ class MultiZarrToZarr:
         The special key "var" means the variable name in the output, which will be
         "VARNAME" by default (i.e., variable names are the same as in the input
         datasets). The default for any other coordinate is data:varname, i.e., look
-        for an array with that name. 
-        
+        for an array with that name.
+
         Selectors ("how to get coordinate values from a dataset") can be:
             - a constant value (usually str for a var name, number for a coordinate)
-            - a compiled regex ``re.Pattern``, which will be applied to the filename. Should return exactly one value
-            - a string beginning "attr:" which will fetch this attribute from the zarr dataset of each path
-            - a string beginning "vattr:{var}:" as above, but the attribute is taken from the array named var
-            - "VARNAME" special value where a dataset contains multiple variables, just use the variable names as given
-            - "INDEX" special value for the index of how far through the list of inputs we are so far
-            - a string beginning "data:{var}" which will get the appropriate zarr array from each input dataset.
-            - "cf:{var}", interpret the value of var using cftime, returning a datetime. These will be
-              automatically re-encoded with cftime, *unless* you specify an "M8[*]" dtype for the coordinate,
-              in which case a conversion will be attempted.
+            - a compiled regex ``re.Pattern``, which will be applied to the filename.
+              Should return exactly one value
+            - a string beginning "attr:" which will fetch this attribute from the zarr
+              dataset of each path
+            - a string beginning "vattr:{var}:" as above, but the attribute is taken from
+              the array named var
+            - "VARNAME" special value where a dataset contains multiple variables, just use
+              the variable names as given
+            - "INDEX" special value for the index of how far through the list of inputs
+              we are so far
+            - a string beginning "data:{var}" which will get the appropriate zarr array
+              from each input dataset.
+            - "cf:{var}", interpret the value of var using cftime, returning a datetime.
+              These will be automatically re-encoded with cftime, *unless* you specify an
+              "M8[*]" dtype for the coordinate, in which case a conversion will be attempted.
             - a list with the values that are known beforehand
-            - a function with signature (index, fs, var, fn) -> value, where index is an int counter, fs is the file system made for the current input, var is the variable we are probing may be "var") and fn is the filename or None if dicts were used as input
+            - a function with signature (index, fs, var, fn) -> value, where index is an int
+              counter, fs is the file system made for the current input, var is the variable
+              we are probing may be "var") and fn is the filename or None if dicts were used
+              as input
 
     :param coo_dtypes: map(str, str|np.dtype)
         Coerce the final type of coordinate arrays (otherwise use numpy default)
@@ -66,14 +77,24 @@ class MultiZarrToZarr:
         Acts on the references dict of all inputs before processing. See ``drop()``
         for an example.
     :param postprocess: callable
-        Acts on the references dict before output. 
+        Acts on the references dict before output.
         postprocess(dict)-> dict
     """
 
-    def __init__(self, path, coo_map=None, concat_dims=None, coo_dtypes=None,
-                 identical_dims=None,
-                 target_options=None, remote_protocol=None, remote_options=None,
-                 inline_threshold=500, preprocess=None, postprocess=None):
+    def __init__(
+        self,
+        path,
+        coo_map=None,
+        concat_dims=None,
+        coo_dtypes=None,
+        identical_dims=None,
+        target_options=None,
+        remote_protocol=None,
+        remote_options=None,
+        inline_threshold=500,
+        preprocess=None,
+        postprocess=None,
+    ):
         self._fss = None
         self._paths = None
         self.ds = None
@@ -85,10 +106,13 @@ class MultiZarrToZarr:
         else:
             self.concat_dims = concat_dims
         self.coo_map = coo_map or {}
-        self.coo_map.update({
-            c: "VARNAME" if c == "var" else f"data:{c}"
-            for c in self.concat_dims if c not in self.coo_map
-        })
+        self.coo_map.update(
+            {
+                c: "VARNAME" if c == "var" else f"data:{c}"
+                for c in self.concat_dims
+                if c not in self.coo_map
+            }
+        )
         logger.debug("Concat dims: %s", self.concat_dims)
         logger.debug("Coord map: %s", self.coo_map)
         self.coo_dtypes = coo_dtypes or {}
@@ -109,6 +133,7 @@ class MultiZarrToZarr:
     def fss(self):
         """filesystem instances being analysed, one per input dataset"""
         import collections.abc
+
         if self._fss is None:
             logger.debug("setup filesystems")
             if isinstance(self.path[0], collections.abc.Mapping):
@@ -123,10 +148,12 @@ class MultiZarrToZarr:
 
             self._fss = [
                 fsspec.filesystem(
-                    "reference", fo=fo,
+                    "reference",
+                    fo=fo,
                     remote_protocol=self.remote_protocol,
-                    remote_options=self.remote_options
-                ) for fo in fo_list
+                    remote_options=self.remote_options,
+                )
+                for fo in fo_list
             ]
         return self._fss
 
@@ -158,8 +185,10 @@ class MultiZarrToZarr:
             # used for merging variable names across datasets
             o = [_ for _ in z if _ not in self.concat_dims]
             if len(o) > 1:
-                raise ValueError("Multiple varnames found in dataset, please "
-                                 "provide a more specific selector")
+                raise ValueError(
+                    "Multiple varnames found in dataset, please "
+                    "provide a more specific selector"
+                )
             o = o[0]
         elif selector == "INDEX":
             o = index
@@ -172,6 +201,7 @@ class MultiZarrToZarr:
             o = z[selector.split(":", 1)[1]][...]
         elif selector.startswith("cf:"):
             import cftime
+
             datavar = z[selector.split(":", 1)[1]]
             o = datavar[...]
             units = datavar.attrs.get("units")
@@ -232,11 +262,11 @@ class MultiZarrToZarr:
                 if "M" in self.coo_dtypes.get(k, ""):
                     # explicit time format
                     data = np.array(
-                        [_.isoformat() for _ in v],
-                        dtype=self.coo_dtypes[k]
+                        [_.isoformat() for _ in v], dtype=self.coo_dtypes[k]
                     )
                 else:
                     import cftime
+
                     data = cftime.date2num(v, **self.cf_units[k]).ravel()
                     kw["fill_value"] = 2**62
 
@@ -244,11 +274,20 @@ class MultiZarrToZarr:
                 v = sum([list(_) if isinstance(_, tuple) else _ for _ in v], [])
                 data = np.array(v, dtype=self.coo_dtypes.get(k))
             else:
-                data = np.concatenate([np.atleast_1d(np.array(_, dtype=self.coo_dtypes.get(k)))
-                                       for _ in v]).ravel()
-            arr = group.create_dataset(name=k, data=data,
-                                       overwrite=True, compressor=compression,
-                                       dtype=self.coo_dtypes.get(k, data.dtype), **kw)
+                data = np.concatenate(
+                    [
+                        np.atleast_1d(np.array(_, dtype=self.coo_dtypes.get(k)))
+                        for _ in v
+                    ]
+                ).ravel()
+            arr = group.create_dataset(
+                name=k,
+                data=data,
+                overwrite=True,
+                compressor=compression,
+                dtype=self.coo_dtypes.get(k, data.dtype),
+                **kw,
+            )
             if k in z:
                 # copy attributes if values came from an original variable
                 arr.attrs.update(z[k].attrs)
@@ -289,8 +328,9 @@ class MultiZarrToZarr:
                 no_deps = set(self.coo_map) - all_deps
 
             # Coordinate values for the whole of this dataset
-            cvalues = {c: self._get_value(i, z, c, fn=self._paths[i])
-                       for c in self.coo_map}
+            cvalues = {
+                c: self._get_value(i, z, c, fn=self._paths[i]) for c in self.coo_map
+            }
             var = cvalues.get("var", None)
             for c, cv in cvalues.copy().items():
                 if isinstance(cv, np.ndarray):
@@ -316,12 +356,14 @@ class MultiZarrToZarr:
                 if v not in chunk_sizes:
                     chunk_sizes[v] = zarray["chunks"]
                 else:
-                    assert chunk_sizes[v] == zarray["chunks"], "Found chunk size mismatch"
+                    assert (
+                        chunk_sizes[v] == zarray["chunks"]
+                    ), "Found chunk size mismatch"
                 chunks = chunk_sizes[v]
                 zattrs = ujson.loads(m.get(f"{v}/.zattrs", "{}"))
                 coords = zattrs.get("_ARRAY_DIMENSIONS", [])
                 if zarray["shape"] and not coords:
-                    coords = list("ikjlm")[:len(zarray["shape"])]
+                    coords = list("ikjlm")[: len(zarray["shape"])]
 
                 if v not in dont_skip and v in all_deps:
                     # this is an input coordinate
@@ -333,7 +375,9 @@ class MultiZarrToZarr:
 
                 dont_skip.add(v)  # don't check for coord or identical again
 
-                coord_order = [c for c in self.concat_dims if c not in coords and c != "var"] + coords
+                coord_order = [
+                    c for c in self.concat_dims if c not in coords and c != "var"
+                ] + coords
 
                 # create output array, accounting for shape, chunks and dim dependencies
                 if f"{var or v}/.zarray" not in self.out:
@@ -341,14 +385,17 @@ class MultiZarrToZarr:
                     ch = []
                     for c in coord_order:
                         if c in self.coos:
-                            shape.append(self.coos[c].size if isinstance(self.coos[c], np.ndarray)
-                                         else len(self.coos[c]))
+                            shape.append(
+                                self.coos[c].size
+                                if isinstance(self.coos[c], np.ndarray)
+                                else len(self.coos[c])
+                            )
                         else:
                             shape.append(zarray["shape"][coords.index(c)])
                         ch.append(chunks[coords.index(c)] if c in coords else 1)
 
-                    zarray['shape'] = shape
-                    zarray['chunks'] = ch
+                    zarray["shape"] = shape
+                    zarray["chunks"] = ch
                     zattrs["_ARRAY_DIMENSIONS"] = coord_order
                     self.out[f"{var or v}/.zarray"] = ujson.dumps(zarray)
                     # other attributes copied as-is from first occurrence of this array
@@ -365,7 +412,9 @@ class MultiZarrToZarr:
                             cv = cvalues[c]
                             ind = np.searchsorted(self.coos[c], cv)
                             if c in coords:
-                                key += str(ind // ch[loc] + int(key_parts[coords.index(c)]))
+                                key += str(
+                                    ind // ch[loc] + int(key_parts[coords.index(c)])
+                                )
                             else:
                                 key += str(ind // ch[loc])
                         else:
@@ -375,7 +424,7 @@ class MultiZarrToZarr:
 
                     ref = fs.references.get(fn)
                     if isinstance(ref, list) and (
-                            (len(ref) > 1 and ref[2] < self.inline)
+                        (len(ref) > 1 and ref[2] < self.inline)
                         or fs.info(fn)["size"] < self.inline
                     ):
                         to_download[key] = fn
@@ -386,8 +435,7 @@ class MultiZarrToZarr:
                 for key, fn in to_download.items():
                     self.out[key] = bits[fn]
         self.done.add(3)
-        
-            
+
     def translate(self, filename=None, storage_options=None):
         """Perform all stages and return the resultant references dict"""
         if 1 not in self.done:
@@ -407,7 +455,7 @@ class MultiZarrToZarr:
             with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
                 ujson.dump(out, f)
 
-                          
+
 def consolidate(refs):
     """Turn raw references into output"""
     out = {}
@@ -415,13 +463,13 @@ def consolidate(refs):
         if isinstance(v, bytes):
             try:
                 # easiest way to test if data is ascii
-                out[k] = v.decode('ascii')
+                out[k] = v.decode("ascii")
             except UnicodeDecodeError:
                 out[k] = (b"base64:" + base64.b64encode(v)).decode()
         else:
             out[k] = v
     return {"version": 1, "refs": out}
-    
+
 
 def _reorganise(coos):
     # reorganise and sort coordinate values

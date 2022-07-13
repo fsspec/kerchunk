@@ -1,4 +1,3 @@
-import base64
 import fsspec
 import logging
 import numcodecs
@@ -6,15 +5,29 @@ import numcodecs.abc
 import numpy as np
 import zarr
 
+
+from kerchunk.utils import class_factory
+
 logger = logging.getLogger("fits-to-zarr")
 
 
-BITPIX2DTYPE = {8: 'uint8', 16: '>i2', 32: '>i4', 64: '>i8',
-                -32: 'float32', -64: 'float64'}  # always bigendian
+BITPIX2DTYPE = {
+    8: "uint8",
+    16: ">i2",
+    32: ">i4",
+    64: ">i8",
+    -32: "float32",
+    -64: "float64",
+}  # always bigendian
 
 
-def process_file(url, storage_options=None, extension=None,
-                 primary_attr_to_group=False):
+def process_file(
+    url,
+    storage_options=None,
+    extension=None,
+    inline_threshold=100,
+    primary_attr_to_group=False,
+):
     """
     Create JSON references for a single FITS file as a zarr group
 
@@ -27,6 +40,8 @@ def process_file(url, storage_options=None, extension=None,
     extension: list(int | str) | int | str or None
         Which extensions to include. Can be ordinal integer(s), the extension name (str) or if None,
         uses the first data extension
+    inline_threshold: int
+        (not yet implemented)
     primary_attr_to_group: bool
         Whether the output top-level group contains the attributes of the primary extension
         (which often contains no data, just a general description)
@@ -36,6 +51,7 @@ def process_file(url, storage_options=None, extension=None,
     dict of the references
     """
     from astropy.io import fits
+
     storage_options = storage_options or {}
     out = {}
     g = zarr.open(out)
@@ -62,19 +78,19 @@ def process_file(url, storage_options=None, extension=None,
             if hdu.is_image:
                 # for images/cubes (i.e., ndarrays with simple type)
                 nax = hdu.header["NAXIS"]
-                shape = tuple(int(hdu.header[f'NAXIS{i}']) for i in range(nax, 0, -1))
-                dtype = BITPIX2DTYPE[hdu.header['BITPIX']]
+                shape = tuple(int(hdu.header[f"NAXIS{i}"]) for i in range(nax, 0, -1))
+                dtype = BITPIX2DTYPE[hdu.header["BITPIX"]]
                 length = np.dtype(dtype).itemsize
                 for s in shape:
                     length *= s
 
-                if 'BSCALE' in hdu.header or 'BZERO' in hdu.header:
+                if "BSCALE" in hdu.header or "BZERO" in hdu.header:
                     filters = [
                         numcodecs.FixedScaleOffset(
                             offset=float(hdu.header.get("BZERO", 0)),
                             scale=float(hdu.header.get("BSCALE", 1)),
                             astype=dtype,
-                            dtype=float
+                            dtype=float,
                         )
                     ]
                 else:
@@ -82,18 +98,23 @@ def process_file(url, storage_options=None, extension=None,
             elif isinstance(hdu, fits.hdu.table.TableHDU):
                 # ascii table
                 spans = hdu.columns._spans
-                outdtype = [[name, hdu.columns[name].format.recformat] for name in hdu.columns.names]
-                indtypes = [[name, f"S{i + 1}"] for name, i in zip(hdu.columns.names, spans)]
+                outdtype = [
+                    [name, hdu.columns[name].format.recformat]
+                    for name in hdu.columns.names
+                ]
+                indtypes = [
+                    [name, f"S{i + 1}"] for name, i in zip(hdu.columns.names, spans)
+                ]
                 nrows = int(hdu.header["NAXIS2"])
-                shape = (nrows, )
+                shape = (nrows,)
                 filters = [AsciiTableCodec(indtypes, outdtype)]
                 dtype = [tuple(d) for d in outdtype]
                 length = (sum(spans) + len(spans)) * nrows
             elif isinstance(hdu, fits.hdu.table.BinTableHDU):
                 # binary table
-                dtype = hdu.columns.dtype.newbyteorder(">") # always big endian
+                dtype = hdu.columns.dtype.newbyteorder(">")  # always big endian
                 nrows = int(hdu.header["NAXIS2"])
-                shape = (nrows, )
+                shape = (nrows,)
                 filters = None
                 length = dtype.itemsize * nrows
             else:
@@ -102,11 +123,22 @@ def process_file(url, storage_options=None, extension=None,
             # one chunk for whole thing.
             # TODO: we could sub-chunk on biggest dimension
             name = hdu.name or str(ext)
-            arr = g.empty(name, dtype=dtype, shape=shape, chunks=shape, compression=None,
-                          filters=filters)
-            arr.attrs.update({k: str(v) if not isinstance(v, (int, float, str)) else v
-                              for k, v in attrs.items() if k != "COMMENT"})
-            arr.attrs["_ARRAY_DIMENSIONS"] = ["z", "y", "x"][-len(shape):]
+            arr = g.empty(
+                name,
+                dtype=dtype,
+                shape=shape,
+                chunks=shape,
+                compression=None,
+                filters=filters,
+            )
+            arr.attrs.update(
+                {
+                    k: str(v) if not isinstance(v, (int, float, str)) else v
+                    for k, v in attrs.items()
+                    if k != "COMMENT"
+                }
+            )
+            arr.attrs["_ARRAY_DIMENSIONS"] = ["z", "y", "x"][-len(shape) :]
             loc = hdu.fileinfo()["datLoc"]
             parts = ".".join(["0"] * len(shape))
             out[f"{name}/{parts}"] = [url, loc, length]
@@ -114,9 +146,17 @@ def process_file(url, storage_options=None, extension=None,
             # copy attributes of primary extension to top-level group
             hdu = infile[0]
             hdu.header.__str__()
-            g.attrs.update({k: str(v) if not isinstance(v, (int, float, str)) else v
-                            for k, v in dict(hdu.header).items() if k != "COMMENT"})
+            g.attrs.update(
+                {
+                    k: str(v) if not isinstance(v, (int, float, str)) else v
+                    for k, v in dict(hdu.header).items()
+                    if k != "COMMENT"
+                }
+            )
     return out
+
+
+FitsToZarr = class_factory(process_file)
 
 
 class AsciiTableCodec(numcodecs.abc.Codec):
@@ -179,25 +219,32 @@ def add_wcs_coords(hdu, zarr_group=None, dataset=None, dtype="float32"):
     elif not isinstance(hdu, fits.hdu.base._BaseHDU):
         raise TypeError("`hdu` must be a FITS HDU or dict")
     nax = hdu.header["NAXIS"]
-    shape = tuple(int(hdu.header[f'NAXIS{i}']) for i in range(nax, 0, -1))
+    shape = tuple(int(hdu.header[f"NAXIS{i}"]) for i in range(nax, 0, -1))
 
     wcs = WCS(hdu)
-    coords = [coo.ravel() for coo in np.meshgrid(*(np.arange(sh) for sh in shape))]  # ?[::-1]
+    coords = [
+        coo.ravel() for coo in np.meshgrid(*(np.arange(sh) for sh in shape))
+    ]  # ?[::-1]
     world_coords = wcs.pixel_to_world(*coords)
     for i, (name, world_coord) in enumerate(zip(wcs.axis_type_names, world_coords)):
-        dims = ['z', 'y', 'x'][3 - len(shape):]
-        attrs = {"unit": world_coord.unit.name,
-                 "type": hdu.header[f"CTYPE{i + 1}"],
-                 "_ARRAY_DIMENSIONS": dims}
+        dims = ["z", "y", "x"][3 - len(shape) :]
+        attrs = {
+            "unit": world_coord.unit.name,
+            "type": hdu.header[f"CTYPE{i + 1}"],
+            "_ARRAY_DIMENSIONS": dims,
+        }
         if zarr_group is not None:
-            arr = zarr_group.empty(name, shape=shape,
-                                   chunks=shape, overwrite=True, dtype=dtype)
+            arr = zarr_group.empty(
+                name, shape=shape, chunks=shape, overwrite=True, dtype=dtype
+            )
             arr.attrs.update(attrs)
             arr[:] = world_coord.value.reshape(shape)
         if dataset is not None:
             import xarray as xr
-            coo = xr.Coordinate(data=world_coord.value.reshape(shape),
-                                dims=dims, attrs=attrs)
+
+            coo = xr.Coordinate(
+                data=world_coord.value.reshape(shape), dims=dims, attrs=attrs
+            )
             dataset = dataset.assign_coordinates(name=coo)
     if dataset is not None:
         return dataset
