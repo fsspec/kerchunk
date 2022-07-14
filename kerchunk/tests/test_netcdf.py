@@ -62,11 +62,8 @@ def unlimited_dataset(tmpdir):
     temp.units = "K"
     latitudes[:] = np.arange(-0.5, 0.5, 0.1)
     longitudes[:] = np.arange(0, 0.5, 0.1)
-    from numpy.random import uniform
-
-    temp[0] = uniform(size=(1, 10, 5))
-    for i in range(1, 8):
-        temp[i] = uniform(size=(1, 10, 5))
+    for i in range(8):
+        temp[i] = np.random.uniform(size=(1, 10, 5))
     rootgrp.close()
     return fn
 
