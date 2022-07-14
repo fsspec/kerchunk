@@ -239,8 +239,8 @@ class NetCDF3ToZarr(netcdf_file):
                 for i in range(outer_shape):
                     out[f"{name}/{i}{suffix}"] = [
                         self.filename,
-                        offset + i * dt.itemsize,
-                        dtype.itemsize,
+                        int(offset + i * dt.itemsize),
+                        int(dtype.itemsize),
                     ]
 
                 offset += dtype.itemsize
@@ -252,9 +252,12 @@ class NetCDF3ToZarr(netcdf_file):
             }
         )
 
-        # TODO: embed coordinates, especially the record array one
+        # remove bytes
+        out = {
+            k: (v.decode() if isinstance(v, bytes) else v) for k, v in self.out.items()
+        }
 
-        return {"version": 1, "refs": self.out}
+        return {"version": 1, "refs": out}
 
 
 netcdf_recording_file = NetCDF3ToZarr
