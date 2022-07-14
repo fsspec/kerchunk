@@ -40,12 +40,12 @@ class NetCDF3ToZarr(netcdf_file):
         storage_options: dict
             passed to fsspec when opening filename
         inline_threshold: int
-            Byte size below which an array will be embedded in the output
+            Byte size below which an array will be embedded in the output [TBC]
         max_chunk_size: int
             How big a chunk can be before triggering subchunking. If 0, there is no
             subchunking, and there is never subchunking for coordinate/dimension arrays.
             E.g., if an array contains 10,000bytes, and this value is 6000, there will
-            be two output chunks, split on the biggest available dimension.
+            be two output chunks, split on the biggest available dimension. [TBC]
         args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
         """
         if netcdf_file is object:
@@ -53,14 +53,18 @@ class NetCDF3ToZarr(netcdf_file):
         assert kwargs.pop("mmap", False) is False
         assert kwargs.pop("mode", "r") == "r"
         assert kwargs.pop("maskandscale", False) is False
+
+        # attributes set before super().__init__ don' accidentally turn into
+        # dataset attribues
         self.chunks = {}
         self.threshold = inline_threshold
-        self.max_chukn_size = max_chunk_size
+        self.max_chunk_size = max_chunk_size
+        self.out = {}
         with fsspec.open(filename, **(storage_options or {})) as fp:
             super().__init__(
                 fp, *args, mmap=False, mode="r", maskandscale=False, **kwargs
             )
-        self.filename = filename
+        self.filename = filename  # this becomes an attribute, so must ignore on write
 
     def _read_var_array(self):
         header = self.fp.read(4)
@@ -149,7 +153,6 @@ class NetCDF3ToZarr(netcdf_file):
         """
         import zarr
 
-        self.out = {}
         out = self.out
         z = zarr.open(out, mode="w")
         for dim, var in self.variables.items():
@@ -245,6 +248,7 @@ class NetCDF3ToZarr(netcdf_file):
             {
                 k: v.decode() if isinstance(v, bytes) else str(v)
                 for k, v in self._attributes.items()
+                if k != "filename"  # special "attribute"
             }
         )
 
