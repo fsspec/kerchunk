@@ -138,9 +138,6 @@ class NetCDF3ToZarr(netcdf_file):
             self.chunks.setdefault("record_array", []).append(
                 [begin, self._recs * self._recsize, dtypes]
             )
-            # rec_array = frombuffer(self.fp.read(self._recs*self._recsize),
-            #                        dtype=dtypes).copy()
-            # rec_array.shape = (self._recs,)
             self.fp.seek(pos)
 
     def translate(self):
@@ -152,27 +149,35 @@ class NetCDF3ToZarr(netcdf_file):
         """
         import zarr
 
-        out = {}
+        self.out = {}
+        out = self.out
         z = zarr.open(out, mode="w")
         for dim, var in self.variables.items():
             if dim in self.dimensions:
                 shape = self.dimensions[dim]
-            else:
+            elif dim in self.chunks:
                 shape = self.chunks[dim][-1]
+            else:
+                # defer record array
+                continue
             if isinstance(shape, int):
                 shape = (shape,)
             if shape is None or (len(shape) and shape[0] is None):
-                # record array: either simple chunks, or use codec
-                data = var[:]
-                arr = z.create_dataset(
-                    name=dim, data=data, chunks=data.shape, compression=None
-                )
+                # defer record array
+                continue
             else:
                 # simple array block
-                arr = z.empty(
+                # TODO: chance to sub-chunk
+                fill = var._attributes.get("missing_value", None)
+                if fill is not None and var.data.dtype.kind == "f":
+                    fill = float(fill)
+                if fill is not None and var.data.dtype.kind == "i":
+                    fill = int(fill)
+                arr = z.create_dataset(
                     name=dim,
                     shape=shape,
                     dtype=var.data.dtype,
+                    fill_value=fill,
                     chunks=shape,
                     compression=None,
                 )
@@ -185,10 +190,67 @@ class NetCDF3ToZarr(netcdf_file):
                 {
                     k: v.decode() if isinstance(v, bytes) else str(v)
                     for k, v in var._attributes.items()
+                    if k not in ["_FillValue", "missing_value"]
                 }
             )
             arr.attrs["_ARRAY_DIMENSIONS"] = list(var.dimensions)
-        return out
+        if "record_array" in self.chunks:
+            # native chunks version (no codec, no options)
+            start, size, dt = self.chunks["record_array"][0]
+            dt = np.dtype(dt)
+            outer_shape = size // dt.itemsize
+            offset = start
+            for name in dt.names:
+                # the order of the names if fixed and important!
+                var = self.variables[name]
+                dtype = dt[name]
+                base = dtype.base  # actual dtype
+                shape = (outer_shape,) + dtype.shape
+
+                # TODO: avoid this code repeat
+                fill = var._attributes.get("missing_value", None)
+                if fill is not None and base.kind == "f":
+                    fill = float(fill)
+                if fill is not None and base.kind == "i":
+                    fill = int(fill)
+                arr = z.create_dataset(
+                    name=name,
+                    shape=shape,
+                    dtype=base,
+                    fill_value=fill,
+                    chunks=(1,) + dtype.shape,
+                    compression=None,
+                )
+                arr.attrs.update(
+                    {
+                        k: v.decode() if isinstance(v, bytes) else str(v)
+                        for k, v in var._attributes.items()
+                        if k not in ["_FillValue", "missing_value"]
+                    }
+                )
+                arr.attrs["_ARRAY_DIMENSIONS"] = list(var.dimensions)
+
+                suffix = (
+                    ("." + ".".join("0" for _ in dtype.shape)) if dtype.shape else ""
+                )
+                for i in range(outer_shape):
+                    out[f"{name}/{i}{suffix}"] = [
+                        self.filename,
+                        offset + i * dt.itemsize,
+                        dtype.itemsize,
+                    ]
+
+                offset += dtype.itemsize
+        z.attrs.update(
+            {
+                k: v.decode() if isinstance(v, bytes) else str(v)
+                for k, v in self._attributes.items()
+            }
+        )
+
+        # TODO: embed coordinates, especially the record array one
+
+        return {"version": 1, "refs": self.out}
 
 
 netcdf_recording_file = NetCDF3ToZarr
