@@ -60,6 +60,7 @@ so that blocks from one or more files can be arranged into aggregate datasets ac
    :caption: Contents:
 
    test_example
+   notebooks/ERA5_tutorial_extended.ipynb
    detail
    cases
    spec

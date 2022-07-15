@@ -1,4 +1,4 @@
-Tutorial
+Quick Start
 ********
 
 This is a run-through example for how to use this package. We scan a set of netCDF4/HDF5 files,
