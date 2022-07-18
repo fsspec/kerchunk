@@ -480,6 +480,7 @@ def _reorganise(coos):
     return out
 
 def merge_vars(files):
+    #this merges variables across datasets with identical dimensions.
     if isinstance(files[0], collections.abc.Mapping):
         fo_list = files
     else:
