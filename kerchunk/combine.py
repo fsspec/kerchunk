@@ -478,3 +478,20 @@ def _reorganise(coos):
     for k, arr in coos.items():
         out[k] = np.array(sorted(arr))
     return out
+
+def merge_vars(files):
+    if isinstance(files[0], collections.abc.Mapping):
+        fo_list = files
+    else:
+        fo_list = []
+        for of in fsspec.open_files(files):
+            fo_list.append(of.open())
+    merged = ujson.load(fo_list[0])
+    z = zarr.open(merged['refs'])
+    shape = max([arr[1].shape for arr in z.arrays()], key=lambda t: len(t)) #returns shape of variable with most dims
+    for file in fo_list[1:]:
+        refs = ujson.load(file)['refs']
+        z = zarr.open(refs)
+        assert max([arr[1].shape for arr in z.arrays()], key=lambda t: len(t)) == shape, 'variable dimensions not identical'
+        merged['refs'].update(refs)
+    return merged
