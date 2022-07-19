@@ -79,6 +79,9 @@ class MultiZarrToZarr:
     :param postprocess: callable
         Acts on the references dict before output.
         postprocess(dict)-> dict
+    :param validate_dataet: callable
+    :param validate_variable: callable
+    :param validate_chunk: callable
     """
 
     def __init__(

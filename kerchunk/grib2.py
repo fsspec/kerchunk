@@ -1,11 +1,13 @@
+import attr
 import base64
+import io
 import logging
 import os
-import tempfile
 
 import cfgrib
+import eccodes
 import numcodecs.abc
-from numcodecs.compat import ndarray_copy, ensure_contiguous_ndarray
+from numcodecs.compat import ndarray_copy
 import fsspec
 import zarr
 import numpy as np
@@ -13,6 +15,7 @@ import numpy as np
 from kerchunk.utils import class_factory
 
 logger = logging.getLogger("grib2-to-zarr")
+fsspec.utils.setup_logging(logger=logger)
 
 
 def _split_file(f, skip=0):
@@ -27,18 +30,17 @@ def _split_file(f, skip=0):
     while f.tell() < size:
         logger.debug(f"extract part {part + 1}")
         start = f.tell()
-        f.seek(12, 1)
-        part_size = int.from_bytes(f.read(4), "big")
+        head = f.read(16)
+        marker = head[:4]
+        if not marker:
+            break  # EOF
+        assert head[:4] == b"GRIB", "Bad grib message start marker"
+        part_size = int.from_bytes(head[12:], "big")
         f.seek(start)
-        data = f.read(part_size)
-        assert data[:4] == b"GRIB"
-        assert data[-4:] == b"7777"
-        fn = tempfile.mktemp(suffix="grib2")
-        with open(fn, "wb") as fo:
-            fo.write(data)
-        yield fn, start, part_size
+        yield start, part_size
+        f.seek(start + part_size)
         part += 1
-        if skip and part > skip:
+        if skip and part >= skip:
             break
 
 
@@ -76,12 +78,93 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
             chunks=shape,
             dtype=data.dtype,
             fill_value=getattr(data, "missing_value", 0),
-            filters=[GRIBCodec(var=var)],
+            filters=[GRIBCodec(var=var, dtype=str(data.dtype))],
             compressor=False,
             overwrite=True,
         )
         store[f"{var}/" + ".".join(["0"] * len(shape))] = ["{{u}}", offset, size]
     d.attrs.update(attr)
+
+
+@attr.attrs(auto_attribs=True)
+class SingleMessagesStream(cfgrib.messages.FileStream):
+    # override - an iterator that provides exactly one Message
+    f: io.BytesIO = io.BytesIO()
+    offset: int = 0
+    size: int = 0
+
+    def __iter__(self):
+        self.f.seek(self.offset)
+        data = self.f.read(self.size)
+        yield cfgrib.messages.Message(eccodes.codes_new_from_message(data))
+
+
+SingleMessagesStream.__eq__ = lambda *_, **__: True
+
+
+def open_fileindex(
+    path,
+    f,
+    offset,
+    size,
+    grib_errors: str = "warn",
+    indexpath: str = "{path}.{short_hash}.idx",
+    index_keys=cfgrib.dataset.INDEX_KEYS + ["time", "step"],
+    filter_by_keys={},
+):
+    # override to read single message from open file-like
+    index_keys = sorted(set(index_keys) | set(filter_by_keys))
+    stream = SingleMessagesStream(
+        path,
+        f=f,
+        offset=offset,
+        size=size,
+        message_class=cfgrib.dataset.cfmessage.CfMessage,
+        errors=grib_errors,
+    )
+    index = stream.index(index_keys, indexpath=indexpath)
+    return index.subindex(filter_by_keys)
+
+
+def open_file(
+    path,
+    f,
+    offset,
+    size,
+    grib_errors: str = "warn",
+    indexpath: str = "{path}.{short_hash}.idx",
+    filter_by_keys={},
+    read_keys=(),
+    time_dims=("time", "step"),
+    extra_coords={},
+    **kwargs,
+):
+    """take open file and make it into a dataset at the given offset"""
+    index_keys = (
+        cfgrib.dataset.INDEX_KEYS
+        + list(filter_by_keys)
+        + list(time_dims)
+        + list(extra_coords.keys())
+    )
+    index = open_fileindex(
+        path,
+        f,
+        offset,
+        size,
+        grib_errors,
+        indexpath,
+        index_keys,
+        filter_by_keys=filter_by_keys,
+    )
+    return cfgrib.dataset.Dataset(
+        *cfgrib.dataset.build_dataset_components(
+            index,
+            read_keys=read_keys,
+            time_dims=time_dims,
+            extra_coords=extra_coords,
+            **kwargs,
+        )
+    )
 
 
 def scan_grib(
@@ -122,13 +205,16 @@ def scan_grib(
         assert "typeOfLevel" in filter
     logger.debug(f"Open {url}")
 
-    store = {}
-    z = zarr.open_group(store, mode="w")
+    out = []
     common = False
     with fsspec.open(url, "rb", **storage_options) as f:
-        for fn, offset, size in _split_file(f, skip=skip):
-            logger.debug(f"File {fn}")
-            ds = cfgrib.open_file(fn)
+        logger.debug(f"File {url}")
+        for offset, size in _split_file(f, skip=skip):
+            store = {}
+            z = zarr.open_group(store, mode="w")
+            logger.debug(f"Bytes {offset}-{offset+size} of {f.size}")
+            ds = open_file(url, f, offset, size)
+
             if filter:
                 var = filter["typeOfLevel"]
                 if var not in ds.variables:
@@ -191,14 +277,18 @@ def scan_grib(
                         size,
                         attr,
                     )
+            out.append(
+                {
+                    "version": 1,
+                    "refs": {
+                        k: v.decode() if isinstance(v, bytes) else v
+                        for k, v in store.items()
+                    },
+                    "templates": {"u": url},
+                }
+            )
     logger.debug("Done")
-    return {
-        "version": 1,
-        "refs": {
-            k: v.decode() if isinstance(v, bytes) else v for k, v in store.items()
-        },
-        "templates": {"u": url},
-    }
+    return out
 
 
 GribToZarr = class_factory(scan_grib)
@@ -211,28 +301,29 @@ class GRIBCodec(numcodecs.abc.Codec):
 
     codec_id = "grib"
 
-    def __init__(self, var):
+    def __init__(self, var, dtype="float32"):
         self.var = var
+        self.dtype = dtype
 
     def encode(self, buf):
         # on encode, pass through
         return buf
 
     def decode(self, buf, out=None):
-        buf = ensure_contiguous_ndarray(buf)
-        fn = tempfile.mktemp(suffix="grib2")
-        buf.tofile(fn)
-
-        # do decode
-        ds = cfgrib.open_file(fn)
-        data = ds.variables[self.var].data
-        if hasattr(data, "build_array"):
-            data = data.build_array()
+        if self.var in ["latitude", "longitude"]:
+            var = self.var + "s"
+        else:
+            var = "values"
+        mid = eccodes.codes_new_from_message(bytes(buf))
+        try:
+            data = eccodes.codes_get_array(mid, var)
+        finally:
+            eccodes.codes_release(mid)
 
         if out is not None:
             return ndarray_copy(data, out)
         else:
-            return data
+            return data.astype(self.dtype)
 
 
 numcodecs.register_codec(GRIBCodec, "grib")
