@@ -220,12 +220,13 @@ class GRIBCodec(numcodecs.abc.Codec):
 
     def decode(self, buf, out=None):
         buf = ensure_contiguous_ndarray(buf)
-        fn = tempfile.mktemp(suffix="grib2")
-        buf.tofile(fn)
+        with tempfile.NamedTemporaryFile(suffix="grib2") as fn:
+            buf.tofile(fn)
 
-        # do decode
-        ds = cfgrib.open_file(fn)
-        data = ds.variables[self.var].data
+            # do decode
+            ds = cfgrib.open_file(fn.name)
+            data = ds.variables[self.var].data
+        
         if hasattr(data, "build_array"):
             data = data.build_array()
 
