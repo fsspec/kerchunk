@@ -23,5 +23,6 @@ dependencies:
   - black
   - pip
   - tifffile
+  - rioxarray
   - pip:
       - git+https://github.com/fsspec/filesystem_spec

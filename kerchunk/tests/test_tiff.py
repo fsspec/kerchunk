@@ -6,6 +6,7 @@ import pytest
 import xarray as xr
 
 pytest.importorskip("tifffile")
+pytest.importorskip("rioxarray")
 import kerchunk.tiff
 
 files = glob.glob(os.path.join(os.path.dirname(__file__), "lc*tif"))
