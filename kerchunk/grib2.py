@@ -301,7 +301,7 @@ class GRIBCodec(numcodecs.abc.Codec):
 
     codec_id = "grib"
 
-    def __init__(self, var, dtype="float32"):
+    def __init__(self, var, dtype=None):
         self.var = var
         self.dtype = dtype
 
@@ -312,8 +312,10 @@ class GRIBCodec(numcodecs.abc.Codec):
     def decode(self, buf, out=None):
         if self.var in ["latitude", "longitude"]:
             var = self.var + "s"
+            dt = self.dtype or "float64"
         else:
             var = "values"
+            dt = self.dtype or "float32"
         mid = eccodes.codes_new_from_message(bytes(buf))
         try:
             data = eccodes.codes_get_array(mid, var)
@@ -323,7 +325,7 @@ class GRIBCodec(numcodecs.abc.Codec):
         if out is not None:
             return ndarray_copy(data, out)
         else:
-            return data.astype(self.dtype)
+            return data.astype(dt)
 
 
 numcodecs.register_codec(GRIBCodec, "grib")
