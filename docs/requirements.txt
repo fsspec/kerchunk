@@ -9,3 +9,4 @@ numcodecs
 xarray
 zarr
 ujson
+ipython
