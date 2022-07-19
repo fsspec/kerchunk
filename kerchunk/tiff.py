@@ -68,7 +68,15 @@ units = {
 
 
 def generate_coords(attrs, shape):
-    """Produce coordinate arrays for given variable"""
+    """Produce coordinate arrays for given variable
+
+    Parameters
+    ----------
+    attrs: dict
+        Containing the geoTIFF tags, probably the root group of the dataset
+    shape: tuple[int]
+        The array size in numpy (C) order
+    """
     import numpy as np
 
     height, width = shape[-2:]
