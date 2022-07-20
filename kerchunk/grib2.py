@@ -1,6 +1,4 @@
-import attr
 import base64
-import io
 import logging
 import os
 
@@ -37,8 +35,7 @@ def _split_file(f, skip=0):
         assert head[:4] == b"GRIB", "Bad grib message start marker"
         part_size = int.from_bytes(head[12:], "big")
         f.seek(start)
-        yield start, part_size
-        f.seek(start + part_size)
+        yield start, part_size, f.read(part_size)
         part += 1
         if skip and part >= skip:
             break
@@ -86,90 +83,8 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
     d.attrs.update(attr)
 
 
-@attr.attrs(auto_attribs=True)
-class SingleMessagesStream(cfgrib.messages.FileStream):
-    # override - an iterator that provides exactly one Message
-    f: io.BytesIO = io.BytesIO()
-    offset: int = 0
-    size: int = 0
-
-    def __iter__(self):
-        self.f.seek(self.offset)
-        data = self.f.read(self.size)
-        yield cfgrib.messages.Message(eccodes.codes_new_from_message(data))
-
-
-SingleMessagesStream.__eq__ = lambda *_, **__: True
-
-
-def open_fileindex(
-    path,
-    f,
-    offset,
-    size,
-    grib_errors: str = "warn",
-    indexpath: str = "{path}.{short_hash}.idx",
-    index_keys=cfgrib.dataset.INDEX_KEYS + ["time", "step"],
-    filter_by_keys={},
-):
-    # override to read single message from open file-like
-    index_keys = sorted(set(index_keys) | set(filter_by_keys))
-    stream = SingleMessagesStream(
-        path,
-        f=f,
-        offset=offset,
-        size=size,
-        message_class=cfgrib.dataset.cfmessage.CfMessage,
-        errors=grib_errors,
-    )
-    index = stream.index(index_keys, indexpath=indexpath)
-    return index.subindex(filter_by_keys)
-
-
-def open_file(
-    path,
-    f,
-    offset,
-    size,
-    grib_errors: str = "warn",
-    indexpath: str = "{path}.{short_hash}.idx",
-    filter_by_keys={},
-    read_keys=(),
-    time_dims=("time", "step"),
-    extra_coords={},
-    **kwargs,
-):
-    """take open file and make it into a dataset at the given offset"""
-    index_keys = (
-        cfgrib.dataset.INDEX_KEYS
-        + list(filter_by_keys)
-        + list(time_dims)
-        + list(extra_coords.keys())
-    )
-    index = open_fileindex(
-        path,
-        f,
-        offset,
-        size,
-        grib_errors,
-        indexpath,
-        index_keys,
-        filter_by_keys=filter_by_keys,
-    )
-    return cfgrib.dataset.Dataset(
-        *cfgrib.dataset.build_dataset_components(
-            index,
-            read_keys=read_keys,
-            time_dims=time_dims,
-            extra_coords=extra_coords,
-            **kwargs,
-        )
-    )
-
-
 def scan_grib(
     url,
-    common_vars=None,
     storage_options=None,
     inline_threashold=100,
     skip=0,
@@ -199,84 +114,73 @@ def scan_grib(
 
     dict: references dict in Version 1 format.
     """
-    common_vars = common_vars or []
     storage_options = storage_options or {}
     if filter:
         assert "typeOfLevel" in filter
     logger.debug(f"Open {url}")
 
     out = []
-    common = False
     with fsspec.open(url, "rb", **storage_options) as f:
         logger.debug(f"File {url}")
-        for offset, size in _split_file(f, skip=skip):
+        for offset, size, data in _split_file(f, skip=skip):
             store = {}
-            z = zarr.open_group(store, mode="w")
-            logger.debug(f"Bytes {offset}-{offset+size} of {f.size}")
-            ds = open_file(url, f, offset, size)
+            mid = eccodes.codes_new_from_message(data)
+            m = cfgrib.cfmessage.CfMessage(mid)
 
             if filter:
-                var = filter["typeOfLevel"]
-                if var not in ds.variables:
+                if filter["typeOfLevel"] != m.get("typeOfLevel", True):
                     continue
-                if "level" in filter and ds.variables[var].data not in np.array(
-                    filter["level"]
-                ):
+                if float(filter["level"]) != float(m.get("level", -99)):
                     continue
-                attr = ds.variables[var].attributes or {}
-                attr["_ARRAY_DIMENSIONS"] = []
-                if var not in z:
-                    _store_array(
-                        store,
-                        z,
-                        np.array(ds.variables[var].data),
-                        var,
-                        100000,
-                        0,
-                        0,
-                        attr,
-                    )
-            if common is False:
-                # done for first valid message
-                logger.debug("Common variables")
-                z.attrs.update(ds.attributes)
-                for var in common_vars:
-                    # assume grid, etc is the same across all messages
-                    attr = ds.variables[var].attributes or {}
-                    attr["_ARRAY_DIMENSIONS"] = ds.variables[var].dimensions
-                    _store_array(
-                        store,
-                        z,
-                        ds.variables[var].data,
-                        var,
-                        inline_threashold,
-                        offset,
-                        size,
-                        attr,
-                    )
-                common = True
 
-            for var in ds.variables:
-                if (
-                    var not in common_vars
-                    and getattr(ds.variables[var].data, "shape", None)
-                    and var != filter.get("typeOfLevel", "")
-                ):
+            z = zarr.open_group(store)
+            global_attrs = {k: m[k] for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS}
+            z.attrs.update(global_attrs)
 
-                    attr = ds.variables[var].attributes or {}
-                    if "(deprecated)" in attr.get("GRIB_name", ""):
-                        continue
-                    attr["_ARRAY_DIMENSIONS"] = ds.variables[var].dimensions
-                    _store_array(
-                        store,
-                        z,
-                        ds.variables[var].data,
-                        var,
-                        inline_threashold,
-                        offset,
-                        size,
-                        attr,
-                    )
+            vals = m["values"].reshape((m["Ny"], m["Nx"]))
+            attrs = {
+                k: m[k]
+                for k in cfgrib.dataset.DATA_ATTRIBUTES_KEYS
+                + cfgrib.dataset.DATA_TIME_KEYS
+                + cfgrib.dataset.EXTRA_DATA_ATTRIBUTES_KEYS
+                if k in m
+            }
+            _store_array(
+                store, z, vals, m["shortName"], inline_threashold, offset, size, attrs
+            )
+            dims = (
+                ["x", "y"]
+                if m["gridType"] in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
+                else ["longitude", "latitude"]
+            )
+            z[m["shortName"]].attrs["_ARRAY_DIMENSIONS"] = dims
+            if filter:
+                z[m["shortName"]].attrs[filter["typeOfLevel"]] = m["level"]
+
+            for coord in cfgrib.dataset.COORD_ATTRS:
+                coord2 = {"latitude": "latitudes", "longitude": "longitudes"}.get(
+                    coord, coord
+                )
+                if coord2 in m:
+                    x = m[coord2]
+                else:
+                    continue
+                if isinstance(x, np.ndarray) and x.size == vals.size:
+                    x = x.reshape(vals.shape)
+                    if (
+                        m["gridType"]
+                        in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
+                    ):
+                        dims = ["x", "y"]
+                    else:
+                        dims = [coord]
+                else:
+                    x = np.array([x])
+                    dims = [coord]
+                attrs = cfgrib.dataset.COORD_ATTRS[coord]
+                _store_array(store, z, x, coord, inline_threashold, offset, size, attrs)
+                z[coord].attrs["_ARRAY_DIMENSIONS"] = dims
+
             out.append(
                 {
                     "version": 1,

@@ -186,7 +186,7 @@ class MultiZarrToZarr:
             o = selector
         elif selector == "VARNAME":
             # used for merging variable names across datasets
-            o = [_ for _ in z if _ not in self.concat_dims]
+            o = [_ for _ in z if _ not in self.concat_dims + self.identical_dims]
             if len(o) > 1:
                 raise ValueError(
                     "Multiple varnames found in dataset, please "
