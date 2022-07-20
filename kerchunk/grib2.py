@@ -33,10 +33,10 @@ def _split_file(f, skip=0):
         data = f.read(part_size)
         assert data[:4] == b"GRIB"
         assert data[-4:] == b"7777"
-        fn = tempfile.mktemp(suffix="grib2")
-        with open(fn, "wb") as fo:
+        with tempfile.NamedTemporaryFile(suffix="grib2") as fo:
             fo.write(data)
-        yield fn, start, part_size
+            fo.flush()
+        yield fo.name, start, part_size
         part += 1
         if skip and part > skip:
             break
