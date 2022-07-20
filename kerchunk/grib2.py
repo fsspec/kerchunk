@@ -4,13 +4,12 @@ import os
 
 import cfgrib
 import eccodes
-import numcodecs.abc
-from numcodecs.compat import ndarray_copy
 import fsspec
 import zarr
 import numpy as np
 
 from kerchunk.utils import class_factory
+from kerchunk.codecs import GRIBCodec
 
 logger = logging.getLogger("grib2-to-zarr")
 fsspec.utils.setup_logging(logger=logger)
@@ -54,7 +53,7 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
             shape=shape,
             chunks=shape,
             dtype=data.dtype,
-            fill_value=getattr(data, "missing_value", 0),
+            fill_value=attr.get("missingValue", None),
             compressor=False,
         )
         if hasattr(data, "tobytes"):
@@ -74,7 +73,7 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
             shape=shape,
             chunks=shape,
             dtype=data.dtype,
-            fill_value=getattr(data, "missing_value", 0),
+            fill_value=attr.get("missingValue", None),
             filters=[GRIBCodec(var=var, dtype=str(data.dtype))],
             compressor=False,
             overwrite=True,
@@ -85,8 +84,9 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
 
 def scan_grib(
     url,
+    common=None,
     storage_options=None,
-    inline_threashold=100,
+    inline_threshold=100,
     skip=0,
     filter={},
 ):
@@ -98,25 +98,25 @@ def scan_grib(
 
     url: str
         File location
-    common_vars: list[str]
-        Names of variables that are common to multiple measurable (i.e., coordinates)
+    common_vars: (depr, do not use)
     storage_options: dict
         For accessing the data, passed to filesystem
-    inline_threashold: int
+    inline_threshold: int
         If given, store array data smaller than this value directly in the output
     skip: int
         If non-zero, stop processing the file after this many messages
     filter: dict
-        cfgrib-style filter dictionary
+        keyword filtering. For each key, only messages where the key exists and has
+        the exact value or is in the given set, are processed.
+        E.g., the cf-style filter ``{'typeOfLevel': 'heightAboveGround', 'level': 2}``
+        only keeps messages where heightAboveGround==2.
 
     Returns
     -------
 
-    dict: references dict in Version 1 format.
+    list(dict): references dicts in Version 1 format, one per message in the file
     """
     storage_options = storage_options or {}
-    if filter:
-        assert "typeOfLevel" in filter
     logger.debug(f"Open {url}")
 
     out = []
@@ -127,14 +127,22 @@ def scan_grib(
             mid = eccodes.codes_new_from_message(data)
             m = cfgrib.cfmessage.CfMessage(mid)
 
-            if filter:
-                if filter["typeOfLevel"] != m.get("typeOfLevel", True):
-                    continue
-                if float(filter["level"]) != float(m.get("level", -99)):
-                    continue
+            good = True
+            for k, v in (filter or {}).items():
+                if k not in m:
+                    good = False
+                elif isinstance(v, (list, tuple, set)):
+                    if m[k] not in v:
+                        good = False
+                elif m[k] != v:
+                    good = False
+            if good is False:
+                continue
 
             z = zarr.open_group(store)
-            global_attrs = {k: m[k] for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS}
+            global_attrs = {
+                k: m[k] for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS if k in m
+            }
             z.attrs.update(global_attrs)
 
             vals = m["values"].reshape((m["Ny"], m["Nx"]))
@@ -146,16 +154,22 @@ def scan_grib(
                 if k in m
             }
             _store_array(
-                store, z, vals, m["shortName"], inline_threashold, offset, size, attrs
+                store, z, vals, m["shortName"], inline_threshold, offset, size, attrs
             )
+            if "typeOfLevel" in m and "level" in m:
+                name = m["typeOfLevel"]
+                data = np.array([m["level"]])
+                attrs = cfgrib.dataset.COORD_ATTRS[name]
+                attrs["_ARRAY_DIMENSIONS"] = [name]
+                _store_array(
+                    store, z, data, name, inline_threshold, offset, size, attrs
+                )
             dims = (
                 ["x", "y"]
                 if m["gridType"] in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
                 else ["longitude", "latitude"]
             )
             z[m["shortName"]].attrs["_ARRAY_DIMENSIONS"] = dims
-            if filter:
-                z[m["shortName"]].attrs[filter["typeOfLevel"]] = m["level"]
 
             for coord in cfgrib.dataset.COORD_ATTRS:
                 coord2 = {"latitude": "latitudes", "longitude": "longitudes"}.get(
@@ -178,7 +192,7 @@ def scan_grib(
                     x = np.array([x])
                     dims = [coord]
                 attrs = cfgrib.dataset.COORD_ATTRS[coord]
-                _store_array(store, z, x, coord, inline_threashold, offset, size, attrs)
+                _store_array(store, z, x, coord, inline_threshold, offset, size, attrs)
                 z[coord].attrs["_ARRAY_DIMENSIONS"] = dims
 
             out.append(
@@ -198,43 +212,6 @@ def scan_grib(
 GribToZarr = class_factory(scan_grib)
 
 
-class GRIBCodec(numcodecs.abc.Codec):
-    """
-    Read GRIB stream of bytes by writing to a temp file and calling cfgrib
-    """
-
-    codec_id = "grib"
-
-    def __init__(self, var, dtype=None):
-        self.var = var
-        self.dtype = dtype
-
-    def encode(self, buf):
-        # on encode, pass through
-        return buf
-
-    def decode(self, buf, out=None):
-        if self.var in ["latitude", "longitude"]:
-            var = self.var + "s"
-            dt = self.dtype or "float64"
-        else:
-            var = "values"
-            dt = self.dtype or "float32"
-        mid = eccodes.codes_new_from_message(bytes(buf))
-        try:
-            data = eccodes.codes_get_array(mid, var)
-        finally:
-            eccodes.codes_release(mid)
-
-        if out is not None:
-            return ndarray_copy(data, out)
-        else:
-            return data.astype(dt)
-
-
-numcodecs.register_codec(GRIBCodec, "grib")
-
-
 def example_multi(filter={"typeOfLevel": "heightAboveGround", "level": 2}):
     import json
 
@@ -251,9 +228,8 @@ def example_multi(filter={"typeOfLevel": "heightAboveGround", "level": 2}):
         "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t06z.wrfsfcf01.grib2",
     ]
     so = {"anon": True, "default_cache_type": "readahead"}
-    common = ["time", "step", "latitude", "longitude", "valid_time"]
     for url in files:
-        out = scan_grib(url, common, so, inline_threashold=100, filter=filter)
+        out = scan_grib(url, so, inline_threshold=100, filter=filter)
         with open(os.path.basename(url).replace("grib2", "json"), "w") as f:
             json.dump(out, f)
 

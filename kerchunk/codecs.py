@@ -64,3 +64,42 @@ class FillStringsCodec(Codec):
 
 
 numcodecs.register_codec(FillStringsCodec, "fill_hdf_strings")
+
+
+class GRIBCodec(numcodecs.abc.Codec):
+    """
+    Read GRIB stream of bytes by writing to a temp file and calling cfgrib
+    """
+
+    codec_id = "grib"
+
+    def __init__(self, var, dtype=None):
+        self.var = var
+        self.dtype = dtype
+
+    def encode(self, buf):
+        # on encode, pass through
+        return buf
+
+    def decode(self, buf, out=None):
+        import eccodes
+
+        if self.var in ["latitude", "longitude"]:
+            var = self.var + "s"
+            dt = self.dtype or "float64"
+        else:
+            var = "values"
+            dt = self.dtype or "float32"
+        mid = eccodes.codes_new_from_message(bytes(buf))
+        try:
+            data = eccodes.codes_get_array(mid, var)
+        finally:
+            eccodes.codes_release(mid)
+
+        if out is not None:
+            return numcodecs.compat.ndarray_copy(data, out)
+        else:
+            return data.astype(dt)
+
+
+numcodecs.register_codec(GRIBCodec, "grib")
