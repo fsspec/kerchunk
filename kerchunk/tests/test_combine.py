@@ -72,6 +72,8 @@ data = xr.DataArray(
     attrs={"attr0": 0},
 )
 xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk1.zarr")
+xr.Dataset(coords={"time": np.array([1, 2, 3, 4])}).to_zarr("memory://group1.zarr")
+xr.Dataset({"data": data}).to_zarr("memory://group1.zarr", group="group", mode="a")
 
 data = xr.DataArray(
     data=np.vstack([arr] * 4),
@@ -81,6 +83,8 @@ data = xr.DataArray(
     attrs={"attr0": 0},
 )
 xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk2.zarr")
+xr.Dataset(coords={"time": np.array([5, 6, 7, 8])}).to_zarr("memory://group2.zarr")
+xr.Dataset({"data": data}).to_zarr("memory://group2.zarr", group="group", mode="a")
 
 data = xr.DataArray(
     data=da.from_array(np.vstack([arr] * 4), chunks=(1, 10, 10)),
@@ -366,6 +370,7 @@ def test_outfile_postprocess(refs):
         [["quad_nochunk1", "quad_nochunk2"], ((4, 4), (10,), (10,))],
         [["quad_1chunk1", "quad_1chunk2"], ((1,) * 8, (10,), (10,))],
         [["quad_2chunk1", "quad_2chunk2"], ((2,) * 4, (10,), (10,))],
+        [["group1", "group2"], ((4, 4), (10,), (10,))],
     ],
 )
 def test_chunked(refs, inputs, chunks):
@@ -383,6 +388,7 @@ def test_chunked(refs, inputs, chunks):
         },
         engine="zarr",
         chunks={},
+        group="group" if "group" in inputs[0] else None,
     )
     # TODO: make some assert_eq style function
     assert z.time.values.tolist() == [1, 2, 3, 4, 5, 6, 7, 8]
