@@ -68,7 +68,7 @@ numcodecs.register_codec(FillStringsCodec, "fill_hdf_strings")
 
 class GRIBCodec(numcodecs.abc.Codec):
     """
-    Read GRIB stream of bytes by writing to a temp file and calling cfgrib
+    Read GRIB stream of bytes as a message using eccodes
     """
 
     codec_id = "grib"
@@ -103,3 +103,50 @@ class GRIBCodec(numcodecs.abc.Codec):
 
 
 numcodecs.register_codec(GRIBCodec, "grib")
+
+
+class AsciiTableCodec(numcodecs.abc.Codec):
+
+    codec_id = "FITSAscii"
+
+    def __init__(self, indtypes, outdtypes):
+        self.indtypes = indtypes
+        self.outdtypes = outdtypes
+
+    def decode(self, buf, out=None):
+        indtypes = np.dtype([tuple(d) for d in self.indtypes])
+        outdtypes = np.dtype([tuple(d) for d in self.outdtypes])
+        arr = np.fromstring(buf, dtype=indtypes)
+        return arr.astype(outdtypes)
+
+    def encode(self, _):
+        pass
+
+
+numcodecs.register_codec(AsciiTableCodec, "FITSAscii")
+
+
+class RecordArrayMember(Codec):
+    """Read components of a record array (complex dtype)"""
+
+    codec_id = "record_member"
+
+    def __init__(self, member, dtype):
+        """
+        Parameters
+        ----------
+        member: str
+            name of desired subarray
+        dtype: list of lists
+            description of the complex dtype of the overall record array. Must be both
+            parsable by ``np.dtype()`` and also be JSON serialisable
+        """
+        self.member = member
+        self.dtype = dtype
+
+    def decode(self, buf, out=None):
+        arr = np.frombuffer(buf, dtype=np.dtype(self.dtype))
+        return arr[self.member].copy()
+
+    def encode(self, buf):
+        raise NotImplementedError

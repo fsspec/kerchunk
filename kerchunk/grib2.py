@@ -1,6 +1,5 @@
 import base64
 import logging
-import os
 
 import cfgrib
 import eccodes
@@ -212,10 +211,19 @@ def scan_grib(
 GribToZarr = class_factory(scan_grib)
 
 
-def example_multi(filter={"typeOfLevel": "heightAboveGround", "level": 2}):
-    import json
+def example_combine(filter={"typeOfLevel": "heightAboveGround", "level": 2}):
+    """Create combined dataset of weather measurements at 2m height
 
-    # 1GB of data files, forming a time-series
+    Ten consecutive timepoints from ten 120MB files on s3.
+    Example usage:
+
+    >>> tot = example_combine()
+    >>> ds = xr.open_dataset("reference://", engine="zarr", backend_kwargs={
+    ...        "consolidated": False,
+    ...        "storage_options": {"fo": tot, "remote_options": {"anon": True}}})
+    """
+    from kerchunk.combine import MultiZarrToZarr, drop
+
     files = [
         "s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t22z.wrfsfcf01.grib2",
         "s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t23z.wrfsfcf01.grib2",
@@ -228,30 +236,15 @@ def example_multi(filter={"typeOfLevel": "heightAboveGround", "level": 2}):
         "s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t06z.wrfsfcf01.grib2",
     ]
     so = {"anon": True, "default_cache_type": "readahead"}
-    for url in files:
-        out = scan_grib(url, so, inline_threshold=100, filter=filter)
-        with open(os.path.basename(url).replace("grib2", "json"), "w") as f:
-            json.dump(out, f)
 
-
-def example_combine():
-    from kerchunk.combine import MultiZarrToZarr
-
-    files = [
-        "hrrr.t22z.wrfsfcf01.json",
-        "hrrr.t23z.wrfsfcf01.json",
-        "hrrr.t00z.wrfsfcf01.json",
-        "hrrr.t01z.wrfsfcf01.json",
-        "hrrr.t02z.wrfsfcf01.json",
-        "hrrr.t03z.wrfsfcf01.json",
-        "hrrr.t04z.wrfsfcf01.json",
-        "hrrr.t05z.wrfsfcf01.json",
-        "hrrr.t06z.wrfsfcf01.json",
-    ]
+    out = [scan_grib(u, storage_options=so, filter=filter) for u in files]
+    out = sum(out, [])
     mzz = MultiZarrToZarr(
-        files,
+        out,
         remote_protocol="s3",
-        remote_options={"anon": True},
-        xarray_concat_args={"dim": "valid_time"},
+        preprocess=drop(("valid_time", "step")),
+        remote_options=so,
+        concat_dims=["time", "var"],
+        identical_dims=["heightAboveGround", "latitude", "longitude"],
     )
-    mzz.translate("hrrr.total.json")
+    return mzz.translate()
