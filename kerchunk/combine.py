@@ -489,7 +489,7 @@ def merge_vars(files, storage_options=None):
     """
     if isinstance(files[0], collections.abc.Mapping):
         fo_list = files
-        merged = fo_list[0]
+        merged = fo_list[0].copy()
         for file in fo_list[1:]:
             refs = file['refs']
             merged['refs'].update(refs)
