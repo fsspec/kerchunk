@@ -479,20 +479,26 @@ def _reorganise(coos):
         out[k] = np.array(sorted(arr))
     return out
 
-def merge_vars(files):
-    #this merges variables across datasets with identical dimensions.
+def merge_vars(files, storage_options=None):
+    """Merge variables across datasets with identical coordinates
+
+    :param files: list(dict), list(str) or list(fsspec.OpenFile)
+        List of reference dictionaries or list of paths to reference json files to be merged
+    :param storage_options: dict
+        Dictionary containing kwargs to `fsspec.open_files`    
+    """
     if isinstance(files[0], collections.abc.Mapping):
         fo_list = files
+        merged = fo_list[0]
+        for file in fo_list[1:]:
+            refs = file['refs']
+            merged['refs'].update(refs)
     else:
-        fo_list = []
-        for of in fsspec.open_files(files):
-            fo_list.append(of.open())
-    merged = ujson.load(fo_list[0])
-    z = zarr.open(merged['refs'])
-    shape = max([arr[1].shape for arr in z.arrays()], key=lambda t: len(t)) #returns shape of variable with most dims
-    for file in fo_list[1:]:
-        refs = ujson.load(file)['refs']
-        z = zarr.open(refs)
-        assert max([arr[1].shape for arr in z.arrays()], key=lambda t: len(t)) == shape, 'variable dimensions not identical'
-        merged['refs'].update(refs)
+        fo_list = fsspec.open_files(files, mode="rb", **(storage_options or {}))
+        with fo_list[0] as f:
+            merged = ujson.load(f)
+        for file in fo_list[1:]:
+            with file as f:
+                refs = ujson.load(f)['refs']
+            merged['refs'].update(refs)
     return merged
