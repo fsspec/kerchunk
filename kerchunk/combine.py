@@ -478,3 +478,27 @@ def _reorganise(coos):
     for k, arr in coos.items():
         out[k] = np.array(sorted(arr))
     return out
+
+def merge_vars(files, storage_options=None):
+    """Merge variables across datasets with identical coordinates
+
+    :param files: list(dict), list(str) or list(fsspec.OpenFile)
+        List of reference dictionaries or list of paths to reference json files to be merged
+    :param storage_options: dict
+        Dictionary containing kwargs to `fsspec.open_files`    
+    """
+    if isinstance(files[0], collections.abc.Mapping):
+        fo_list = files
+        merged = fo_list[0].copy()
+        for file in fo_list[1:]:
+            refs = file['refs']
+            merged['refs'].update(refs)
+    else:
+        fo_list = fsspec.open_files(files, mode="rb", **(storage_options or {}))
+        with fo_list[0] as f:
+            merged = ujson.load(f)
+        for file in fo_list[1:]:
+            with file as f:
+                refs = ujson.load(f)['refs']
+            merged['refs'].update(refs)
+    return merged
