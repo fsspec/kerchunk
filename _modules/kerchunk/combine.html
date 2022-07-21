@@ -552,6 +552,30 @@
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">coos</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">out</span>
+
+<span class="k">def</span> <span class="nf">merge_vars</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Merge variables across datasets with identical coordinates</span>
+
+<span class="sd">    :param files: list(dict), list(str) or list(fsspec.OpenFile)</span>
+<span class="sd">        List of reference dictionaries or list of paths to reference json files to be merged</span>
+<span class="sd">    :param storage_options: dict</span>
+<span class="sd">        Dictionary containing kwargs to `fsspec.open_files`    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">fo_list</span> <span class="o">=</span> <span class="n">files</span>
+        <span class="n">merged</span> <span class="o">=</span> <span class="n">fo_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">fo_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">refs</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span>
+            <span class="n">merged</span><span class="p">[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fo_list</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open_files</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span>
+        <span class="k">with</span> <span class="n">fo_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">merged</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">fo_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="k">with</span> <span class="n">file</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">refs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span>
+            <span class="n">merged</span><span class="p">[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">merged</span>
 </pre></div>
 
            </div>
