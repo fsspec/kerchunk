@@ -153,6 +153,9 @@
 <span class="sd">    :param postprocess: callable</span>
 <span class="sd">        Acts on the references dict before output.</span>
 <span class="sd">        postprocess(dict)-&gt; dict</span>
+<span class="sd">    :param validate_dataet: callable</span>
+<span class="sd">    :param validate_variable: callable</span>
+<span class="sd">    :param validate_chunk: callable</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -257,7 +260,7 @@
             <span class="n">o</span> <span class="o">=</span> <span class="n">selector</span>
         <span class="k">elif</span> <span class="n">selector</span> <span class="o">==</span> <span class="s2">&quot;VARNAME&quot;</span><span class="p">:</span>
             <span class="c1"># used for merging variable names across datasets</span>
-            <span class="n">o</span> <span class="o">=</span> <span class="p">[</span><span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">z</span> <span class="k">if</span> <span class="n">_</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_dims</span><span class="p">]</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="p">[</span><span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">z</span> <span class="k">if</span> <span class="n">_</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_dims</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">identical_dims</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;Multiple varnames found in dataset, please &quot;</span>

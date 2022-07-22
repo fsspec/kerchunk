@@ -83,11 +83,11 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr" title="kerchunk.hdf.SingleHdf5ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.hdf.SingleHdf5ToZarr</span></code></a>(h5f[, url, …])</p></td>
 <td><p>Translate the content of one HDF5 file into Zarr metadata.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.grib2.scan_grib" title="kerchunk.grib2.scan_grib"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.scan_grib</span></code></a>(url[, common_vars, …])</p></td>
-<td><p>Generate references for a GRIB2 file</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.scan_grib</span></code></p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.grib2.GRIBCodec" title="kerchunk.grib2.GRIBCodec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.GRIBCodec</span></code></a>(var)</p></td>
-<td><p>Read GRIB stream of bytes by writing to a temp file and calling cfgrib</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.GRIBCodec</span></code></p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>(path[, …])</p></td>
 <td><p>Combine multiple kerchunk’d datasets into a single logical aggregate dataset</p></td>
@@ -98,11 +98,11 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr" title="kerchunk.tiff.tiff_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></a>(urlpath[, …])</p></td>
 <td><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.netcdf_recording_file" title="kerchunk.netCDF3.netcdf_recording_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></a></p></td>
-<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.netCDF3.RecordArrayMember" title="kerchunk.netCDF3.RecordArrayMember"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.RecordArrayMember</span></code></a>(member, dtype)</p></td>
-<td><p>Read components of a record array (complex dtype)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.RecordArrayMember</span></code></p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -176,62 +176,6 @@ returns a “reference” structure to be used with zarr/kerchunk</p>
 
 </dd></dl>
 
-<dl class="function">
-<dt id="kerchunk.grib2.scan_grib">
-<code class="sig-prename descclassname">kerchunk.grib2.</code><code class="sig-name descname">scan_grib</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">common_vars=None</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">inline_threashold=100</em>, <em class="sig-param">skip=0</em>, <em class="sig-param">filter={}</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/grib2.html#scan_grib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.grib2.scan_grib" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate references for a GRIB2 file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>url: str</strong></dt><dd><p>File location</p>
-</dd>
-<dt><strong>common_vars: list[str]</strong></dt><dd><p>Names of variables that are common to multiple measurable (i.e., coordinates)</p>
-</dd>
-<dt><strong>storage_options: dict</strong></dt><dd><p>For accessing the data, passed to filesystem</p>
-</dd>
-<dt><strong>inline_threashold: int</strong></dt><dd><p>If given, store array data smaller than this value directly in the output</p>
-</dd>
-<dt><strong>skip: int</strong></dt><dd><p>If non-zero, stop processing the file after this many messages</p>
-</dd>
-<dt><strong>filter: dict</strong></dt><dd><p>cfgrib-style filter dictionary</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><dl class="simple">
-<dt>dict: references dict in Version 1 format.</dt><dd></dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="class">
-<dt id="kerchunk.grib2.GRIBCodec">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.grib2.</code><code class="sig-name descname">GRIBCodec</code><span class="sig-paren">(</span><em class="sig-param">var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/grib2.html#GRIBCodec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.grib2.GRIBCodec" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read GRIB stream of bytes by writing to a temp file and calling cfgrib</p>
-<p class="rubric">Methods</p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">decode</span></code>(buf[, out])</p></td>
-<td><p>Decode data in <cite>buf</cite>.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode</span></code>(buf)</p></td>
-<td><p>Encode data in <cite>buf</cite>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
-<td><p>Instantiate codec from a configuration object.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
-<td><p>Return a dictionary holding configuration parameters for this codec.</p></td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="class">
 <dt id="kerchunk.combine.MultiZarrToZarr">
 <em class="property">class </em><code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
@@ -292,6 +236,9 @@ for an example.</p></li>
 <li><p><strong>postprocess</strong> – callable
 Acts on the references dict before output.
 postprocess(dict)-&gt; dict</p></li>
+<li><p><strong>validate_dataet</strong> – callable</p></li>
+<li><p><strong>validate_variable</strong> – callable</p></li>
+<li><p><strong>validate_chunk</strong> – callable</p></li>
 </ul>
 </dd>
 <dt class="field-even">Attributes</dt>
@@ -406,34 +353,6 @@ uses the first data extension</p>
 </dl>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="kerchunk.netCDF3.netcdf_recording_file">
-<code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">netcdf_recording_file</code><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="kerchunk.netCDF3.RecordArrayMember">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">RecordArrayMember</code><span class="sig-paren">(</span><em class="sig-param">member</em>, <em class="sig-param">dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#RecordArrayMember"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.RecordArrayMember" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read components of a record array (complex dtype)</p>
-<dl class="method">
-<dt id="kerchunk.netCDF3.RecordArrayMember.__init__">
-<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">member</em>, <em class="sig-param">dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#RecordArrayMember.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.RecordArrayMember.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>member: str</strong></dt><dd><p>name of desired subarray</p>
-</dd>
-<dt><strong>dtype: list of lists</strong></dt><dd><p>description of the complex dtype of the overall record array. Must be both
-parsable by <code class="docutils literal notranslate"><span class="pre">np.dtype()</span></code> and also be JSON serialisable</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 </div>

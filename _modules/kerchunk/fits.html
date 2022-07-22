@@ -81,6 +81,7 @@
 
 
 <span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span>
+<span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">AsciiTableCodec</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;fits-to-zarr&quot;</span><span class="p">)</span>
 
@@ -231,27 +232,6 @@
 
 
 <span class="n">FitsToZarr</span> <span class="o">=</span> <span class="n">class_factory</span><span class="p">(</span><span class="n">process_file</span><span class="p">)</span>
-
-
-<span class="k">class</span> <span class="nc">AsciiTableCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
-
-    <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;FITSAscii&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indtypes</span><span class="p">,</span> <span class="n">outdtypes</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">indtypes</span> <span class="o">=</span> <span class="n">indtypes</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">outdtypes</span> <span class="o">=</span> <span class="n">outdtypes</span>
-
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">indtypes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indtypes</span><span class="p">])</span>
-        <span class="n">outdtypes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdtypes</span><span class="p">])</span>
-        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">indtypes</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">outdtypes</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
-        <span class="k">pass</span>
-
-
-<span class="n">numcodecs</span><span class="o">.</span><span class="n">register_codec</span><span class="p">(</span><span class="n">AsciiTableCodec</span><span class="p">,</span> <span class="s2">&quot;FITSAscii&quot;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">add_wcs_coords</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">zarr_group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">):</span>
