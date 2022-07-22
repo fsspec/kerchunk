@@ -11,3 +11,4 @@ sphinx-rtd-theme
 nbsphinx
 nbconvert==6.0.0rc0
 ipywidgets
+pandoc
