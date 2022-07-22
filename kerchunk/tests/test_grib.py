@@ -10,18 +10,7 @@ pytest.importorskip("cfgrib")
 here = os.path.dirname(__file__)
 
 
-@pytest.fixture()
-def remove_temp():
-    # because cfgrib puts .idx file next to original when we read
-    import glob
-
-    yield
-    index_files = glob.glob(os.path.join(here, "CMC*.idx"))
-    for ind in index_files:
-        os.remove(ind)
-
-
-def test_one(remove_temp):
+def test_one():
     # from https://dd.weather.gc.ca/model_gem_regional/10km/grib2/00/000
     fn = os.path.join(here, "CMC_reg_DEPR_ISBL_10_ps10km_2022072000_P000.grib2")
     out = scan_grib(fn)
@@ -32,7 +21,8 @@ def test_one(remove_temp):
     )
 
     assert ds.attrs["centre"] == "cwao"
-    ds2 = xr.open_dataset(fn)
+    ds2 = xr.open_dataset(fn, engine="cfgrib", backend_kwargs={"indexpath": ""})
+
     for var in ["latitude", "longitude", "unknown", "isobaricInhPa", "time"]:
         d1 = ds[var].values
         d2 = ds2[var].values
