@@ -79,6 +79,9 @@ class MultiZarrToZarr:
     :param postprocess: callable
         Acts on the references dict before output.
         postprocess(dict)-> dict
+    :param validate_dataet: callable
+    :param validate_variable: callable
+    :param validate_chunk: callable
     """
 
     def __init__(
@@ -183,7 +186,7 @@ class MultiZarrToZarr:
             o = selector
         elif selector == "VARNAME":
             # used for merging variable names across datasets
-            o = [_ for _ in z if _ not in self.concat_dims]
+            o = [_ for _ in z if _ not in self.concat_dims + self.identical_dims]
             if len(o) > 1:
                 raise ValueError(
                     "Multiple varnames found in dataset, please "
@@ -478,3 +481,27 @@ def _reorganise(coos):
     for k, arr in coos.items():
         out[k] = np.array(sorted(arr))
     return out
+
+def merge_vars(files, storage_options=None):
+    """Merge variables across datasets with identical coordinates
+
+    :param files: list(dict), list(str) or list(fsspec.OpenFile)
+        List of reference dictionaries or list of paths to reference json files to be merged
+    :param storage_options: dict
+        Dictionary containing kwargs to `fsspec.open_files`    
+    """
+    if isinstance(files[0], collections.abc.Mapping):
+        fo_list = files
+        merged = fo_list[0].copy()
+        for file in fo_list[1:]:
+            refs = file['refs']
+            merged['refs'].update(refs)
+    else:
+        fo_list = fsspec.open_files(files, mode="rb", **(storage_options or {}))
+        with fo_list[0] as f:
+            merged = ujson.load(f)
+        for file in fo_list[1:]:
+            with file as f:
+                refs = ujson.load(f)['refs']
+            merged['refs'].update(refs)
+    return merged

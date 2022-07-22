@@ -25,9 +25,10 @@ setup(
     },
     entry_points={
         "numcodecs.codecs": [
-            "grib = kerchunk.grib2:GRIBCodec",
-            "FITSAscii = kerchunk.fits:AsciiTableCodec",
-            "record_member = kerchunk.netCDF3.RecordArrayMember",
+            "grib = kerchunk.codecs:GRIBCodec",
+            "fill_hdf_strings = kerchunk.codecs:FillStringsCodec",
+            "FITSAscii = kerchunk.codecs:AsciiTableCodec",
+            "record_member = kerchunk.codecs.RecordArrayMember",
         ],
     },
     zip_safe=False,

@@ -7,6 +7,7 @@ import zarr
 
 
 from kerchunk.utils import class_factory
+from kerchunk.codecs import AsciiTableCodec
 
 logger = logging.getLogger("fits-to-zarr")
 
@@ -157,27 +158,6 @@ def process_file(
 
 
 FitsToZarr = class_factory(process_file)
-
-
-class AsciiTableCodec(numcodecs.abc.Codec):
-
-    codec_id = "FITSAscii"
-
-    def __init__(self, indtypes, outdtypes):
-        self.indtypes = indtypes
-        self.outdtypes = outdtypes
-
-    def decode(self, buf, out=None):
-        indtypes = np.dtype([tuple(d) for d in self.indtypes])
-        outdtypes = np.dtype([tuple(d) for d in self.outdtypes])
-        arr = np.fromstring(buf, dtype=indtypes)
-        return arr.astype(outdtypes)
-
-    def encode(self, _):
-        pass
-
-
-numcodecs.register_codec(AsciiTableCodec, "FITSAscii")
 
 
 def add_wcs_coords(hdu, zarr_group=None, dataset=None, dtype="float32"):

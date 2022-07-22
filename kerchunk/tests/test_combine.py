@@ -548,3 +548,14 @@ def test_inline(refs):
 
     assert isinstance(ref.references["data/0.0.0"], str)
     assert ref.references["data/0.0.0"].startswith("base64:")
+
+def test_merge_vars():
+    a = dict({"version":1,"refs":dict({"item1":1})})
+    b = dict({"version":1,"refs":dict({"item2":2})})
+    merge = kerchunk.combine.merge_vars([a,b])
+    assert list(merge['refs']) == ['item1', 'item2']
+    fs = fsspec.filesystem("memory")
+    fs.pipe("file1.json", b'''{"version": 1, "refs": {"item1": 1}}''')
+    fs.pipe("file2.json", b'''{"version": 1, "refs": {"item2": 2}}''')
+    merge = kerchunk.combine.merge_vars(['memory://file1.json', 'memory://file2.json'])
+    assert list(merge['refs']) == ['item1', 'item2']

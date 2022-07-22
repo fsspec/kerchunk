@@ -1,6 +1,5 @@
 import os.path
 import fsspec
-import numpy as np
 import pytest
 
 

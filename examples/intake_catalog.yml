@@ -100,7 +100,7 @@ sources:
     driver: zarr
     decription: |
       Small section of 200 files of forecast data.
-      Requires import of kerchunk.grib2 to register the grib codec with numcodecs.
+      Requires import of kerchunk.codecs to register the grib codec with numcodecs.
     args:
       urlpath: "reference://"
       storage_options:
