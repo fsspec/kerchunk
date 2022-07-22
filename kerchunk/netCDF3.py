@@ -1,17 +1,9 @@
 from functools import reduce
 from operator import mul
 
-from numcodecs.abc import Codec
 import numpy as np
 
-try:
-    # causes warning on newer scipy, all moved to scipy.io
-    # TODO: this construct is only here to make the codec importable without
-    #  scipy. Should instead move to separate module.
-    from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
-except ImportError:
-
-    netcdf_file = object
+from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
 
 import fsspec
 
@@ -48,8 +40,6 @@ class NetCDF3ToZarr(netcdf_file):
             be two output chunks, split on the biggest available dimension.
         args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
         """
-        if netcdf_file is object:
-            raise ImportError("scipy was not imported, and is required for netCDF3")
         assert kwargs.pop("mmap", False) is False
         assert kwargs.pop("mode", "r") == "r"
         assert kwargs.pop("maskandscale", False) is False
@@ -192,29 +182,3 @@ class NetCDF3ToZarr(netcdf_file):
 
 
 netcdf_recording_file = NetCDF3ToZarr
-
-
-class RecordArrayMember(Codec):
-    """Read components of a record array (complex dtype)"""
-
-    codec_id = "record_member"
-
-    def __init__(self, member, dtype):
-        """
-        Parameters
-        ----------
-        member: str
-            name of desired subarray
-        dtype: list of lists
-            description of the complex dtype of the overall record array. Must be both
-            parsable by ``np.dtype()`` and also be JSON serialisable
-        """
-        self.member = member
-        self.dtype = dtype
-
-    def decode(self, buf, out=None):
-        arr = np.frombuffer(buf, dtype=np.dtype(self.dtype))
-        return arr[self.member].copy()
-
-    def encode(self, buf):
-        raise NotImplementedError
