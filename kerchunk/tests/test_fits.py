@@ -10,6 +10,7 @@ import zarr
 testdir = os.path.dirname(fits.util.get_testdata_filepath("btable.fits"))
 btable = os.path.join(testdir, "btable.fits")
 range_im = os.path.join(testdir, "arange.fits")
+var = os.path.join(testdir, "variable_length_table.fits")
 
 
 def test_ascii_table():
@@ -66,3 +67,18 @@ def test_with_class():
         hdul = fits.open(f)
         expected = hdul[0].data
     assert (arr[:] == expected).all()
+
+
+def test_var():
+    data = fits.open(var)[1].data
+    expected = [_.tolist() for _ in data["var"]]
+
+    ftz = kerchunk.fits.FitsToZarr(var)
+    out = ftz.translate()
+    m = fsspec.get_mapper("reference://", fo=out)
+    z = zarr.open(m)
+    arr = z["1"]
+    vars = [_.tolist() for _ in arr["var"]]
+
+    assert vars == expected
+    assert (z["1"]["xyz"] == data["xyz"]).all()
