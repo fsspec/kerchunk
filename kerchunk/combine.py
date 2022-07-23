@@ -346,7 +346,8 @@ class MultiZarrToZarr:
                 if ".zgroup" in attrs:
                     if v:
                         # non-base groups need group metadata copied
-                        self.out[f"{v}/.zgroup"] = m[f"{v}/.zgroup"]
+                        for fn in [".zgroup", ".zattrs"]:
+                            self.out[f"{v}/{fn}"] = m[f"{v}/{fn}"]
                     continue
                 if v in self.identical_dims:
                     if f"{v}/.zarray" in self.out:

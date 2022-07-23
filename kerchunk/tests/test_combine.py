@@ -72,8 +72,7 @@ data = xr.DataArray(
     attrs={"attr0": 0},
 )
 xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk1.zarr")
-xr.Dataset(coords={"time": np.array([1, 2, 3, 4])}).to_zarr("memory://group1.zarr")
-xr.Dataset({"data": data}).to_zarr("memory://group1.zarr", group="group", mode="a")
+xr.Dataset({"data": data}).to_zarr("memory://group1.zarr", group="group")
 
 data = xr.DataArray(
     data=np.vstack([arr] * 4),
@@ -83,8 +82,7 @@ data = xr.DataArray(
     attrs={"attr0": 0},
 )
 xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk2.zarr")
-xr.Dataset(coords={"time": np.array([5, 6, 7, 8])}).to_zarr("memory://group2.zarr")
-xr.Dataset({"data": data}).to_zarr("memory://group2.zarr", group="group", mode="a")
+xr.Dataset({"data": data}).to_zarr("memory://group2.zarr", group="group")
 
 data = xr.DataArray(
     data=da.from_array(np.vstack([arr] * 4), chunks=(1, 10, 10)),
@@ -378,6 +376,7 @@ def test_chunked(refs, inputs, chunks):
         [refs[inputs[0]], refs[inputs[1]]],
         remote_protocol="memory",
         concat_dims=["time"],
+        coo_map={"time": "data:group/time"} if "group" in inputs[0] else None,
     )
     out = mzz.translate()
     z = xr.open_dataset(
