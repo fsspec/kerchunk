@@ -11,7 +11,6 @@ from kerchunk.utils import class_factory
 from kerchunk.codecs import GRIBCodec
 
 logger = logging.getLogger("grib2-to-zarr")
-fsspec.utils.setup_logging(logger=logger)
 
 
 def _split_file(f, skip=0):
