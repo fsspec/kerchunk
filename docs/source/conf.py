@@ -75,7 +75,6 @@ def ensure_pandoc_installed(_):
     if pandoc_dir not in os.environ["PATH"].split(os.pathsep):
         os.environ["PATH"] += os.pathsep + pandoc_dir
     pypandoc.ensure_pandoc_installed(
-        quiet=True,
         targetfolder=pandoc_dir,
         delete_installer=True,
     )
