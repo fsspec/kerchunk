@@ -49,10 +49,11 @@ very wide variety of data formats.
 The primary purpose of ``kerchunk`` is to find where these binary blocks are, and how to decode them,
 so that blocks from one or more files can be arranged into aggregate datasets accessed via the
 `zarr`_ library and the power of `fsspec`_. To understand how this works, please read
-:doc:`detail`. A full worked example for multiple HDF5 files is presented in :doc:`test_example`.
+:doc:`detail`. Or consider the PyData talk: `All You Need Is Zarr`_.
 
 .. _zarr: https://zarr.readthedocs.io/en/stable/
 .. _fsspec: https://filesystem-spec.readthedocs.io/en/latest/
+.. _All You Need Is Zarr: https://www.youtube.com/watch?v=0bqpxX3Nn_A
 
 
 .. toctree::
