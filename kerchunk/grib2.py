@@ -161,7 +161,7 @@ def scan_grib(
                 try:
                     attrs = cfgrib.dataset.COORD_ATTRS[name]
                 except KeyError:
-                    logger.warning(f"Couldn't find coord {name} in dataset")
+                    logger.debug(f"Couldn't find coord {name} in dataset")
                 attrs["_ARRAY_DIMENSIONS"] = [name]
                 _store_array(
                     store, z, data, name, inline_threshold, offset, size, attrs
