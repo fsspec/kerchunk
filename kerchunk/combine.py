@@ -342,9 +342,15 @@ class MultiZarrToZarr:
                     cv = tuple(sorted(set(cv)))[0]
                     cvalues[c] = cv
 
-            for v in fs.ls("", detail=False):
+            for v, _, attrs in fs.walk("", detail=False):
                 if v in self.coo_map or v in skip or v.startswith(".z"):
                     # already made coordinate variables and metadata
+                    continue
+                if ".zgroup" in attrs:
+                    if v:
+                        # non-base groups need group metadata copied
+                        for fn in [".zgroup", ".zattrs"]:
+                            self.out[f"{v}/{fn}"] = m[f"{v}/{fn}"]
                     continue
                 if v in self.identical_dims:
                     if f"{v}/.zarray" in self.out:
@@ -408,7 +414,7 @@ class MultiZarrToZarr:
                     # loop over the chunks and copy the references
                     if ".z" in fn:
                         continue
-                    key_parts = fn.split("/", 1)[1].split(".")
+                    key_parts = fn.split("/")[-1].split(".")
                     key = f"{var or v}/"
                     for loc, c in enumerate(coord_order):
                         if c in self.coos:
