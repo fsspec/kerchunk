@@ -7,7 +7,7 @@ import zarr
 
 
 from kerchunk.utils import class_factory
-from kerchunk.codecs import AsciiTableCodec
+from kerchunk.codecs import AsciiTableCodec, VarArrCodec
 
 logger = logging.getLogger("fits-to-zarr")
 
@@ -76,6 +76,7 @@ def process_file(
             hdu.header.__str__()  # causes fixing of invalid cards
 
             attrs = dict(hdu.header)
+            kwargs = {}
             if hdu.is_image:
                 # for images/cubes (i.e., ndarrays with simple type)
                 nax = hdu.header["NAXIS"]
@@ -86,7 +87,7 @@ def process_file(
                     length *= s
 
                 if "BSCALE" in hdu.header or "BZERO" in hdu.header:
-                    filters = [
+                    kwargs["filters"] = [
                         numcodecs.FixedScaleOffset(
                             offset=float(hdu.header.get("BZERO", 0)),
                             scale=float(hdu.header.get("BSCALE", 1)),
@@ -95,7 +96,7 @@ def process_file(
                         )
                     ]
                 else:
-                    filters = None
+                    kwargs["filters"] = None
             elif isinstance(hdu, fits.hdu.table.TableHDU):
                 # ascii table
                 spans = hdu.columns._spans
@@ -108,7 +109,7 @@ def process_file(
                 ]
                 nrows = int(hdu.header["NAXIS2"])
                 shape = (nrows,)
-                filters = [AsciiTableCodec(indtypes, outdtype)]
+                kwargs["filters"] = [AsciiTableCodec(indtypes, outdtype)]
                 dtype = [tuple(d) for d in outdtype]
                 length = (sum(spans) + len(spans)) * nrows
             elif isinstance(hdu, fits.hdu.table.BinTableHDU):
@@ -116,8 +117,29 @@ def process_file(
                 dtype = hdu.columns.dtype.newbyteorder(">")  # always big endian
                 nrows = int(hdu.header["NAXIS2"])
                 shape = (nrows,)
-                filters = None
-                length = dtype.itemsize * nrows
+                # if hdu.fileinfo()["datSpan"] > length
+                if any(_.format.startswith(("P", "Q")) for _ in hdu.columns):
+                    # contains var fields
+                    length = hdu.fileinfo()["datSpan"]
+                    dt2 = [
+                        (name, "O")
+                        if hdu.columns[name].format.startswith(("P", "Q"))
+                        else (name, str(dtype[name].base))
+                        + ((dtype[name].shape,) if dtype[name].shape else ())
+                        for name in dtype.names
+                    ]
+                    types = {
+                        name: hdu.columns[name].format[1]
+                        for name in dtype.names
+                        if hdu.columns[name].format.startswith(("P", "Q"))
+                    }
+                    kwargs["object_codec"] = VarArrCodec(
+                        str(dtype), str(dt2), nrows, types
+                    )
+                    dtype = dt2
+                else:
+                    length = dtype.itemsize * nrows
+                    kwargs["filters"] = None
             else:
                 logger.warning(f"Skipping unknown extension type: {hdu}")
                 continue
@@ -125,12 +147,7 @@ def process_file(
             # TODO: we could sub-chunk on biggest dimension
             name = hdu.name or str(ext)
             arr = g.empty(
-                name,
-                dtype=dtype,
-                shape=shape,
-                chunks=shape,
-                compression=None,
-                filters=filters,
+                name, dtype=dtype, shape=shape, chunks=shape, compression=None, **kwargs
             )
             arr.attrs.update(
                 {
