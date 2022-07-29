@@ -81,7 +81,7 @@
 
 
 <span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span>
-<span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">AsciiTableCodec</span>
+<span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">AsciiTableCodec</span><span class="p">,</span> <span class="n">VarArrCodec</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;fits-to-zarr&quot;</span><span class="p">)</span>
 
@@ -150,6 +150,7 @@
             <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>  <span class="c1"># causes fixing of invalid cards</span>
 
             <span class="n">attrs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">is_image</span><span class="p">:</span>
                 <span class="c1"># for images/cubes (i.e., ndarrays with simple type)</span>
                 <span class="n">nax</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NAXIS&quot;</span><span class="p">]</span>
@@ -160,7 +161,7 @@
                     <span class="n">length</span> <span class="o">*=</span> <span class="n">s</span>
 
                 <span class="k">if</span> <span class="s2">&quot;BSCALE&quot;</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span> <span class="ow">or</span> <span class="s2">&quot;BZERO&quot;</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">:</span>
-                    <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
                         <span class="n">numcodecs</span><span class="o">.</span><span class="n">FixedScaleOffset</span><span class="p">(</span>
                             <span class="n">offset</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BZERO&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
                             <span class="n">scale</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BSCALE&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
@@ -169,7 +170,7 @@
                         <span class="p">)</span>
                     <span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">filters</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">fits</span><span class="o">.</span><span class="n">hdu</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">TableHDU</span><span class="p">):</span>
                 <span class="c1"># ascii table</span>
                 <span class="n">spans</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">_spans</span>
@@ -182,7 +183,7 @@
                 <span class="p">]</span>
                 <span class="n">nrows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NAXIS2&quot;</span><span class="p">])</span>
                 <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrows</span><span class="p">,)</span>
-                <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="n">AsciiTableCodec</span><span class="p">(</span><span class="n">indtypes</span><span class="p">,</span> <span class="n">outdtype</span><span class="p">)]</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">AsciiTableCodec</span><span class="p">(</span><span class="n">indtypes</span><span class="p">,</span> <span class="n">outdtype</span><span class="p">)]</span>
                 <span class="n">dtype</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">outdtype</span><span class="p">]</span>
                 <span class="n">length</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">spans</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">spans</span><span class="p">))</span> <span class="o">*</span> <span class="n">nrows</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">fits</span><span class="o">.</span><span class="n">hdu</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">BinTableHDU</span><span class="p">):</span>
@@ -190,8 +191,29 @@
                 <span class="n">dtype</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">newbyteorder</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">)</span>  <span class="c1"># always big endian</span>
                 <span class="n">nrows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NAXIS2&quot;</span><span class="p">])</span>
                 <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">nrows</span><span class="p">,)</span>
-                <span class="n">filters</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">length</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="n">nrows</span>
+                <span class="c1"># if hdu.fileinfo()[&quot;datSpan&quot;] &gt; length</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">_</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
+                    <span class="c1"># contains var fields</span>
+                    <span class="n">length</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">fileinfo</span><span class="p">()[</span><span class="s2">&quot;datSpan&quot;</span><span class="p">]</span>
+                    <span class="n">dt2</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;O&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">))</span>
+                        <span class="k">else</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">base</span><span class="p">))</span>
+                        <span class="o">+</span> <span class="p">((</span><span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,)</span> <span class="k">if</span> <span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="k">else</span> <span class="p">())</span>
+                        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                    <span class="p">]</span>
+                    <span class="n">types</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">name</span><span class="p">:</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                        <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">))</span>
+                    <span class="p">}</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VarArrCodec</span><span class="p">(</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="n">dtype</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">dt2</span><span class="p">),</span> <span class="n">nrows</span><span class="p">,</span> <span class="n">types</span>
+                    <span class="p">)</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dt2</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">length</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="n">nrows</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping unknown extension type: </span><span class="si">{hdu}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">continue</span>
@@ -199,12 +221,7 @@
             <span class="c1"># TODO: we could sub-chunk on biggest dimension</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
             <span class="n">arr</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-                <span class="n">name</span><span class="p">,</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
-                <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
-                <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
             <span class="p">)</span>
             <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                 <span class="p">{</span>
