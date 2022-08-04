@@ -38,7 +38,16 @@ def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None)
                 for k in dir(tif):
                     if not k.endswith("metadata"):
                         continue
-                    meta.update(getattr(tif, k) or {})
+                    met = getattr(tif, k, None)
+                    try:
+                        d = dict(met or {})
+                    except ValueError:
+                        # newer tifffile exposes xml structured tags
+                        from xml.etree import ElementTree
+
+                        e = ElementTree.fromstring(met)
+                        d = {i.get("name"): i.text for i in e}
+                    meta.update(d)
                 for k, v in meta.copy().items():
                     # deref enums
                     if isinstance(v, enum.EnumMeta):
