@@ -10,22 +10,22 @@ Single file JSONs
 
 The ``Kerchunk.hdf.SingleHdf5ToZarr`` method is used to create a single ``.json`` reference file for each file url passed to it. Here we use it to create a number of reference files for the ERA5 pubic dataset on `AWS <https://registry.opendata.aws/ecmwf-era5/>`__. We will compute a number of different times and variables to demonstrate different methods of combining them.
 
-The Kerchunk package is still in a devolpment phase and so changes frequently. Installing directly from the source code is recommended.
+The Kerchunk package is still in a development phase and so changes frequently. Installing directly from the source code is recommended.
 
-.. code:: ipython3
+.. code:: 
 
     !pip install git+https://github.com/fsspec/kerchunk
 
 Here we are considering Netcdf4 files and so use the kerchunk ``hdf`` module. Support for ``fits``, ``grib2``, ``tiff``, ``netCDF3`` and ``zarr`` are available in other kerchunk modules. Alternatively it is also possible to manually create reference jsons for more specific cases. The Earth Big Data `example <https://github.com/fsspec/kerchunk/blob/main/examples/earthbigdata.ipynb>`__ provides a demonstration of this.
 
-.. code:: ipython3
+.. code:: 
 
     from kerchunk.hdf import SingleHdf5ToZarr 
     import fsspec
 
 Using fsspec to create a pythonic filesystem, provides a convenient way to manage file urls.
 
-.. code:: ipython3
+.. code:: 
 
     fs = fsspec.filesystem('s3', anon=True) #S3 file system to manage ERA5 files
     flist = (fs.glob('s3://era5-pds/2020/*/data/air_pressure_at_mean_sea_level.nc')[:2]
@@ -53,7 +53,7 @@ Using fsspec to create a pythonic filesystem, provides a convenient way to manag
 
 ERA5-pds is located in us-west-2 and so depending on where this computation is taking place the time taken can vary dramatically and is likely to be faster than this.
 
-.. code:: ipython3
+.. code:: 
 
     %%time
     for file in flist:
@@ -66,9 +66,9 @@ ERA5-pds is located in us-west-2 and so depending on where this computation is t
     Wall time: 14min 44s
 
 
-The ``.json`` reference files we have generated can now be used to open virtual datasets through xarray. To achieve this it is first neccessary to create a mapping of the reference file using ``fsspec``. Here specifying that the reference json is pointing to files stored on AWS.
+The ``.json`` reference files we have generated can now be used to open virtual datasets through xarray. To achieve this it is first necessary to create a mapping of the reference file using ``fsspec``. Here specifying that the reference json is pointing to files stored on AWS.
 
-.. code:: ipython3
+.. code:: 
 
     import xarray as xr
 
@@ -103,13 +103,13 @@ Combine multiple kerchunk’d datasets into a single logical aggregate dataset
 
 The ``Kerchunk.combine.MultiZarrtoZarr`` method combines the ``.json`` reference files generated above to create a single virtual dataset, such that one reference file maps to all of the chunks in the individual files.
 
-.. code:: ipython3
+.. code:: 
 
     from kerchunk.combine import MultiZarrToZarr
 
-MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, Time0 in this instance. Specifying the identical coordinate across the files using the ``identical_dims`` argument is not strictly neccessary but will speed up computation times.
+MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, Time0 in this instance. Specifying the identical coordinate across the files using the ``identical_dims`` argument is not strictly necessary but will speed up computation times.
 
-.. code:: ipython3
+.. code:: 
 
     json_list = fs2.glob("*_air_pressure_at_mean_sea_level.json")
     
@@ -126,7 +126,7 @@ MultiZarrtoZarr provides a number of convenience methods to combine reference fi
 
 The reference json we have just generated can now be opened to reveal a single virtual dataset spanning both the input files, with little to no latency.
 
-.. code:: ipython3
+.. code:: 
 
     %%time
     m = fsspec.filesystem("reference", fo=d).get_mapper("")
@@ -157,7 +157,7 @@ Using coo_map
 
 When the dimension along which we would like to concatenate is not already in the dataset, or when considering datasets from across an ensemble we can use the ``coo_map`` argument to create a new dimension.
 
-.. code:: ipython3
+.. code:: 
 
     new_dims = ['a' , 'b']
     
@@ -196,7 +196,7 @@ When the dimension along which we would like to concatenate is not already in th
 
 For more complex uses it is also possible to pass in a compiled ``regex`` function which operates on the input file urls to generate a unique variable for each file.
 
-.. code:: ipython3
+.. code:: 
 
     import re
     ex = re.compile(r'.*(\d+)_air')
@@ -208,7 +208,7 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
 
 
 
-.. code:: ipython3
+.. code:: 
 
     mzz = MultiZarrToZarr(json_list,                
         remote_protocol='s3',
@@ -245,7 +245,7 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
 
 Similarly we can map each file to a new variable using the special ``var`` character in coo_map. Here we use the same ``regex`` function but instead map these as new variables.
 
-.. code:: ipython3
+.. code:: 
 
     mzz = MultiZarrToZarr(json_list,                
         remote_protocol='s3',
@@ -281,7 +281,7 @@ Similarly we can map each file to a new variable using the special ``var`` chara
 
 Another special character in ``coo_map`` is ``attr:``. This allows the user to access variables from the file attributes.
 
-.. code:: ipython3
+.. code:: 
 
     mzz = MultiZarrToZarr(json_list,                
         remote_protocol='s3',
@@ -314,11 +314,11 @@ Another special character in ``coo_map`` is ``attr:``. This allows the user to a
         title:        ERA5 forecasts
 
 
-The special charactar ``vattr:{var}:`` allows access to variable attributes. Here renaming the variable to instead use it’s short name. 
+The special character ``vattr:{var}:`` allows access to variable attributes. Here renaming the variable to instead use it’s short name. 
 
 There are a number of other special characters for ``coo_map`` documented in the `API reference <https://fsspec.github.io/kerchunk/reference.html#kerchunk.combine.MultiZarrToZarr>`__
 
-.. code:: ipython3
+.. code:: 
 
     mzz = MultiZarrToZarr(json_list,                
         remote_protocol='s3',
@@ -354,9 +354,9 @@ There are a number of other special characters for ``coo_map`` documented in the
 Merging variables across jsons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``Kerchunk.combine.merge_vars`` convenienve function can be used to merge variables across datasets if we know the coordinates and global file attributes are identical. 
+The ``Kerchunk.combine.merge_vars`` convenience function can be used to merge variables across datasets if we know the coordinates and global file attributes are identical. 
 
-.. code:: ipython3
+.. code:: 
 
     from kerchunk.combine import merge_vars
     
@@ -395,7 +395,7 @@ drop the ``air_pressure_at_mean_sea_level`` variable before combining
 ``sea_surface_temperature`` with a json containing data for the
 following month.
 
-.. code:: ipython3
+.. code:: 
 
     def pre_process(refs):
         for k in list(refs):
@@ -442,7 +442,7 @@ Postprocessing
 ~~~~~~~~~~~~~~
 
 Similarly post-process can be used to apply an arbitrary function to the
-final dictionary before returning. A known issue with this partcular
+final dictionary before returning. A known issue with this particular
 dataset is that no fill value has been assigned to the lat and lon
 coordinates and thus default to 0, here we use post process to change
 the zarr fill_value attribute by opening the final json as a zarr store.
@@ -451,7 +451,7 @@ Changing the fill_values could also be achieved by editing the final
 json through string manipulations or even a simple find and replace
 through an IDE.
 
-.. code:: ipython3
+.. code:: 
 
     import zarr
     def modify_fill_value(out):
@@ -504,7 +504,7 @@ through an IDE.
 Using the output
 ----------------
 
-To open a previously computed referenced dataset it is not neccessary to
+To open a previously computed referenced dataset it is not necessary to
 have kerchunk installed. Only ``fsspec`` to generate the file mapping.
 
 Here we open a remotely stored reference file that maps to 10 ERA5
@@ -517,7 +517,7 @@ memory.
 A smaller file containing only 2 years of data is available at:
 s3://esip-qhub-public/ecmwf/ERA5_2020_2022_multivar.json.zst
 
-.. code:: ipython3
+.. code:: 
 
     %%time
     fs = fsspec.filesystem("reference", fo='s3://esip-qhub-public/ecmwf/ERA5_1979_2022_multivar.json.zst', 
