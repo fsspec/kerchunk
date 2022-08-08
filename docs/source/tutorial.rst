@@ -51,7 +51,7 @@ Using fsspec to create a pythonic filesystem, provides a convenient way to manag
             with fs2.open(outf, 'wb') as f:
                 f.write(ujson.dumps(h5chunks.translate()).encode());
 
-ERA5-pds is located in us-west-2 and so depending on where this computation is taking place the time taken can vary dramatically and is likely to be faster than this.
+ERA5-pds is located in us-west-2 and so depending on where this computation is taking place the time taken can vary dramatically.
 
 .. code:: 
 
@@ -73,10 +73,10 @@ The ``.json`` reference files we have generated can now be used to open virtual 
     import xarray as xr
 
     %%time
-    fs_ = fsspec.filesystem("reference", fo='01_air_pressure_at_mean_sea_level.json', ref_storage_args={'skip_instance_cache':True},
-                           remote_protocol='s3', remote_options={'anon':True})
-    m = fs_.get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", backend_kwargs={'consolidated':False}, chunks={})
+    ds = xr.open_dataset("reference://", engine="zarr", backend_kwargs={
+                        "consolidated": False,
+                        "storage_options": {"fo": '01_air_pressure_at_mean_sea_level.json', "remote_protocol": "s3","remote_options": {"anon": True}}
+                        })
     print(ds)
 
 
@@ -129,9 +129,8 @@ The reference json we have just generated can now be opened to reveal a single v
 .. code:: 
 
     %%time
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -171,9 +170,8 @@ When the dimension along which we would like to concatenate is not already in th
     
     d = mzz.translate()
 
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -220,9 +218,8 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
     
     d = mzz.translate()
 
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -257,9 +254,8 @@ Similarly we can map each file to a new variable using the special ``var`` chara
     
     d = mzz.translate()
 
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -293,9 +289,8 @@ Another special character in ``coo_map`` is ``attr:``. This allows the user to a
     
     d = mzz.translate()
 
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -330,9 +325,8 @@ There are a number of other special characters for ``coo_map`` documented in the
     
     d = mzz.translate()
 
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -364,9 +358,8 @@ The ``Kerchunk.combine.merge_vars`` convenience function can be used to merge va
     
     d = merge_vars(json_list)
     
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -389,11 +382,7 @@ The ``Kerchunk.combine.merge_vars`` convenience function can be used to merge va
 Preprocessing
 ~~~~~~~~~~~~~
 
-Pre-process can be used to apply arbitrary functions to the refs item in
-the input jsons before combining. In this case we use preprocessing to
-drop the ``air_pressure_at_mean_sea_level`` variable before combining
-``sea_surface_temperature`` with a json containing data for the
-following month.
+Pre-process can be used to apply arbitrary functions to the refs item in the input jsons before combining. In this case we use preprocessing to drop the ``air_pressure_at_mean_sea_level`` variable before combining ``sea_surface_temperature`` with a json containing data for the following month.
 
 .. code:: 
 
@@ -417,9 +406,8 @@ following month.
     with fs2.open('sea_surface_temperature_combined.json', 'wb') as f:
         f.write(ujson.dumps(d).encode())
 
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -441,15 +429,9 @@ following month.
 Postprocessing
 ~~~~~~~~~~~~~~
 
-Similarly post-process can be used to apply an arbitrary function to the
-final dictionary before returning. A known issue with this particular
-dataset is that no fill value has been assigned to the lat and lon
-coordinates and thus default to 0, here we use post process to change
-the zarr fill_value attribute by opening the final json as a zarr store.
+Similarly post-process can be used to apply an arbitrary function to the final dictionary before returning. A known issue with this particular dataset is that no fill value has been assigned to the lat and lon coordinates and thus default to 0, here we use post process to change the zarr fill_value attribute by opening the final json as a zarr store.
 
-Changing the fill_values could also be achieved by editing the final
-json through string manipulations or even a simple find and replace
-through an IDE.
+Changing the fill_values could also be achieved by editing the final json through string manipulations or even a simple find and replace through an IDE.
 
 .. code:: 
 
@@ -479,9 +461,8 @@ through an IDE.
         f.write(ujson.dumps(d).encode())
 
 
-    m = fsspec.filesystem("reference", fo=d).get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", consolidated=False)
-    print(ds)
+    backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
+    print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
 
 .. parsed-literal::
@@ -504,17 +485,13 @@ through an IDE.
 Using the output
 ----------------
 
-To open a previously computed referenced dataset it is not necessary to
-have kerchunk installed. Only ``fsspec`` to generate the file mapping.
+To open a previously computed referenced dataset it is not necessary to have kerchunk installed. Only ``fsspec`` to generate the file mapping.
 
-Here we open a remotely stored reference file that maps to 10 ERA5
-variables across a 43 year time span.
+Here we open a remotely stored reference file that maps to 10 ERA5 variables across a 43 year time span.
 
-The sidecar file has been compressed using zstd, from the original 1.8GB
-to 194MB. Opening this virtual dataset requires 7GB of free system
-memory.
+The sidecar file has been compressed using zstd, from the original 1.8GB to 194MB. Opening this virtual dataset requires 7GB of free system memory.
 
-A smaller file containing only 2 years of data is available at:
+A smaller file containing only 2 years of data is available at: 
 s3://esip-qhub-public/ecmwf/ERA5_2020_2022_multivar.json.zst
 
 .. code:: 
@@ -551,3 +528,50 @@ s3://esip-qhub-public/ecmwf/ERA5_2020_2022_multivar.json.zst
         title:        ERA5 forecasts
     CPU times: user 48.8 s, sys: 5.61 s, total: 54.4 s
     Wall time: 1min 8s
+
+The above script required to open reference is rather complex. For this reason it is suggested to instead hide the script in an `intake <https://intake.readthedocs.io/en/latest/index.html>`__ catalog such that all that is required to open the dataset is the following:
+
+.. code:: 
+
+    import intake
+    catalog = intake.open_catalog('s3://esip-qhub-public/ecmwf/intake_catalog.yml')
+    list(catalog)
+
+
+.. parsed-literal::
+
+    ['ERA5-Kerchunk-1979-2022', 'ERA5-Kerchunk-2020-2022']
+
+.. code::
+
+    ds = catalog['ERA5-Kerchunk-1979-2022'].to_dask()
+
+Multiple different different datasets can be managed in a single intake catalog and so can be used to create a one stop shop containing all datasets available to a group of users. 
+
+Once the referenced dataset is loaded it can be operated on just like any other lazy `xarray <https://docs.xarray.dev/en/stable/>`__ dataset.  
+
+.. code:: 
+
+    %%time
+    da = ds.sel(time0 = '2021-01-01T00:00:00')
+    da['air_pressure_at_mean_sea_level'].plot()
+
+.. image:: output_62_2.png
+
+.. parsed-literal::
+
+    CPU times: user 3.79 s, sys: 382 ms, total: 4.18 s
+    Wall time: 6.22 s
+
+.. code:: 
+
+    %%time
+    da = ds.sel(lat = -34).sel(lon = 198)
+    da.air_temperature_at_2_metres.sel(time0 = slice('2000-01-01','2000-12-31')).plot()
+
+.. image:: output_63_2.png
+
+.. parsed-literal::
+
+    CPU times: user 9.92 s, sys: 663 ms, total: 10.6 s
+    Wall time: 16.5 s
