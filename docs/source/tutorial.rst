@@ -23,7 +23,9 @@ Here we are considering Netcdf4 files and so use the kerchunk ``hdf`` module. Su
     from kerchunk.hdf import SingleHdf5ToZarr 
     import fsspec
 
-Using fsspec to create a pythonic filesystem, provides a convenient way to manage file urls.
+Using fsspec to create a pythonic filesystem, provides a convenient way to manage file urls. 
+
+The ``SingleHdf5ToZarr`` method takes both an ``h5f`` file and a ``url`` as input. The ``h5f`` file can either be a binary Python file-like object or a url, in which case it will be opened using ``fsspec`` and ``storage_options``. The ``url`` input is not used to open the file and is intended to allow the user to compute the reference files on data before it is uploaded to its final storage location. Thus the ``url`` input should be the url of the final file destination and not the current location. 
 
 .. code:: 
 
@@ -40,13 +42,13 @@ Using fsspec to create a pythonic filesystem, provides a convenient way to manag
     so = dict(mode='rb', anon=True, default_fill_cache=False, default_cache_type='first') # args to fs.open()
     # default_fill_cache=False avoids caching data in between file chunks to lowers memory usage.
     
-    def gen_json(file):
+    def gen_json(file_url):
         with fs.open(file, **so) as infile:
-            h5chunks = SingleHdf5ToZarr(infile, file, inline_threshold=300) 
+            h5chunks = SingleHdf5ToZarr(infile, file_url, inline_threshold=300) 
             # inline threshold adjusts the Size below which binary blocks are included directly in the output
             # a higher inline threshold can result in a larger json file but faster loading time
-            variable = file.split('/')[-1].split('.')[0]
-            month = file.split('/')[2] 
+            variable = file_url.split('/')[-1].split('.')[0]
+            month = file_url.split('/')[2] 
             outf = f'{month}_{variable}.json' #file name to save json to
             with fs2.open(outf, 'wb') as f:
                 f.write(ujson.dumps(h5chunks.translate()).encode());
@@ -66,7 +68,8 @@ ERA5-pds is located in us-west-2 and so depending on where this computation is t
     Wall time: 14min 44s
 
 
-The ``.json`` reference files we have generated can now be used to open virtual datasets through xarray. To achieve this it is first necessary to create a mapping of the reference file using ``fsspec``. Here specifying that the reference json is pointing to files stored on AWS.
+The ``.json`` reference files we have generated can now be used to open virtual datasets through xarray or zarr. It is necessary to specify location of the reference ``json`` files, using the ``target_options`` argument, and the source data using the ``remote_options`` and ``remote_protocol`` arguments. Here specifying that the source data is stored on ``AWS S3`` and can be accessed anonymously. 
+
 
 .. code:: 
 
@@ -107,7 +110,7 @@ The ``Kerchunk.combine.MultiZarrtoZarr`` method combines the ``.json`` reference
 
     from kerchunk.combine import MultiZarrToZarr
 
-MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, Time0 in this instance. Specifying the identical coordinate across the files using the ``identical_dims`` argument is not strictly necessary but will speed up computation times.
+MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, ``"Time0"`` in this instance. Specifying the identical coordinate across the files using the ``identical_dims`` argument is not strictly necessary but will speed up computation times.
 
 .. code:: 
 
@@ -154,7 +157,7 @@ The reference json we have just generated can now be opened to reveal a single v
 Using coo_map
 ~~~~~~~~~~~~~
 
-When the dimension along which we would like to concatenate is not already in the dataset, or when considering datasets from across an ensemble we can use the ``coo_map`` argument to create a new dimension.
+When the dimension along which we would like to concatenate is not already in the dataset, or when considering datasets from across an ensemble we can use the ``coo_map`` argument to create a new dimension. 
 
 .. code:: 
 
@@ -192,6 +195,8 @@ When the dimension along which we would like to concatenate is not already in th
         title:        ERA5 forecasts
 
 
+Here by providing a list of literal values to ``coo_map`` we created ``new_dimension``.
+
 For more complex uses it is also possible to pass in a compiled ``regex`` function which operates on the input file urls to generate a unique variable for each file.
 
 .. code:: 
@@ -203,8 +208,6 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
 .. parsed-literal::
 
     '1'
-
-
 
 .. code:: 
 
@@ -239,8 +242,10 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
         source:       Reanalysis
         title:        ERA5 forecasts
 
+Here the ``new_dimension`` values have been populated by the compiled ``regex`` function ``ex`` which takes the file urls as input. 
 
-Similarly we can map each file to a new variable using the special ``var`` character in coo_map. Here we use the same ``regex`` function but instead map these as new variables.
+
+Similarly we can map each file to a new variable using the special ``var`` key in coo_map. Here we use the same ``regex`` function but instead map these as new variables.
 
 .. code:: 
 
@@ -275,7 +280,7 @@ Similarly we can map each file to a new variable using the special ``var`` chara
         title:        ERA5 forecasts
 
 
-Another special character in ``coo_map`` is ``attr:``. This allows the user to access variables from the file attributes.
+Another special key in ``coo_map`` is ``attr:``. This allows the user to access values from each dataset's global attributes.
 
 .. code:: 
 
@@ -309,9 +314,7 @@ Another special character in ``coo_map`` is ``attr:``. This allows the user to a
         title:        ERA5 forecasts
 
 
-The special character ``vattr:{var}:`` allows access to variable attributes. Here renaming the variable to instead use it’s short name. 
-
-There are a number of other special characters for ``coo_map`` documented in the `API reference <https://fsspec.github.io/kerchunk/reference.html#kerchunk.combine.MultiZarrToZarr>`__
+The special value ``vattr:{var}:{attr}`` allows access to variable attributes. Here renaming the variable to instead use its short name. 
 
 .. code:: 
 
@@ -343,6 +346,8 @@ There are a number of other special characters for ``coo_map`` documented in the
         institution:  ECMWF
         source:       Reanalysis
         title:        ERA5 forecasts
+
+There are a number of other special characters for ``coo_map`` documented in the `API reference <https://fsspec.github.io/kerchunk/reference.html#kerchunk.combine.MultiZarrToZarr>`__
 
 
 Merging variables across jsons
