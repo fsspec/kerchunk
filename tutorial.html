@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Detailed description" href="detail.html" />
+    <link rel="prev" title="Quick Start" href="test_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> kerchunk<img src="_static/kerchunk.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0+unknown
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#single-file-jsons">Single file JSONs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#combine-multiple-kerchunkd-datasets-into-a-single-logical-aggregate-dataset">Combine multiple kerchunk’d datasets into a single logical aggregate dataset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#using-coo-map">Using coo_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#merging-variables-across-jsons">Merging variables across jsons</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#preprocessing">Preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#postprocessing">Postprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-output">Using the output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">kerchunk</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Tutorial</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<p>This run-through tutorial is intended to display a variety of methods for combining datasets using the <code class="docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrtoZarr</span></code> API.</p>
+<p>Initially we create a pair of single file jsons for two ERA5 variables using <code class="docutils literal notranslate"><span class="pre">Kerchunk.hdf.SingleHdf5ToZarr</span></code>. This ERA5 dataset is free to access and so it is possible to replicate this workflow on a local machine without credentials.</p>
+<div class="section" id="single-file-jsons">
+<h2>Single file JSONs<a class="headerlink" href="#single-file-jsons" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">Kerchunk.hdf.SingleHdf5ToZarr</span></code> method is used to create a single <code class="docutils literal notranslate"><span class="pre">.json</span></code> reference file for each file url passed to it. Here we use it to create a number of reference files for the ERA5 pubic dataset on <a class="reference external" href="https://registry.opendata.aws/ecmwf-era5/">AWS</a>. We will compute a number of different times and variables to demonstrate different methods of combining them.</p>
+<p>The Kerchunk package is still in a development phase and so changes frequently. Installing directly from the source code is recommended.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>!pip install git+https://github.com/fsspec/kerchunk
+</pre></div>
+</div>
+<p>Here we are considering Netcdf4 files and so use the kerchunk <code class="docutils literal notranslate"><span class="pre">hdf</span></code> module. Support for <code class="docutils literal notranslate"><span class="pre">fits</span></code>, <code class="docutils literal notranslate"><span class="pre">grib2</span></code>, <code class="docutils literal notranslate"><span class="pre">tiff</span></code>, <code class="docutils literal notranslate"><span class="pre">netCDF3</span></code> and <code class="docutils literal notranslate"><span class="pre">zarr</span></code> are available in other kerchunk modules. Alternatively it is also possible to manually create reference jsons for more specific cases. The Earth Big Data <a class="reference external" href="https://github.com/fsspec/kerchunk/blob/main/examples/earthbigdata.ipynb">example</a> provides a demonstration of this.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk.hdf</span> <span class="kn">import</span> <span class="n">SingleHdf5ToZarr</span>
+<span class="kn">import</span> <span class="nn">fsspec</span>
+</pre></div>
+</div>
+<p>Using fsspec to create a pythonic filesystem, provides a convenient way to manage file urls.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">SingleHdf5ToZarr</span></code> method takes both an <code class="docutils literal notranslate"><span class="pre">h5f</span></code> file and a <code class="docutils literal notranslate"><span class="pre">url</span></code> as input. The <code class="docutils literal notranslate"><span class="pre">h5f</span></code> file can either be a binary Python file-like object or a url, in which case it will be opened using <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> and <code class="docutils literal notranslate"><span class="pre">storage_options</span></code>. The <code class="docutils literal notranslate"><span class="pre">url</span></code> input is not used to open the file and is intended to allow the user to compute the reference files on data before it is uploaded to its final storage location. Thus the <code class="docutils literal notranslate"><span class="pre">url</span></code> input should be the url of the final file destination and not the current location.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">anon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1">#S3 file system to manage ERA5 files</span>
+<span class="n">flist</span> <span class="o">=</span> <span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;s3://era5-pds/2020/*/data/air_pressure_at_mean_sea_level.nc&#39;</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">fs</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;s3://era5-pds/2020/*/data/*sea_surface_temperature.nc&#39;</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span>
+
+<span class="n">fs2</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>  <span class="c1">#local file system to save final jsons to</span>
+
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">ujson</span>
+
+<span class="n">so</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;rb&#39;</span><span class="p">,</span> <span class="n">anon</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default_fill_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default_cache_type</span><span class="o">=</span><span class="s1">&#39;first&#39;</span><span class="p">)</span> <span class="c1"># args to fs.open()</span>
+<span class="c1"># default_fill_cache=False avoids caching data in between file chunks to lowers memory usage.</span>
+
+<span class="k">def</span> <span class="nf">gen_json</span><span class="p">(</span><span class="n">file_url</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="o">**</span><span class="n">so</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="n">h5chunks</span> <span class="o">=</span> <span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">file_url</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+        <span class="c1"># inline threshold adjusts the Size below which binary blocks are included directly in the output</span>
+        <span class="c1"># a higher inline threshold can result in a larger json file but faster loading time</span>
+        <span class="n">variable</span> <span class="o">=</span> <span class="n">file_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">month</span> <span class="o">=</span> <span class="n">file_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">outf</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{month}</span><span class="s1">_</span><span class="si">{variable}</span><span class="s1">.json&#39;</span> <span class="c1">#file name to save json to</span>
+        <span class="k">with</span> <span class="n">fs2</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outf</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">h5chunks</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span><span class="o">.</span><span class="n">encode</span><span class="p">());</span>
+</pre></div>
+</div>
+<p>ERA5-pds is located in us-west-2 and so depending on where this computation is taking place the time taken can vary dramatically.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">time</span>
+<span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">flist</span><span class="p">:</span>
+    <span class="n">gen_json</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mf">30.4</span> <span class="n">s</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mf">4.74</span> <span class="n">s</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">35.1</span> <span class="n">s</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mi">14</span><span class="nb">min</span> <span class="mi">44</span><span class="n">s</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">.json</span></code> reference files we have generated can now be used to open virtual datasets through xarray or zarr. It is necessary to specify location of the reference <code class="docutils literal notranslate"><span class="pre">json</span></code> files, using the <code class="docutils literal notranslate"><span class="pre">target_options</span></code> argument, and the source data using the <code class="docutils literal notranslate"><span class="pre">remote_options</span></code> and <code class="docutils literal notranslate"><span class="pre">remote_protocol</span></code> arguments. Here specifying that the source data is stored on <code class="docutils literal notranslate"><span class="pre">AWS</span> <span class="pre">S3</span></code> and can be accessed anonymously.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+
+<span class="o">%%</span><span class="n">time</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="s1">&#39;01_air_pressure_at_mean_sea_level.json&#39;</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}</span>
+                    <span class="p">})</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>                         <span class="p">(</span><span class="n">time0</span><span class="p">:</span> <span class="mi">744</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>                             <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>                             <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="o">...</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>                           <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mf">202.</span><span class="o">..</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">air_pressure_at_mean_sea_level</span>  <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">dask</span><span class="o">.</span><span class="n">array</span><span class="o">&lt;</span><span class="n">chunksize</span><span class="o">=</span><span class="p">(</span><span class="mi">24</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="n">meta</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">&gt;</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+<span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mi">162</span> <span class="n">ms</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mf">17.4</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mi">180</span> <span class="n">ms</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mi">235</span> <span class="n">ms</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="combine-multiple-kerchunkd-datasets-into-a-single-logical-aggregate-dataset">
+<h2>Combine multiple kerchunk’d datasets into a single logical aggregate dataset<a class="headerlink" href="#combine-multiple-kerchunkd-datasets-into-a-single-logical-aggregate-dataset" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">Kerchunk.combine.MultiZarrtoZarr</span></code> method combines the <code class="docutils literal notranslate"><span class="pre">.json</span></code> reference files generated above to create a single virtual dataset, such that one reference file maps to all of the chunks in the individual files.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span>
+</pre></div>
+</div>
+<p>MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the <code class="docutils literal notranslate"><span class="pre">concat_dims</span></code> argument, <code class="docutils literal notranslate"><span class="pre">&quot;Time0&quot;</span></code> in this instance. Specifying the identical coordinate across the files using the <code class="docutils literal notranslate"><span class="pre">identical_dims</span></code> argument is not strictly necessary but will speed up computation times.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">json_list</span> <span class="o">=</span> <span class="n">fs2</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_air_pressure_at_mean_sea_level.json&quot;</span><span class="p">)</span>
+
+<span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span>
+    <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time0&#39;</span><span class="p">],</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">])</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">fs2</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;air_pressure_at_mean_sea_level_combined.json&#39;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>The reference json we have just generated can now be opened to reveal a single virtual dataset spanning both the input files, with little to no latency.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">time</span>
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>                         <span class="p">(</span><span class="n">time0</span><span class="p">:</span> <span class="mi">1440</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>                             <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>                             <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="o">...</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>                           <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mf">202.</span><span class="o">..</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">air_pressure_at_mean_sea_level</span>  <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+<span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mf">42.3</span> <span class="n">ms</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mi">128</span> <span class="n">µs</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">42.5</span> <span class="n">ms</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">40.9</span> <span class="n">ms</span>
+</pre></div>
+</div>
+<div class="section" id="using-coo-map">
+<h3>Using coo_map<a class="headerlink" href="#using-coo-map" title="Permalink to this headline">¶</a></h3>
+<p>When the dimension along which we would like to concatenate is not already in the dataset, or when considering datasets from across an ensemble we can use the <code class="docutils literal notranslate"><span class="pre">coo_map</span></code> argument to create a new dimension.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">new_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span> <span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">]</span>
+
+<span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span>
+    <span class="n">coo_map</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;new_dimension&#39;</span><span class="p">:</span><span class="n">new_dims</span><span class="p">},</span>
+    <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;new_dimension&#39;</span><span class="p">],</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>                         <span class="p">(</span><span class="n">new_dimension</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">time0</span><span class="p">:</span> <span class="mi">744</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span>
+                                     <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>                             <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>                             <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="o">...</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">new_dimension</span>                   <span class="p">(</span><span class="n">new_dimension</span><span class="p">)</span> <span class="nb">object</span> <span class="s1">&#39;a&#39;</span> <span class="s1">&#39;b&#39;</span>
+  <span class="o">*</span> <span class="n">time0</span>                           <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mf">202.</span><span class="o">..</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">air_pressure_at_mean_sea_level</span>  <span class="p">(</span><span class="n">new_dimension</span><span class="p">,</span> <span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+</pre></div>
+</div>
+<p>Here by providing a list of literal values to <code class="docutils literal notranslate"><span class="pre">coo_map</span></code> we created <code class="docutils literal notranslate"><span class="pre">new_dimension</span></code>.</p>
+<p>For more complex uses it is also possible to pass in a compiled <code class="docutils literal notranslate"><span class="pre">regex</span></code> function which operates on the input file urls to generate a unique variable for each file.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">re</span>
+<span class="n">ex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;.*(\d+)_air&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">json_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;1&#39;</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span>
+    <span class="n">coo_map</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;new_dimension&#39;</span><span class="p">:</span><span class="n">ex</span><span class="p">},</span>
+    <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;new_dimension&#39;</span><span class="p">],</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>                         <span class="p">(</span><span class="n">new_dimension</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="n">time0</span><span class="p">:</span> <span class="mi">744</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span>
+                                     <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>                             <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>                             <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="o">...</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">new_dimension</span>                   <span class="p">(</span><span class="n">new_dimension</span><span class="p">)</span> <span class="nb">object</span> <span class="s1">&#39;1&#39;</span> <span class="s1">&#39;2&#39;</span>
+  <span class="o">*</span> <span class="n">time0</span>                           <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mf">202.</span><span class="o">..</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">air_pressure_at_mean_sea_level</span>  <span class="p">(</span><span class="n">new_dimension</span><span class="p">,</span> <span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+</pre></div>
+</div>
+<p>Here the <code class="docutils literal notranslate"><span class="pre">new_dimension</span></code> values have been populated by the compiled <code class="docutils literal notranslate"><span class="pre">regex</span></code> function <code class="docutils literal notranslate"><span class="pre">ex</span></code> which takes the file urls as input.</p>
+<p>Similarly we can map each file to a new variable using the special <code class="docutils literal notranslate"><span class="pre">var</span></code> key in coo_map. Here we use the same <code class="docutils literal notranslate"><span class="pre">regex</span></code> function but instead map these as new variables.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span>
+    <span class="n">coo_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;var&quot;</span><span class="p">:</span><span class="n">ex</span><span class="p">},</span>
+    <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time0&#39;</span><span class="p">],</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>  <span class="p">(</span><span class="n">time0</span><span class="p">:</span> <span class="mi">1440</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>      <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="mf">89.5</span> <span class="mf">89.25</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.25</span> <span class="o">-</span><span class="mf">89.5</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>      <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="mf">0.75</span> <span class="mf">1.0</span> <span class="o">...</span> <span class="mf">359.0</span> <span class="mf">359.2</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>    <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">29</span><span class="n">T23</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="mi">1</span>        <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="mi">2</span>        <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+</pre></div>
+</div>
+<p>Another special key in <code class="docutils literal notranslate"><span class="pre">coo_map</span></code> is <code class="docutils literal notranslate"><span class="pre">attr:</span></code>. This allows the user to access values from each dataset’s global attributes.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span>
+    <span class="n">coo_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;var&quot;</span><span class="p">:</span><span class="s2">&quot;attr:institution&quot;</span><span class="p">},</span>
+    <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time0&#39;</span><span class="p">],</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>  <span class="p">(</span><span class="n">time0</span><span class="p">:</span> <span class="mi">1440</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>      <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="mf">89.5</span> <span class="mf">89.25</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.25</span> <span class="o">-</span><span class="mf">89.5</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>      <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="mf">0.75</span> <span class="mf">1.0</span> <span class="o">...</span> <span class="mf">359.0</span> <span class="mf">359.2</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>    <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">29</span><span class="n">T23</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">ECMWF</span>    <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+</pre></div>
+</div>
+<p>The special value <code class="docutils literal notranslate"><span class="pre">vattr:{var}:{attr}</span></code> allows access to variable attributes. Here renaming the variable to instead use its short name.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span>
+    <span class="n">coo_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;var&quot;</span><span class="p">:</span><span class="s2">&quot;vattr:air_pressure_at_mean_sea_level:shortNameECMWF&quot;</span><span class="p">},</span>
+    <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time0&#39;</span><span class="p">],</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>  <span class="p">(</span><span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">,</span> <span class="n">time0</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>      <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="mf">89.5</span> <span class="mf">89.25</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.25</span> <span class="o">-</span><span class="mf">89.5</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>      <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="mf">0.75</span> <span class="mf">1.0</span> <span class="o">...</span> <span class="mf">359.0</span> <span class="mf">359.2</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>    <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">29</span><span class="n">T23</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">msl</span>      <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+</pre></div>
+</div>
+<p>There are a number of other special characters for <code class="docutils literal notranslate"><span class="pre">coo_map</span></code> documented in the <a class="reference external" href="https://fsspec.github.io/kerchunk/reference.html#kerchunk.combine.MultiZarrToZarr">API reference</a></p>
+</div>
+<div class="section" id="merging-variables-across-jsons">
+<h3>Merging variables across jsons<a class="headerlink" href="#merging-variables-across-jsons" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">Kerchunk.combine.merge_vars</span></code> convenience function can be used to merge variables across datasets if we know the coordinates and global file attributes are identical.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">merge_vars</span>
+
+<span class="n">json_list</span> <span class="o">=</span> <span class="n">fs2</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;01_sea_surface_temperature.json&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">fs2</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;01_air_pressure_at_mean_sea_level.json&quot;</span><span class="p">)</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">merge_vars</span><span class="p">(</span><span class="n">json_list</span><span class="p">)</span>
+
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>                         <span class="p">(</span><span class="n">time0</span><span class="p">:</span> <span class="mi">744</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>                             <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>                             <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="o">...</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>                           <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mf">202.</span><span class="o">..</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">air_pressure_at_mean_sea_level</span>  <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">sea_surface_temperature</span>         <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="preprocessing">
+<h3>Preprocessing<a class="headerlink" href="#preprocessing" title="Permalink to this headline">¶</a></h3>
+<p>Pre-process can be used to apply arbitrary functions to the refs item in the input jsons before combining. In this case we use preprocessing to drop the <code class="docutils literal notranslate"><span class="pre">air_pressure_at_mean_sea_level</span></code> variable before combining <code class="docutils literal notranslate"><span class="pre">sea_surface_temperature</span></code> with a json containing data for the following month.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">pre_process</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;air_pressure_at_mean_sea_level&#39;</span><span class="p">):</span>
+            <span class="n">refs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">refs</span>
+
+<span class="n">json_list</span> <span class="o">=</span> <span class="n">fs2</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;vars_combined.json&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">fs2</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;02_sea_surface_temperature.json&quot;</span><span class="p">)</span>
+
+<span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span>
+    <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time0&#39;</span><span class="p">],</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">],</span>
+    <span class="n">preprocess</span> <span class="o">=</span> <span class="n">pre_process</span><span class="p">)</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">fs2</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;sea_surface_temperature_combined.json&#39;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>                  <span class="p">(</span><span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">,</span> <span class="n">time0</span><span class="p">:</span> <span class="mi">696</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>                      <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="mf">89.5</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>                      <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="n">nan</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="o">...</span> <span class="mf">359.2</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>                    <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mf">29.</span><span class="o">..</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">sea_surface_temperature</span>  <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="postprocessing">
+<h3>Postprocessing<a class="headerlink" href="#postprocessing" title="Permalink to this headline">¶</a></h3>
+<p>Similarly post-process can be used to apply an arbitrary function to the final dictionary before returning. A known issue with this particular dataset is that no fill value has been assigned to the lat and lon coordinates and thus default to 0, here we use post process to change the zarr fill_value attribute by opening the final json as a zarr store.</p>
+<p>Changing the fill_values could also be achieved by editing the final json through string manipulations or even a simple find and replace through an IDE.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">zarr</span>
+<span class="k">def</span> <span class="nf">modify_fill_value</span><span class="p">(</span><span class="n">out</span><span class="p">):</span>
+    <span class="n">out_</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="n">out_</span><span class="o">.</span><span class="n">lon</span><span class="o">.</span><span class="n">fill_value</span> <span class="o">=</span> <span class="o">-</span><span class="mi">999</span>
+    <span class="n">out_</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">fill_value</span> <span class="o">=</span> <span class="o">-</span><span class="mi">999</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+<span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="n">out</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">modify_fill_value</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+<span class="n">json_list</span> <span class="o">=</span> <span class="n">fs2</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;air_pressure_at_mean_sea_level_combined.json&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">fs2</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;sea_surface_temperature_combined.json&quot;</span><span class="p">)</span>
+
+<span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">},</span>
+    <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;time0&#39;</span><span class="p">],</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">],</span>
+    <span class="n">postprocess</span> <span class="o">=</span> <span class="n">postprocess</span><span class="p">)</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">fs2</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;combined.json&#39;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>
+
+
+<span class="n">backend_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;storage_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fo&quot;</span><span class="p">:</span> <span class="n">d</span><span class="p">,</span> <span class="s2">&quot;remote_protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;s3&quot;</span><span class="p">,</span><span class="s2">&quot;remote_options&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}}}</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="n">backend_args</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>                         <span class="p">(</span><span class="n">time0</span><span class="p">:</span> <span class="mi">1440</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>                             <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="o">...</span> <span class="o">-</span><span class="mf">89.75</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>                             <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">0.0</span> <span class="mf">0.25</span> <span class="mf">0.5</span> <span class="o">...</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>                           <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2020</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">...</span> <span class="mf">202.</span><span class="o">..</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">air_pressure_at_mean_sea_level</span>  <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">sea_surface_temperature</span>         <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="using-the-output">
+<h2>Using the output<a class="headerlink" href="#using-the-output" title="Permalink to this headline">¶</a></h2>
+<p>To open a previously computed referenced dataset it is not necessary to have kerchunk installed. Only <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> to generate the file mapping.</p>
+<p>Here we open a remotely stored reference file that maps to 10 ERA5 variables across a 43 year time span.</p>
+<p>The sidecar file has been compressed using zstd, from the original 1.8GB to 194MB. Opening this virtual dataset requires 7GB of free system memory.</p>
+<p>A smaller file containing only 2 years of data is available at:
+s3://esip-qhub-public/ecmwf/ERA5_2020_2022_multivar.json.zst</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">time</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="s1">&#39;s3://esip-qhub-public/ecmwf/ERA5_1979_2022_multivar.json.zst&#39;</span><span class="p">,</span>
+                       <span class="n">ref_storage_args</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;compression&quot;</span><span class="p">:</span> <span class="s2">&quot;zstd&quot;</span><span class="p">},</span>
+                       <span class="n">remote_protocol</span><span class="o">=</span><span class="s1">&#39;s3&#39;</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span><span class="kc">True</span><span class="p">})</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">backend_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;consolidated&#39;</span><span class="p">:</span><span class="kc">False</span><span class="p">})</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>                               <span class="p">(</span><span class="n">time0</span><span class="p">:</span> <span class="mi">380568</span><span class="p">,</span> <span class="n">lat</span><span class="p">:</span> <span class="mi">721</span><span class="p">,</span> <span class="n">lon</span><span class="p">:</span> <span class="mi">1440</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">lat</span>                                   <span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">90.0</span> <span class="mf">89.75</span> <span class="o">...</span> <span class="o">-</span><span class="mf">90.0</span>
+  <span class="o">*</span> <span class="n">lon</span>                                   <span class="p">(</span><span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">0.0</span> <span class="mf">0.25</span> <span class="o">...</span> <span class="mf">359.5</span> <span class="mf">359.8</span>
+  <span class="o">*</span> <span class="n">time0</span>                                 <span class="p">(</span><span class="n">time0</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">1979</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span> <span class="o">....</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">air_pressure_at_mean_sea_level</span>        <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">air_temperature_at_2_metres</span>           <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">dew_point_temperature_at_2_metres</span>     <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">eastward_wind_at_100_metres</span>           <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">eastward_wind_at_10_metres</span>            <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">lwe_thickness_of_surface_snow_amount</span>  <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">northward_wind_at_100_metres</span>          <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">sea_surface_temperature</span>               <span class="p">(</span><span class="n">time0</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">institution</span><span class="p">:</span>  <span class="n">ECMWF</span>
+    <span class="n">source</span><span class="p">:</span>       <span class="n">Reanalysis</span>
+    <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
+<span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mf">48.8</span> <span class="n">s</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mf">5.61</span> <span class="n">s</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">54.4</span> <span class="n">s</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mi">1</span><span class="nb">min</span> <span class="mi">8</span><span class="n">s</span>
+</pre></div>
+</div>
+<p>The above script required to open reference is rather complex. For this reason it is suggested to instead hide the script in an <a class="reference external" href="https://intake.readthedocs.io/en/latest/index.html">intake</a> catalog such that all that is required to open the dataset is the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">intake</span>
+<span class="n">catalog</span> <span class="o">=</span> <span class="n">intake</span><span class="o">.</span><span class="n">open_catalog</span><span class="p">(</span><span class="s1">&#39;s3://esip-qhub-public/ecmwf/intake_catalog.yml&#39;</span><span class="p">)</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">catalog</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="s1">&#39;ERA5-Kerchunk-1979-2022&#39;</span><span class="p">,</span> <span class="s1">&#39;ERA5-Kerchunk-2020-2022&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ds</span> <span class="o">=</span> <span class="n">catalog</span><span class="p">[</span><span class="s1">&#39;ERA5-Kerchunk-1979-2022&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to_dask</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Multiple different different datasets can be managed in a single intake catalog and so can be used to create a one stop shop containing all datasets available to a group of users.</p>
+<p>Once the referenced dataset is loaded it can be operated on just like any other lazy <a class="reference external" href="https://docs.xarray.dev/en/stable/">xarray</a> dataset.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">time</span>
+<span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">time0</span> <span class="o">=</span> <span class="s1">&#39;2021-01-01T00:00:00&#39;</span><span class="p">)</span>
+<span class="n">da</span><span class="p">[</span><span class="s1">&#39;air_pressure_at_mean_sea_level&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="_images/output_62_2.png" src="_images/output_62_2.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mf">3.79</span> <span class="n">s</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mi">382</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">4.18</span> <span class="n">s</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">6.22</span> <span class="n">s</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">time</span>
+<span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">lat</span> <span class="o">=</span> <span class="o">-</span><span class="mi">34</span><span class="p">)</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">lon</span> <span class="o">=</span> <span class="mi">198</span><span class="p">)</span>
+<span class="n">da</span><span class="o">.</span><span class="n">air_temperature_at_2_metres</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">time0</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="s1">&#39;2000-01-01&#39;</span><span class="p">,</span><span class="s1">&#39;2000-12-31&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="_images/output_63_2.png" src="_images/output_63_2.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CPU</span> <span class="n">times</span><span class="p">:</span> <span class="n">user</span> <span class="mf">9.92</span> <span class="n">s</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="mi">663</span> <span class="n">ms</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="mf">10.6</span> <span class="n">s</span>
+<span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">16.5</span> <span class="n">s</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="test_example.html" class="btn btn-neutral float-left" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="detail.html" class="btn btn-neutral float-right" title="Detailed description" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Martin Durant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

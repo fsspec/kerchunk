@@ -16,7 +16,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorial" href="test_example.html" /> 
+    <link rel="next" title="Quick Start" href="test_example.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -39,7 +39,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
@@ -114,14 +115,20 @@ very wide variety of data formats.</p>
 <p>The primary purpose of <code class="docutils literal notranslate"><span class="pre">kerchunk</span></code> is to find where these binary blocks are, and how to decode them,
 so that blocks from one or more files can be arranged into aggregate datasets accessed via the
 <a class="reference external" href="https://zarr.readthedocs.io/en/stable/">zarr</a> library and the power of <a class="reference external" href="https://filesystem-spec.readthedocs.io/en/latest/">fsspec</a>. To understand how this works, please read
-<a class="reference internal" href="detail.html"><span class="doc">Detailed description</span></a>. A full worked example for multiple HDF5 files is presented in <a class="reference internal" href="test_example.html"><span class="doc">Tutorial</span></a>.</p>
+<a class="reference internal" href="detail.html"><span class="doc">Detailed description</span></a>. Or consider the PyData talk: <a class="reference external" href="https://www.youtube.com/watch?v=0bqpxX3Nn_A">All You Need Is Zarr</a>.</p>
 <div class="toctree-wrapper compound">
 <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="test_example.html">Tutorial</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="test_example.html#single-file-jsons">Single file JSONs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="test_example.html#multi-file-jsons">Multi-file JSONs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="test_example.html#using-the-output">Using the output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#single-file-jsons">Single file JSONs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#combine-multiple-kerchunkd-datasets-into-a-single-logical-aggregate-dataset">Combine multiple kerchunk’d datasets into a single logical aggregate dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#using-the-output">Using the output</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a><ul>
@@ -168,7 +175,7 @@ so that blocks from one or more files can be arranged into aggregate datasets ac
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="test_example.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="test_example.html" class="btn btn-neutral float-right" title="Quick Start" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
