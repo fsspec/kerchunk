@@ -186,6 +186,9 @@ class NetCDF3ToZarr(netcdf_file):
                     if k not in ["_FillValue", "missing_value"]
                 }
             )
+            for k in ["add_offset", "scale_factor"]:
+                if k in arr.attrs:
+                    arr.attrs[k] = float(arr.attrs[k])
             arr.attrs["_ARRAY_DIMENSIONS"] = list(var.dimensions)
         if "record_array" in self.chunks:
             # native chunks version (no codec, no options)
