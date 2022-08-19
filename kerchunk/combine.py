@@ -91,7 +91,7 @@ class MultiZarrToZarr:
         concat_dims=None,
         coo_dtypes=None,
         identical_dims=None,
-        target_protocol = None
+        target_protocol = None,
         target_options=None,
         remote_protocol=None,
         remote_options=None,
@@ -150,7 +150,6 @@ class MultiZarrToZarr:
                     self._paths.append(of.full_name)
                 fo_list = fsspec.filesystem(self.target_protocol).cat(self.path)
                 fo_list = list(fo_list.values())
-                fo_list = [eval(f) for f in fo_list]
 
             self._fss = [
                 fsspec.filesystem(
