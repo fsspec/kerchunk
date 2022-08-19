@@ -146,7 +146,8 @@ class MultiZarrToZarr:
                 self._paths = []
                 for of in fsspec.open_files(self.path, **self.target_options):
                     self._paths.append(of.full_name)
-                fo_list = fsspec.core.url_to_fs(self.path[0] **self.target_options)[0].cat(self.path)
+                fs = fsspec.core.url_to_fs(self.path[0], **self.target_options)[0]
+                fo_list = fs.cat(self.path)
                 fo_list = list(fo_list.values())
 
             self._fss = [
