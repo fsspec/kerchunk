@@ -91,6 +91,7 @@ class MultiZarrToZarr:
         concat_dims=None,
         coo_dtypes=None,
         identical_dims=None,
+        target_protocol = None
         target_options=None,
         remote_protocol=None,
         remote_options=None,
@@ -119,6 +120,7 @@ class MultiZarrToZarr:
         logger.debug("Concat dims: %s", self.concat_dims)
         logger.debug("Coord map: %s", self.coo_map)
         self.coo_dtypes = coo_dtypes or {}
+        self.target_protocol = target_protocol
         self.target_options = target_options or {}
         self.remote_protocol = remote_protocol
         self.remote_options = remote_options or {}
@@ -144,10 +146,11 @@ class MultiZarrToZarr:
                 self._paths = [None] * len(fo_list)
             else:
                 self._paths = []
-                fo_list = []
                 for of in fsspec.open_files(self.path, **self.target_options):
-                    fo_list.append(of.open())
                     self._paths.append(of.full_name)
+                fo_list = fsspec.filesystem(self.target_protocol).cat(self.path)
+                fo_list = list(fo_list.values())
+                fo_list = [eval(f) for f in fo_list]
 
             self._fss = [
                 fsspec.filesystem(
