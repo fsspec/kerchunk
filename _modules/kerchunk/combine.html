@@ -564,29 +564,98 @@
         <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">out</span>
 
+
 <span class="k">def</span> <span class="nf">merge_vars</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Merge variables across datasets with identical coordinates</span>
 
 <span class="sd">    :param files: list(dict), list(str) or list(fsspec.OpenFile)</span>
 <span class="sd">        List of reference dictionaries or list of paths to reference json files to be merged</span>
 <span class="sd">    :param storage_options: dict</span>
-<span class="sd">        Dictionary containing kwargs to `fsspec.open_files`    </span>
+<span class="sd">        Dictionary containing kwargs to `fsspec.open_files`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
         <span class="n">fo_list</span> <span class="o">=</span> <span class="n">files</span>
         <span class="n">merged</span> <span class="o">=</span> <span class="n">fo_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">fo_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
-            <span class="n">refs</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span>
-            <span class="n">merged</span><span class="p">[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
+            <span class="n">refs</span> <span class="o">=</span> <span class="n">file</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span>
+            <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">fo_list</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open_files</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span>
         <span class="k">with</span> <span class="n">fo_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">merged</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">fo_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
             <span class="k">with</span> <span class="n">file</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">refs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span>
-            <span class="n">merged</span><span class="p">[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
+                <span class="n">refs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span>
+            <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">merged</span>
+
+
+<span class="k">def</span> <span class="nf">concatenate_arrays</span><span class="p">(</span>
+    <span class="n">files</span><span class="p">,</span>
+    <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">key_seperator</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">check_arrays</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simple concatenate of one zarr array along an axis</span>
+
+<span class="sd">    Assumes that each array is identical in shape/type.</span>
+
+<span class="sd">    If the inputs are groups, provide the path to the contained array, and all other arrays</span>
+<span class="sd">    will be ignored. You could concatentate the arrays separately and then recombine them</span>
+<span class="sd">    with ``merge_vars``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    files: list[dict] | list[str]</span>
+<span class="sd">        Input reference sets, maybe generated by ``kerchunk.zarr.single_zarr``</span>
+<span class="sd">    storage_options: dict | None</span>
+<span class="sd">        To create the filesystems, such at target/remote protocol and target/remote options</span>
+<span class="sd">    key_seperator: str</span>
+<span class="sd">        &quot;.&quot; or &quot;/&quot;, how the zarr keys are stored</span>
+<span class="sd">    path: str or None</span>
+<span class="sd">        If the datasets are groups rather than simple arrays, this is the location in the</span>
+<span class="sd">        group hierarchy to concatenate. The group structure will be recreated.</span>
+<span class="sd">    check_arrays: bool</span>
+<span class="sd">        Whether we check the size and chunking of the inputs. If True, and an</span>
+<span class="sd">        inconsistency is found, an exception is raised. If False (default), the</span>
+<span class="sd">        user is expected to be certain that the chunking and shapes are</span>
+<span class="sd">        compatible.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span>
+        <span class="n">zdata</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zarray&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span>
+            <span class="n">chunks</span> <span class="o">=</span> <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
+            <span class="n">chunks_per_file</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">/</span> <span class="n">chunks</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span>
+            <span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">*=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+            <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape</span>
+            <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zarray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">zdata</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.zgroup&quot;</span><span class="p">,</span> <span class="s2">&quot;.zattrs&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zattrs&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">check_arrays</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">shape</span> <span class="o">!=</span> <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Incompatible array shapes at </span><span class="si">{fn}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">chunks</span> <span class="o">!=</span> <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Incompatible array chunks at </span><span class="si">{fn}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.z&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">key_seperator</span><span class="p">)</span>
+            <span class="n">parts</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">chunks_per_file</span><span class="p">)</span>
+            <span class="n">key2</span> <span class="o">=</span> <span class="n">path</span> <span class="o">+</span> <span class="n">key_seperator</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">key2</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 </pre></div>
 
            </div>
