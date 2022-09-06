@@ -515,7 +515,12 @@ def merge_vars(files, storage_options=None):
 
 
 def concatenate_arrays(
-    files, storage_options=None, axis=0, key_seperator=".", path=None
+    files,
+    storage_options=None,
+    axis=0,
+    key_seperator=".",
+    path=None,
+    check_arrays=False,
 ):
     """Simple concatenate of one zarr array along an axis
 
@@ -534,7 +539,13 @@ def concatenate_arrays(
     key_seperator: str
         "." or "/", how the zarr keys are stored
     path: str or None
-        If the
+        If the datasets are groups rather than simple arrays, this is the location in the
+        group hierarchy to concatenate. The group structure will be recreated.
+    check_arrays: bool
+        Whether we check the size and chunking of the inputs. If True, and an
+        inconsistency is found, an exception is raised. If False (default), the
+        user is expected to be certain that the chunking and shapes are
+        compatible.
     """
     out = {}
     if path is None:
@@ -544,16 +555,22 @@ def concatenate_arrays(
 
     for i, fn in enumerate(files):
         fs = fsspec.filesystem("reference", fo=fn, **(storage_options or {}))
+        zdata = ujson.load(fs.open(f"{path}.zarray"))
         if i == 0:
-            zdata = ujson.load(fs.open(f"{path}.zarray"))
             shape = zdata["shape"]
-            chunks_per_file = int(shape[axis] / zdata["chunks"][axis])
+            chunks = zdata["chunks"]
+            chunks_per_file = int(shape[axis] / chunks[axis])
             shape[axis] *= len(files)
             zdata["shape"] = shape
             out[f"{path}.zarray"] = ujson.dumps(zdata)
             for name in [".zgroup", ".zattrs", f"{path}.zattrs"]:
                 if name in fs.references:
                     out[name] = fs.references[name]
+        if check_arrays:
+            if shape != zdata["shape"]:
+                raise ValueError(f"Incompatible array shapes at {fn}")
+            if chunks != zdata["chunks"]:
+                raise ValueError(f"Incompatible array chunks at {fn}")
         for key in fs.find(""):
             if key.startswith(f"{path}.z") or not key.startswith(path):
                 continue
