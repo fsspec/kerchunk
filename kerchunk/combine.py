@@ -2,6 +2,7 @@ import base64
 import collections.abc
 import logging
 import re
+import warnings
 
 import fsspec
 import fsspec.utils
@@ -243,6 +244,10 @@ class MultiZarrToZarr:
                     coos[var].add(value)
 
         self.coos = _reorganise(coos)
+        for c, v in self.coos.items():
+            if len(v) < 2:
+                warnings.warn(f"Concatenated coordinate '{c}' contains less than expected"
+                              f"number of values across the datasets: {v}")
         logger.debug("Created coordinates map")
         self.done.add(1)
         return coos
