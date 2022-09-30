@@ -564,3 +564,16 @@ def test_merge_vars():
     fs.pipe("file2.json", b'''{"version": 1, "refs": {"item2": 2}}''')
     merge = kerchunk.combine.merge_vars(['memory://file1.json', 'memory://file2.json'])
     assert list(merge['refs']) == ['item1', 'item2']
+
+
+def test_bad_coo_warning(refs):
+    def f(*_, **__):
+        return 1
+    mzz = MultiZarrToZarr(
+        [refs["single1"], refs["single2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_map={"time": f},
+    )
+    with pytest.warns(match="contains less than expected"):
+        mzz.first_pass()
