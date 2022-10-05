@@ -6,7 +6,7 @@ import numpy as np
 try:
     from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
 except ModuleNotFoundError:
-    raise ImportError("scipy is required for kerchunking NetCDF3 files. Please install with `pip/conda install scipy`s")
+    raise ImportError("scipy is required for kerchunking NetCDF3 files. Please install with `pip/conda install scipy`")
 
 import fsspec
 
