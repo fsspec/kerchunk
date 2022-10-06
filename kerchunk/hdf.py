@@ -4,11 +4,15 @@ from typing import Union, BinaryIO
 
 import fsspec.core
 import numpy as np
-import h5py
 import zarr
 from zarr.meta import encode_fill_value
 import numcodecs
 from .codecs import FillStringsCodec
+
+try:
+    import h5py
+except ModuleNotFoundError:
+    raise ImportError("h5py is required for kerchunking HDF5/NetCDF4 files. Please install with `pip/conda install h5py`")
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -66,6 +70,7 @@ class SingleHdf5ToZarr:
         error="warn",
         vlen_encode="embed",
     ):
+        
         # Open HDF5 file in read mode...
         lggr.debug(f"HDF5 file: {h5f}")
         if isinstance(h5f, str):

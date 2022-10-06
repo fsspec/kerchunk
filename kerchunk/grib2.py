@@ -1,7 +1,12 @@
+from ast import Import
 import base64
 import logging
 
-import cfgrib
+try:
+    import cfgrib
+except ModuleNotFoundError as err:
+    if err.name == 'cfgrib': raise ImportError('cfgrib is needed to kerchunk GRIB2 files. Please install it with `conda install -c conda-forge cfgrib`')    
+
 import eccodes
 import fsspec
 import zarr
