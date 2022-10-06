@@ -4,10 +4,10 @@ import logging
 
 try:
     import cfgrib
-    import eccodes
 except ModuleNotFoundError as err:
     if err.name == 'cfgrib': raise ImportError('cfgrib is needed to kerchunk GRIB2 files. Please install it with `conda install -c conda-forge cfgrib`')    
 
+import eccodes
 import fsspec
 import zarr
 import numpy as np
