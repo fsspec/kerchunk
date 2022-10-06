@@ -7,7 +7,6 @@ try:
     import eccodes
 except ModuleNotFoundError as err:
     if err.name == 'cfgrib': raise ImportError('cfgrib is needed to kerchunk GRIB2 files. Please install it with `conda install -c conda-forge cfgrib`')    
-    if err.name == 'eccodes': raise ImportError('eccodes is needed to kercunk GRIB2 files. Please install it with `conda install -c conda-forge eccodes`')
 
 import fsspec
 import zarr
