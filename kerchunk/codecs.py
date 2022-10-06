@@ -96,6 +96,9 @@ class GRIBCodec(numcodecs.abc.Codec):
         finally:
             eccodes.codes_release(mid)
 
+        if var == "values" and eccodes.codes_get_string(mid, "missingValue"):
+            data[data == float(eccodes.codes_get_string(mid, "missingValue"))
+                 ] = np.nan
         if out is not None:
             return numcodecs.compat.ndarray_copy(data, out)
         else:
