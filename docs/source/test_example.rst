@@ -93,3 +93,8 @@ examples).
 Note that, if the combining was done previously and saved to a JSON file, then the path to
 it should replace ``out``, above, along with a ``target_options`` for any additional
 arguments fsspec might to access it
+
+Example/Tutorial Notebook
+================
+
+A set of tutorials notebooks, presented at the Earth Science Information Partners 2022 Winter Meeting, can be found at the following link, along with links to run the code on free cloud-based notebook environments: https://github.com/lsterzinger/2022-esip-kerchunk-tutorial
