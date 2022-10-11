@@ -12,7 +12,7 @@ from .codecs import FillStringsCodec
 try:
     import h5py
 except ModuleNotFoundError:
-    raise ImportError("h5py is required for kerchunking HDF5/NetCDF4 files. Please install with `pip/conda install h5py`")
+    raise ImportError("h5py is required for kerchunking HDF5/NetCDF4 files. Please install with `pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html for more details.")
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
