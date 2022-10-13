@@ -1,3 +1,5 @@
+import base64
+
 import ujson
 
 import fsspec
@@ -32,6 +34,21 @@ def class_factory(func):
     return FunctionWrapper
 
 
+def consolidate(refs):
+    """Turn raw references into output"""
+    out = {}
+    for k, v in refs.items():
+        if isinstance(v, bytes):
+            try:
+                # easiest way to test if data is ascii
+                out[k] = v.decode("ascii")
+            except UnicodeDecodeError:
+                out[k] = (b"base64:" + base64.b64encode(v)).decode()
+        else:
+            out[k] = v
+    return {"version": 1, "refs": out}
+
+
 def rename_target(refs, renames):
     """Utility to change URLs in a reference set in a predictable way
 
@@ -52,14 +69,14 @@ def rename_target(refs, renames):
     dict: the altered reference set, which can be saved
     """
     fs = fsspec.filesystem("reference", fo=refs)  # to produce normalised refs
-    refs = fs.refs
+    refs = fs.references
     out = {}
     for k, v in refs.items():
         if isinstance(v, list) and v[0] in renames:
             out[k] = [renames[v[0]]] + v[1:]
         else:
             out[k] = v
-    return out
+    return consolidate(out)
 
 
 def rename_target_files(
@@ -85,11 +102,11 @@ def rename_target_files(
     None
     """
     with fsspec.open(url_in, **(storage_options_in or {})) as f:
-        old = ujson.loads(f)
+        old = ujson.load(f)
     new = rename_target(old, renames)
     if url_out is None:
         url_out = url_in
     if storage_options_out is None:
         storage_options_out = storage_options_in
-    with fsspec.open(url_out, mode="wb", **(storage_options_out or {})) as f:
+    with fsspec.open(url_out, mode="wt", **(storage_options_out or {})) as f:
         ujson.dump(new, f)

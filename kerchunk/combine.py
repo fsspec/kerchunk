@@ -1,4 +1,3 @@
-import base64
 import collections.abc
 import logging
 import re
@@ -10,6 +9,8 @@ import numpy as np
 import numcodecs
 import ujson
 import zarr
+
+from kerchunk.utils import consolidate
 
 logger = logging.getLogger("kerchunk.combine")
 
@@ -475,21 +476,6 @@ class MultiZarrToZarr:
         else:
             with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
                 ujson.dump(out, f)
-
-
-def consolidate(refs):
-    """Turn raw references into output"""
-    out = {}
-    for k, v in refs.items():
-        if isinstance(v, bytes):
-            try:
-                # easiest way to test if data is ascii
-                out[k] = v.decode("ascii")
-            except UnicodeDecodeError:
-                out[k] = (b"base64:" + base64.b64encode(v)).decode()
-        else:
-            out[k] = v
-    return {"version": 1, "refs": out}
 
 
 def _reorganise(coos):
