@@ -97,8 +97,7 @@ class GRIBCodec(numcodecs.abc.Codec):
             eccodes.codes_release(mid)
 
         if var == "values" and eccodes.codes_get_string(mid, "missingValue"):
-            data[data == float(eccodes.codes_get_string(mid, "missingValue"))
-                 ] = np.nan
+            data[data == float(eccodes.codes_get_string(mid, "missingValue"))] = np.nan
         if out is not None:
             return numcodecs.compat.ndarray_copy(data, out)
         else:
@@ -109,10 +108,20 @@ numcodecs.register_codec(GRIBCodec, "grib")
 
 
 class AsciiTableCodec(numcodecs.abc.Codec):
+    """Decodes ASCII-TABLE extensions in FITS files"""
 
     codec_id = "FITSAscii"
 
     def __init__(self, indtypes, outdtypes):
+        """
+
+        Parameters
+        ----------
+        indtypes: list[str]
+            dtypes of the fields as in the table
+        outdtypes: list[str]
+            requested final dtypes
+        """
         self.indtypes = indtypes
         self.outdtypes = outdtypes
 
@@ -127,6 +136,8 @@ class AsciiTableCodec(numcodecs.abc.Codec):
 
 
 class VarArrCodec(numcodecs.abc.Codec):
+    """Variable length arrays in a FITS BINTABLE extension"""
+
     codec_id = "FITSVarBintable"
     # https://heasarc.gsfc.nasa.gov/docs/software/fitsio/quick/node10.html
     ftypes = {"B": "uint8", "I": ">i2", "J": ">i4"}

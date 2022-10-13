@@ -1,4 +1,3 @@
-import base64
 import collections.abc
 import logging
 import re
@@ -10,6 +9,8 @@ import numpy as np
 import numcodecs
 import ujson
 import zarr
+
+from kerchunk.utils import consolidate
 
 logger = logging.getLogger("kerchunk.combine")
 
@@ -246,8 +247,10 @@ class MultiZarrToZarr:
         self.coos = _reorganise(coos)
         for c, v in self.coos.items():
             if len(v) < 2:
-                warnings.warn(f"Concatenated coordinate '{c}' contains less than expected"
-                              f"number of values across the datasets: {v}")
+                warnings.warn(
+                    f"Concatenated coordinate '{c}' contains less than expected"
+                    f"number of values across the datasets: {v}"
+                )
         logger.debug("Created coordinates map")
         self.done.add(1)
         return coos
@@ -452,7 +455,11 @@ class MultiZarrToZarr:
         self.done.add(3)
 
     def translate(self, filename=None, storage_options=None):
-        """Perform all stages and return the resultant references dict"""
+        """Perform all stages and return the resultant references dict
+
+        If filename and storage options are given, the output is written to this
+        file using ujson and fsspec instead of being returned.
+        """
         if 1 not in self.done:
             self.first_pass()
         if 2 not in self.done:
@@ -469,21 +476,6 @@ class MultiZarrToZarr:
         else:
             with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
                 ujson.dump(out, f)
-
-
-def consolidate(refs):
-    """Turn raw references into output"""
-    out = {}
-    for k, v in refs.items():
-        if isinstance(v, bytes):
-            try:
-                # easiest way to test if data is ascii
-                out[k] = v.decode("ascii")
-            except UnicodeDecodeError:
-                out[k] = (b"base64:" + base64.b64encode(v)).decode()
-        else:
-            out[k] = v
-    return {"version": 1, "refs": out}
 
 
 def _reorganise(coos):
