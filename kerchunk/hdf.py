@@ -49,11 +49,11 @@ class SingleHdf5ToZarr:
         What to do with VLEN string variables or columns of tabular variables
         leave: pass through the 16byte garbage IDs unaffected, but requires no codec
         null: set all the strings to None or empty; required that this library is available
-            at read time
+        at read time
         embed: include all the values in the output JSON (should not be used for large tables)
         encode: save the ID-to-value mapping in a codec, to produce the real values at read
-            time; requires this library to be available. Can be efficient storage where there
-            are few unique values.
+        time; requires this library to be available. Can be efficient storage where there
+        are few unique values.
     """
 
     def __init__(
