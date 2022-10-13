@@ -46,7 +46,13 @@
 <li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#file-format-backends">File format backends</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#codecs">Codecs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#combining">Combining</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -75,6 +81,8 @@
              
   <div class="section" id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="file-format-backends">
+<h2>File format backends<a class="headerlink" href="#file-format-backends" title="Permalink to this headline">¶</a></h2>
 <table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
@@ -87,12 +95,6 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.scan_grib</span></code></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.GRIBCodec</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>(path[, …])</p></td>
-<td><p>Combine multiple kerchunk’d datasets into a single logical aggregate dataset</p></td>
-</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.fits.process_file" title="kerchunk.fits.process_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.fits.process_file</span></code></a>(url[, …])</p></td>
 <td><p>Create JSON references for a single FITS file as a zarr group</p></td>
 </tr>
@@ -100,9 +102,6 @@
 <td><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.RecordArrayMember</span></code></p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -113,9 +112,9 @@
 <dd><p>Translate the content of one HDF5 file into Zarr metadata.</p>
 <p>HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array
 chunks remain in the HDF5 file.</p>
-<dl class="field-list">
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><dl>
+<dd class="field-odd"><dl class="simple">
 <dt><strong>h5f</strong><span class="classifier">file-like or str</span></dt><dd><p>Input HDF5 file. Can be a binary Python file-like object (duck-typed, adhering
 to BinaryIO is optional), in which case must also provide url. If a str,
 file will be opened using fsspec and storage_options.</p>
@@ -132,16 +131,12 @@ to disable</p>
 <dt><strong>error: “warn” (default) | “pdb” | “ignore”</strong></dt><dd></dd>
 <dt><strong>vlen_encode: [“embed”, “null”, “leave”, “encode”]</strong></dt><dd><p>What to do with VLEN string variables or columns of tabular variables
 leave: pass through the 16byte garbage IDs unaffected, but requires no codec
-null: set all the strings to None or empty; required that this library is available</p>
-<blockquote>
-<div><p>at read time</p>
-</div></blockquote>
-<p>embed: include all the values in the output JSON (should not be used for large tables)
-encode: save the ID-to-value mapping in a codec, to produce the real values at read</p>
-<blockquote>
-<div><p>time; requires this library to be available. Can be efficient storage where there
+null: set all the strings to None or empty; required that this library is available
+at read time
+embed: include all the values in the output JSON (should not be used for large tables)
+encode: save the ID-to-value mapping in a codec, to produce the real values at read
+time; requires this library to be available. Can be efficient storage where there
 are few unique values.</p>
-</div></blockquote>
 </dd>
 </dl>
 </dd>
@@ -177,6 +172,195 @@ returns a “reference” structure to be used with zarr/kerchunk</p>
 
 </dd></dl>
 
+<dl class="function">
+<dt id="kerchunk.fits.process_file">
+<code class="sig-prename descclassname">kerchunk.fits.</code><code class="sig-name descname">process_file</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">extension=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">primary_attr_to_group=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/fits.html#process_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.fits.process_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create JSON references for a single FITS file as a zarr group</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>url: str</strong></dt><dd><p>Where the file is</p>
+</dd>
+<dt><strong>storage_options: dict</strong></dt><dd><p>How to load that file (passed to fsspec)</p>
+</dd>
+<dt><strong>extension: list(int | str) | int | str or None</strong></dt><dd><p>Which extensions to include. Can be ordinal integer(s), the extension name (str) or if None,
+uses the first data extension</p>
+</dd>
+<dt><strong>inline_threshold: int</strong></dt><dd><p>(not yet implemented)</p>
+</dd>
+<dt><strong>primary_attr_to_group: bool</strong></dt><dd><p>Whether the output top-level group contains the attributes of the primary extension
+(which often contains no data, just a general description)</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>dict of the references</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="kerchunk.tiff.tiff_to_zarr">
+<code class="sig-prename descclassname">kerchunk.tiff.</code><code class="sig-name descname">tiff_to_zarr</code><span class="sig-paren">(</span><em class="sig-param">urlpath</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">target=None</em>, <em class="sig-param">target_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/tiff.html#tiff_to_zarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.tiff.tiff_to_zarr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>urlpath: str</strong></dt><dd><p>Location of input TIFF</p>
+</dd>
+<dt><strong>remote_options: dict</strong></dt><dd><p>pass these to fsspec when opening urlpath</p>
+</dd>
+<dt><strong>target: str</strong></dt><dd><p>Write JSON to this location. If not given, no file is output</p>
+</dd>
+<dt><strong>target_options: dict</strong></dt><dd><p>pass these to fsspec when opening target</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>references dict</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="codecs">
+<h2>Codecs<a class="headerlink" href="#codecs" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.codecs.GRIBCodec" title="kerchunk.codecs.GRIBCodec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.codecs.GRIBCodec</span></code></a>(var[, dtype])</p></td>
+<td><p>Read GRIB stream of bytes as a message using eccodes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.codecs.AsciiTableCodec" title="kerchunk.codecs.AsciiTableCodec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.codecs.AsciiTableCodec</span></code></a>(indtypes, …)</p></td>
+<td><p>Decodes ASCII-TABLE extensions in FITS files</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.codecs.FillStringsCodec" title="kerchunk.codecs.FillStringsCodec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.codecs.FillStringsCodec</span></code></a>(dtype[, id_map])</p></td>
+<td><p>Sets fixed-length string fields to empty</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.codecs.VarArrCodec" title="kerchunk.codecs.VarArrCodec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.codecs.VarArrCodec</span></code></a>(dt_in, dt_out, …)</p></td>
+<td><p>Variable length arrays in a FITS BINTABLE extension</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.codecs.RecordArrayMember" title="kerchunk.codecs.RecordArrayMember"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.codecs.RecordArrayMember</span></code></a>(member, dtype)</p></td>
+<td><p>Read components of a record array (complex dtype)</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="kerchunk.codecs.GRIBCodec">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.codecs.</code><code class="sig-name descname">GRIBCodec</code><span class="sig-paren">(</span><em class="sig-param">var</em>, <em class="sig-param">dtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#GRIBCodec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.GRIBCodec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read GRIB stream of bytes as a message using eccodes</p>
+<dl class="method">
+<dt id="kerchunk.codecs.GRIBCodec.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">var</em>, <em class="sig-param">dtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#GRIBCodec.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.GRIBCodec.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="kerchunk.codecs.AsciiTableCodec">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.codecs.</code><code class="sig-name descname">AsciiTableCodec</code><span class="sig-paren">(</span><em class="sig-param">indtypes</em>, <em class="sig-param">outdtypes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#AsciiTableCodec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.AsciiTableCodec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decodes ASCII-TABLE extensions in FITS files</p>
+<dl class="method">
+<dt id="kerchunk.codecs.AsciiTableCodec.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">indtypes</em>, <em class="sig-param">outdtypes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#AsciiTableCodec.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.AsciiTableCodec.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>indtypes: list[str]</strong></dt><dd><p>dtypes of the fields as in the table</p>
+</dd>
+<dt><strong>outdtypes: list[str]</strong></dt><dd><p>requested final dtypes</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="kerchunk.codecs.FillStringsCodec">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.codecs.</code><code class="sig-name descname">FillStringsCodec</code><span class="sig-paren">(</span><em class="sig-param">dtype</em>, <em class="sig-param">id_map=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#FillStringsCodec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.FillStringsCodec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets fixed-length string fields to empty</p>
+<p>To be used with HDF fields of strings, to fill in the valules of the opaque
+16-byte string IDs.</p>
+<dl class="method">
+<dt id="kerchunk.codecs.FillStringsCodec.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">dtype</em>, <em class="sig-param">id_map=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#FillStringsCodec.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.FillStringsCodec.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Note: we must pass id_map using strings, because this is JSON-encoded
+by zarr.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>id_map: None | str | dict(str, str)</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="kerchunk.codecs.VarArrCodec">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.codecs.</code><code class="sig-name descname">VarArrCodec</code><span class="sig-paren">(</span><em class="sig-param">dt_in</em>, <em class="sig-param">dt_out</em>, <em class="sig-param">nrow</em>, <em class="sig-param">types</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#VarArrCodec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.VarArrCodec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Variable length arrays in a FITS BINTABLE extension</p>
+<dl class="method">
+<dt id="kerchunk.codecs.VarArrCodec.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">dt_in</em>, <em class="sig-param">dt_out</em>, <em class="sig-param">nrow</em>, <em class="sig-param">types</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#VarArrCodec.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.VarArrCodec.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="kerchunk.codecs.RecordArrayMember">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.codecs.</code><code class="sig-name descname">RecordArrayMember</code><span class="sig-paren">(</span><em class="sig-param">member</em>, <em class="sig-param">dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#RecordArrayMember"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.RecordArrayMember" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read components of a record array (complex dtype)</p>
+<dl class="method">
+<dt id="kerchunk.codecs.RecordArrayMember.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">member</em>, <em class="sig-param">dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#RecordArrayMember.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.codecs.RecordArrayMember.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>member: str</strong></dt><dd><p>name of desired subarray</p>
+</dd>
+<dt><strong>dtype: list of lists</strong></dt><dd><p>description of the complex dtype of the overall record array. Must be both
+parsable by <code class="docutils literal notranslate"><span class="pre">np.dtype()</span></code> and also be JSON serialisable</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="combining">
+<h2>Combining<a class="headerlink" href="#combining" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>(path[, …])</p></td>
+<td><p>Combine multiple kerchunk’d datasets into a single logical aggregate dataset</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.merge_vars" title="kerchunk.combine.merge_vars"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.merge_vars</span></code></a>(files[, …])</p></td>
+<td><p>Merge variables across datasets with identical coordinates</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.concatenate_arrays" title="kerchunk.combine.concatenate_arrays"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.concatenate_arrays</span></code></a>(files[, …])</p></td>
+<td><p>Simple concatenate of one zarr array along an axis</p></td>
+</tr>
+</tbody>
+</table>
 <dl class="class">
 <dt id="kerchunk.combine.MultiZarrToZarr">
 <em class="property">class </em><code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
@@ -242,12 +426,6 @@ postprocess(dict)-&gt; dict</p></li>
 <li><p><strong>validate_chunk</strong> – callable</p></li>
 </ul>
 </dd>
-<dt class="field-even">Attributes</dt>
-<dd class="field-even"><dl class="simple">
-<dt><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.fss" title="kerchunk.combine.MultiZarrToZarr.fss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fss</span></code></a></dt><dd><p>filesystem instances being analysed, one per input dataset</p>
-</dd>
-</dl>
-</dd>
 </dl>
 <p class="rubric">Methods</p>
 <table class="longtable docutils align-default">
@@ -256,106 +434,143 @@ postprocess(dict)-&gt; dict</p></li>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.first_pass" title="kerchunk.combine.MultiZarrToZarr.first_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">first_pass</span></code></a>()</p></td>
-<td><p>Accumulate the set of concat coords values across all inputs</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.second_pass" title="kerchunk.combine.MultiZarrToZarr.second_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">second_pass</span></code></a>()</p></td>
-<td><p>map every input chunk to the output</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.store_coords" title="kerchunk.combine.MultiZarrToZarr.store_coords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">store_coords</span></code></a>()</p></td>
-<td><p>Write coordinate arrays into the output</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([filename, storage_options])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([filename, storage_options])</p></td>
 <td><p>Perform all stages and return the resultant references dict</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="kerchunk.combine.MultiZarrToZarr.first_pass">
-<code class="sig-name descname">first_pass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.first_pass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.first_pass" title="Permalink to this definition">¶</a></dt>
-<dd><p>Accumulate the set of concat coords values across all inputs</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="kerchunk.combine.MultiZarrToZarr.fss">
-<em class="property">property </em><code class="sig-name descname">fss</code><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.fss" title="Permalink to this definition">¶</a></dt>
-<dd><p>filesystem instances being analysed, one per input dataset</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="kerchunk.combine.MultiZarrToZarr.second_pass">
-<code class="sig-name descname">second_pass</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.second_pass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.second_pass" title="Permalink to this definition">¶</a></dt>
-<dd><p>map every input chunk to the output</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="kerchunk.combine.MultiZarrToZarr.store_coords">
-<code class="sig-name descname">store_coords</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.store_coords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.store_coords" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write coordinate arrays into the output</p>
+<dt id="kerchunk.combine.MultiZarrToZarr.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="kerchunk.combine.MultiZarrToZarr.translate">
 <code class="sig-name descname">translate</code><span class="sig-paren">(</span><em class="sig-param">filename=None</em>, <em class="sig-param">storage_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.translate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform all stages and return the resultant references dict</p>
+<p>If filename and storage options are given, the output is written to this
+file using ujson and fsspec instead of being returned.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="function">
-<dt id="kerchunk.fits.process_file">
-<code class="sig-prename descclassname">kerchunk.fits.</code><code class="sig-name descname">process_file</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">extension=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">primary_attr_to_group=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/fits.html#process_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.fits.process_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create JSON references for a single FITS file as a zarr group</p>
+<dt id="kerchunk.combine.merge_vars">
+<code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">merge_vars</code><span class="sig-paren">(</span><em class="sig-param">files</em>, <em class="sig-param">storage_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#merge_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.merge_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merge variables across datasets with identical coordinates</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files</strong> – list(dict), list(str) or list(fsspec.OpenFile)
+List of reference dictionaries or list of paths to reference json files to be merged</p></li>
+<li><p><strong>storage_options</strong> – dict
+Dictionary containing kwargs to <cite>fsspec.open_files</cite></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="kerchunk.combine.concatenate_arrays">
+<code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">concatenate_arrays</code><span class="sig-paren">(</span><em class="sig-param">files</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">axis=0</em>, <em class="sig-param">key_seperator='.'</em>, <em class="sig-param">path=None</em>, <em class="sig-param">check_arrays=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#concatenate_arrays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.concatenate_arrays" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple concatenate of one zarr array along an axis</p>
+<p>Assumes that each array is identical in shape/type.</p>
+<p>If the inputs are groups, provide the path to the contained array, and all other arrays
+will be ignored. You could concatentate the arrays separately and then recombine them
+with <code class="docutils literal notranslate"><span class="pre">merge_vars</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>url: str</strong></dt><dd><p>Where the file is</p>
+<dt><strong>files: list[dict] | list[str]</strong></dt><dd><p>Input reference sets, maybe generated by <code class="docutils literal notranslate"><span class="pre">kerchunk.zarr.single_zarr</span></code></p>
 </dd>
-<dt><strong>storage_options: dict</strong></dt><dd><p>How to load that file (passed to fsspec)</p>
+<dt><strong>storage_options: dict | None</strong></dt><dd><p>To create the filesystems, such at target/remote protocol and target/remote options</p>
 </dd>
-<dt><strong>extension: list(int | str) | int | str or None</strong></dt><dd><p>Which extensions to include. Can be ordinal integer(s), the extension name (str) or if None,
-uses the first data extension</p>
+<dt><strong>key_seperator: str</strong></dt><dd><p>“.” or “/”, how the zarr keys are stored</p>
 </dd>
-<dt><strong>inline_threshold: int</strong></dt><dd><p>(not yet implemented)</p>
+<dt><strong>path: str or None</strong></dt><dd><p>If the datasets are groups rather than simple arrays, this is the location in the
+group hierarchy to concatenate. The group structure will be recreated.</p>
 </dd>
-<dt><strong>primary_attr_to_group: bool</strong></dt><dd><p>Whether the output top-level group contains the attributes of the primary extension
-(which often contains no data, just a general description)</p>
+<dt><strong>check_arrays: bool</strong></dt><dd><p>Whether we check the size and chunking of the inputs. If True, and an
+inconsistency is found, an exception is raised. If False (default), the
+user is expected to be certain that the chunking and shapes are
+compatible.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="utilities">
+<h2>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.utils.rename_target" title="kerchunk.utils.rename_target"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.rename_target</span></code></a>(refs, renames)</p></td>
+<td><p>Utility to change URLs in a reference set in a predictable way</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.utils.rename_target_files" title="kerchunk.utils.rename_target_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.rename_target_files</span></code></a>(url_in, …)</p></td>
+<td><p>Perform URL renames on a reference set - read and write from JSON</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="kerchunk.utils.rename_target">
+<code class="sig-prename descclassname">kerchunk.utils.</code><code class="sig-name descname">rename_target</code><span class="sig-paren">(</span><em class="sig-param">refs</em>, <em class="sig-param">renames</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/utils.html#rename_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.utils.rename_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility to change URLs in a reference set in a predictable way</p>
+<p>For reference sets including templates, this is more easily done by
+using template overrides at access time; but rewriting the references
+and saving a new file means not having to do that every time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>refs: dict</strong></dt><dd><p>Reference set</p>
+</dd>
+<dt><strong>renames: dict[str, str]</strong></dt><dd><p>Mapping from the old URL (including protocol, if this is how they appear
+in the original) to new URL</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
-<dt>dict of the references</dt><dd></dd>
+<dt>dict: the altered reference set, which can be saved</dt><dd></dd>
 </dl>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="function">
-<dt id="kerchunk.tiff.tiff_to_zarr">
-<code class="sig-prename descclassname">kerchunk.tiff.</code><code class="sig-name descname">tiff_to_zarr</code><span class="sig-paren">(</span><em class="sig-param">urlpath</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">target=None</em>, <em class="sig-param">target_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/tiff.html#tiff_to_zarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.tiff.tiff_to_zarr" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p>
+<dt id="kerchunk.utils.rename_target_files">
+<code class="sig-prename descclassname">kerchunk.utils.</code><code class="sig-name descname">rename_target_files</code><span class="sig-paren">(</span><em class="sig-param">url_in</em>, <em class="sig-param">renames</em>, <em class="sig-param">url_out=None</em>, <em class="sig-param">storage_options_in=None</em>, <em class="sig-param">storage_options_out=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/utils.html#rename_target_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.utils.rename_target_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform URL renames on a reference set - read and write from JSON</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>urlpath: str</strong></dt><dd><p>Location of input TIFF</p>
+<dt><strong>url_in: str</strong></dt><dd><p>Original JSON reference set</p>
 </dd>
-<dt><strong>remote_options: dict</strong></dt><dd><p>pass these to fsspec when opening urlpath</p>
+<dt><strong>renames: dict</strong></dt><dd><p>URL renamings to perform (see <code class="docutils literal notranslate"><span class="pre">renate_target</span></code>)</p>
 </dd>
-<dt><strong>target: str</strong></dt><dd><p>Write JSON to this location. If not given, no file is output</p>
+<dt><strong>url_out: str | None</strong></dt><dd><p>Where to write to. If None, overwrites original</p>
 </dd>
-<dt><strong>target_options: dict</strong></dt><dd><p>pass these to fsspec when opening target</p>
+<dt><strong>storage_options_in: dict | None</strong></dt><dd><p>passed to fsspec for opening url_in</p>
+</dd>
+<dt><strong>storage_options_out: dict | None</strong></dt><dd><p>passed to fsspec for opening url_out. If None, storage_options_in is used.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
-<dt>references dict</dt><dd></dd>
+<dt>None</dt><dd></dd>
 </dl>
 </dd>
 </dl>
 </dd></dl>
 
+</div>
 </div>
 
 

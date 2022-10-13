@@ -128,11 +128,11 @@
 <span class="sd">        What to do with VLEN string variables or columns of tabular variables</span>
 <span class="sd">        leave: pass through the 16byte garbage IDs unaffected, but requires no codec</span>
 <span class="sd">        null: set all the strings to None or empty; required that this library is available</span>
-<span class="sd">            at read time</span>
+<span class="sd">        at read time</span>
 <span class="sd">        embed: include all the values in the output JSON (should not be used for large tables)</span>
 <span class="sd">        encode: save the ID-to-value mapping in a codec, to produce the real values at read</span>
-<span class="sd">            time; requires this library to be available. Can be efficient storage where there</span>
-<span class="sd">            are few unique values.</span>
+<span class="sd">        time; requires this library to be available. Can be efficient storage where there</span>
+<span class="sd">        are few unique values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>

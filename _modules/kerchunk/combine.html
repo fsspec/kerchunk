@@ -73,8 +73,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.combine</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">collections.abc</span>
+<span></span><span class="kn">import</span> <span class="nn">collections.abc</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
@@ -85,6 +84,8 @@
 <span class="kn">import</span> <span class="nn">numcodecs</span>
 <span class="kn">import</span> <span class="nn">ujson</span>
 <span class="kn">import</span> <span class="nn">zarr</span>
+
+<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">consolidate</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;kerchunk.combine&quot;</span><span class="p">)</span>
 
@@ -160,7 +161,7 @@
 <span class="sd">    :param validate_chunk: callable</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="MultiZarrToZarr.__init__"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">,</span>
         <span class="n">coo_map</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -206,7 +207,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">preprocess</span> <span class="o">=</span> <span class="n">preprocess</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">postprocess</span> <span class="o">=</span> <span class="n">postprocess</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">fss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -296,7 +297,7 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Decode: </span><span class="si">%s</span><span class="s2"> -&gt; </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">fn</span><span class="p">),</span> <span class="n">o</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">o</span>
 
-<div class="viewcode-block" id="MultiZarrToZarr.first_pass"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.first_pass">[docs]</a>    <span class="k">def</span> <span class="nf">first_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">first_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Accumulate the set of concat coords values across all inputs&quot;&quot;&quot;</span>
 
         <span class="n">coos</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="nb">set</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coo_map</span><span class="p">}</span>
@@ -321,13 +322,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">coos</span> <span class="o">=</span> <span class="n">_reorganise</span><span class="p">(</span><span class="n">coos</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coos</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Concatenated coordinate &#39;</span><span class="si">{c}</span><span class="s2">&#39; contains less than expected&quot;</span>
-                              <span class="sa">f</span><span class="s2">&quot;number of values across the datasets: </span><span class="si">{v}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Concatenated coordinate &#39;</span><span class="si">{c}</span><span class="s2">&#39; contains less than expected&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;number of values across the datasets: </span><span class="si">{v}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Created coordinates map&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">coos</span></div>
+        <span class="k">return</span> <span class="n">coos</span>
 
-<div class="viewcode-block" id="MultiZarrToZarr.store_coords"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.store_coords">[docs]</a>    <span class="k">def</span> <span class="nf">store_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">store_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Write coordinate arrays into the output</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -389,9 +392,9 @@
             <span class="k">if</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="n">fn</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="n">fn</span><span class="p">]))</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Written global metadata&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MultiZarrToZarr.second_pass"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.second_pass">[docs]</a>    <span class="k">def</span> <span class="nf">second_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">second_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;map every input chunk to the output&quot;&quot;&quot;</span>
         <span class="c1"># TODO: this stage cannot be rerun without clearing and rerunning store_coords too,</span>
         <span class="c1">#  because some code runs dependant on the current state f self.out</span>
@@ -524,10 +527,14 @@
                 <span class="n">bits</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">to_download</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
                 <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">to_download</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">bits</span><span class="p">[</span><span class="n">fn</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiZarrToZarr.translate"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Perform all stages and return the resultant references dict&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Perform all stages and return the resultant references dict</span>
+
+<span class="sd">        If filename and storage options are given, the output is written to this</span>
+<span class="sd">        file using ujson and fsspec instead of being returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="mi">1</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">first_pass</span><span class="p">()</span>
         <span class="k">if</span> <span class="mi">2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="p">:</span>
@@ -546,21 +553,6 @@
                 <span class="n">ujson</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">consolidate</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Turn raw references into output&quot;&quot;&quot;</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># easiest way to test if data is ascii</span>
-                <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
-                <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">v</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span>
-
-
 <span class="k">def</span> <span class="nf">_reorganise</span><span class="p">(</span><span class="n">coos</span><span class="p">):</span>
     <span class="c1"># reorganise and sort coordinate values</span>
     <span class="c1"># extracted here to enable testing</span>
@@ -570,7 +562,7 @@
     <span class="k">return</span> <span class="n">out</span>
 
 
-<span class="k">def</span> <span class="nf">merge_vars</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="merge_vars"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.merge_vars">[docs]</a><span class="k">def</span> <span class="nf">merge_vars</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Merge variables across datasets with identical coordinates</span>
 
 <span class="sd">    :param files: list(dict), list(str) or list(fsspec.OpenFile)</span>
@@ -592,10 +584,10 @@
             <span class="k">with</span> <span class="n">file</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                 <span class="n">refs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span>
             <span class="n">merged</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">merged</span>
+    <span class="k">return</span> <span class="n">merged</span></div>
 
 
-<span class="k">def</span> <span class="nf">concatenate_arrays</span><span class="p">(</span>
+<div class="viewcode-block" id="concatenate_arrays"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.concatenate_arrays">[docs]</a><span class="k">def</span> <span class="nf">concatenate_arrays</span><span class="p">(</span>
     <span class="n">files</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -660,7 +652,7 @@
             <span class="n">key2</span> <span class="o">=</span> <span class="n">path</span> <span class="o">+</span> <span class="n">key_seperator</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
             <span class="n">out</span><span class="p">[</span><span class="n">key2</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">return</span> <span class="n">consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
