@@ -6,7 +6,10 @@ import numpy as np
 try:
     from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
 except ModuleNotFoundError:
-    raise ImportError("Scipy is required for kerchunking NetCDF3 files. Please install with `pip/conda install scipy`. See https://scipy.org/install/ for more details.")
+    raise ImportError(
+        "Scipy is required for kerchunking NetCDF3 files. Please install with "
+        "`pip/conda install scipy`. See https://scipy.org/install/ for more details."
+    )
 
 import fsspec
 
@@ -227,6 +230,10 @@ class NetCDF3ToZarr(netcdf_file):
                         if k not in ["_FillValue", "missing_value"]
                     }
                 )
+                for k in ["add_offset", "scale_factor"]:
+                    if k in arr.attrs:
+                        arr.attrs[k] = float(arr.attrs[k])
+
                 arr.attrs["_ARRAY_DIMENSIONS"] = list(var.dimensions)
 
                 suffix = (
