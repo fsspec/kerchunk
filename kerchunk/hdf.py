@@ -12,7 +12,11 @@ from .codecs import FillStringsCodec
 try:
     import h5py
 except ModuleNotFoundError:
-    raise ImportError("h5py is required for kerchunking HDF5/NetCDF4 files. Please install with `pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html for more details.")
+    raise ImportError(
+        "h5py is required for kerchunking HDF5/NetCDF4 files. Please install with "
+        "`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html "
+        "for more details."
+    )
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -70,7 +74,7 @@ class SingleHdf5ToZarr:
         error="warn",
         vlen_encode="embed",
     ):
-        
+
         # Open HDF5 file in read mode...
         lggr.debug(f"HDF5 file: {h5f}")
         if isinstance(h5f, str):
@@ -123,6 +127,10 @@ class SingleHdf5ToZarr:
                     except UnicodeDecodeError:
                         self.store[k] = "base64:" + base64.b64encode(v).decode()
             return {"version": 1, "templates": {"u": self._uri}, "refs": self.store}
+
+    def _unref(self, ref):
+        name = h5py.h5r.get_name(ref, self._h5f.id)
+        return self._h5f[name]
 
     def _do_inline(self, threshold):
         """Replace short chunks with the value of that chunk
@@ -223,7 +231,27 @@ class SingleHdf5ToZarr:
                     fill = h5obj.fillvalue or " "  # cannot be None
                 elif h5obj.dtype.kind == "O":
                     if self.vlen == "embed":
-                        kwargs["data"] = [_.decode() for _ in h5obj[:]]
+                        if np.isscalar(h5obj):
+                            out = str(h5obj)
+                        elif h5obj.ndim == 0:
+                            out = np.array(h5obj).tolist().decode()
+                        else:
+                            out = h5obj[:]
+                            out2 = out.ravel()
+                            for i, val in enumerate(out2):
+                                if isinstance(val, bytes):
+                                    out2[i] = val.decode()
+                                elif isinstance(val, str):
+                                    out2[i] = val
+                                elif isinstance(val, h5py.h5r.Reference):
+                                    # TODO: recursively recreate references
+                                    out2[i] = None
+                                else:
+                                    out2[i] = [
+                                        v.decode() if isinstance(v, bytes) else v
+                                        for v in val
+                                    ]
+                        kwargs["data"] = out
                         kwargs["object_codec"] = numcodecs.JSON()
                         fill = None
                     elif self.vlen == "null":
