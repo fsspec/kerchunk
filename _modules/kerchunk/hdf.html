@@ -87,7 +87,11 @@
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">h5py</span>
 <span class="k">except</span> <span class="n">ModuleNotFoundError</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;h5py is required for kerchunking HDF5/NetCDF4 files. Please install with `pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html for more details.&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+        <span class="s2">&quot;h5py is required for kerchunking HDF5/NetCDF4 files. Please install with &quot;</span>
+        <span class="s2">&quot;`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html &quot;</span>
+        <span class="s2">&quot;for more details.&quot;</span>
+    <span class="p">)</span>
 
 <span class="n">lggr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;h5-to-zarr&quot;</span><span class="p">)</span>
 <span class="n">_HIDDEN_ATTRS</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># from h5netcdf.attrs</span>
@@ -145,7 +149,7 @@
         <span class="n">error</span><span class="o">=</span><span class="s2">&quot;warn&quot;</span><span class="p">,</span>
         <span class="n">vlen_encode</span><span class="o">=</span><span class="s2">&quot;embed&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        
+
         <span class="c1"># Open HDF5 file in read mode...</span>
         <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HDF5 file: </span><span class="si">{h5f}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5f</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -198,6 +202,10 @@
                     <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
             <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;templates&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uri</span><span class="p">},</span> <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_unref</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5r</span><span class="o">.</span><span class="n">get_name</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">_do_inline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Replace short chunks with the value of that chunk</span>
@@ -298,7 +306,27 @@
                     <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span> <span class="ow">or</span> <span class="s2">&quot; &quot;</span>  <span class="c1"># cannot be None</span>
                 <span class="k">elif</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;embed&quot;</span><span class="p">:</span>
-                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">_</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="p">[:]]</span>
+                        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
+                            <span class="n">out</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">out</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
+                            <span class="n">out2</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">out2</span><span class="p">):</span>
+                                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                                    <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                                    <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5r</span><span class="o">.</span><span class="n">Reference</span><span class="p">):</span>
+                                    <span class="c1"># TODO: recursively recreate references</span>
+                                    <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                        <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
+                                        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span>
+                                    <span class="p">]</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span>
                         <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">JSON</span><span class="p">()</span>
                         <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
                     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;null&quot;</span><span class="p">:</span>
