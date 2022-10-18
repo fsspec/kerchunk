@@ -108,7 +108,7 @@
 </table>
 <dl class="class">
 <dt id="kerchunk.hdf.SingleHdf5ToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO | str</em>, <em class="sig-param">url: str = None</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">error='warn'</em>, <em class="sig-param">vlen_encode='embed'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO | str</em>, <em class="sig-param">url: str = None</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">error='warn'</em>, <em class="sig-param">vlen_encode='embed'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate the content of one HDF5 file into Zarr metadata.</p>
 <p>HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array
 chunks remain in the HDF5 file.</p>
