@@ -2,9 +2,10 @@ from functools import reduce
 from operator import mul
 
 import numpy as np
+from .utils import _do_inline
 
 try:
-    from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
+    from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
 except ModuleNotFoundError:
     raise ImportError(
         "Scipy is required for kerchunking NetCDF3 files. Please install with "
@@ -38,7 +39,8 @@ class NetCDF3ToZarr(netcdf_file):
         storage_options: dict
             passed to fsspec when opening filename
         inline_threshold: int
-            Byte size below which an array will be embedded in the output [TBC]
+            Byte size below which an array will be embedded in the output. Use 0
+            to disable inlining.
         max_chunk_size: int
             How big a chunk can be before triggering subchunking. If 0, there is no
             subchunking, and there is never subchunking for coordinate/dimension arrays.
@@ -50,8 +52,8 @@ class NetCDF3ToZarr(netcdf_file):
         assert kwargs.pop("mode", "r") == "r"
         assert kwargs.pop("maskandscale", False) is False
 
-        # attributes set before super().__init__ don' accidentally turn into
-        # dataset attribues
+        # attributes set before super().__init__ don't accidentally turn into
+        # dataset attributes
         self.chunks = {}
         self.threshold = inline_threshold
         self.max_chunk_size = max_chunk_size
@@ -255,10 +257,9 @@ class NetCDF3ToZarr(netcdf_file):
             }
         )
 
-        # remove bytes
-        out = {
-            k: (v.decode() if isinstance(v, bytes) else v) for k, v in self.out.items()
-        }
+        if self.threshold > 0:
+            out = _do_inline(out, self.threshold)
+        out = {k: (v.decode() if isinstance(v, bytes) else v) for k, v in out.items()}
 
         return {"version": 1, "refs": out}
 

@@ -69,7 +69,7 @@ class SingleHdf5ToZarr:
         h5f: "BinaryIO | str",
         url: str = None,
         spec=1,
-        inline_threshold=100,
+        inline_threshold=500,
         storage_options=None,
         error="warn",
         vlen_encode="embed",
@@ -138,6 +138,7 @@ class SingleHdf5ToZarr:
         The chunk may need encoding with base64 if not ascii, so actual
         length may be larger than threshold.
         """
+        # TODO: use version in utils
         for k, v in self.store.copy().items():
             if isinstance(v, list) and v[2] < threshold:
                 self.input_file.seek(v[1])
