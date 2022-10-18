@@ -127,11 +127,10 @@ def _do_inline(store, threshold, remote_options=None):
     ]
     values = fs.cat(get_keys)
     for k, v in values.items():
-        if isinstance(v, list) and v[2] < threshold:
-            try:
-                # easiest way to test if data is ascii
-                v.decode("ascii")
-            except UnicodeDecodeError:
-                v = b"base64:" + base64.b64encode(v)
-            out[k] = v
+        try:
+            # easiest way to test if data is ascii
+            v.decode("ascii")
+        except UnicodeDecodeError:
+            v = b"base64:" + base64.b64encode(v)
+        out[k] = v
     return out
