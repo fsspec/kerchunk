@@ -12,22 +12,22 @@ The ``Kerchunk.hdf.SingleHdf5ToZarr`` method is used to create a single ``.json`
 
 The Kerchunk package is still in a development phase and so changes frequently. Installing directly from the source code is recommended.
 
-.. code:: 
+.. code::
 
     !pip install git+https://github.com/fsspec/kerchunk
 
 Here we are considering Netcdf4 files and so use the kerchunk ``hdf`` module. Support for ``fits``, ``grib2``, ``tiff``, ``netCDF3`` and ``zarr`` are available in other kerchunk modules. Alternatively it is also possible to manually create reference jsons for more specific cases. The Earth Big Data `example <https://github.com/fsspec/kerchunk/blob/main/examples/earthbigdata.ipynb>`__ provides a demonstration of this.
 
-.. code:: 
+.. code::
 
-    from kerchunk.hdf import SingleHdf5ToZarr 
+    from kerchunk.hdf import SingleHdf5ToZarr
     import fsspec
 
-Using fsspec to create a pythonic filesystem, provides a convenient way to manage file urls. 
+Using fsspec to create a pythonic filesystem, provides a convenient way to manage file urls.
 
-The ``SingleHdf5ToZarr`` method takes both an ``h5f`` file and a ``url`` as input. The ``h5f`` file can either be a binary Python file-like object or a url, in which case it will be opened using ``fsspec`` and ``storage_options``. The ``url`` input is not used to open the file and is intended to allow the user to compute the reference files on data before it is uploaded to its final storage location. Thus the ``url`` input should be the url of the final file destination and not the current location. 
+The ``SingleHdf5ToZarr`` method takes both an ``h5f`` file and a ``url`` as input. The ``h5f`` file can either be a binary Python file-like object or a url, in which case it will be opened using ``fsspec`` and ``storage_options``. The ``url`` input is not used to open the file and is intended to allow the user to compute the reference files on data before it is uploaded to its final storage location. Thus the ``url`` input should be the url of the final file destination and not the current location.
 
-.. code:: 
+.. code::
 
     fs = fsspec.filesystem('s3', anon=True) #S3 file system to manage ERA5 files
     flist = (fs.glob('s3://era5-pds/2020/*/data/air_pressure_at_mean_sea_level.nc')[:2]
@@ -38,24 +38,24 @@ The ``SingleHdf5ToZarr`` method takes both an ``h5f`` file and a ``url`` as inpu
     from pathlib import Path
     import os
     import ujson
-    
+
     so = dict(mode='rb', anon=True, default_fill_cache=False, default_cache_type='first') # args to fs.open()
     # default_fill_cache=False avoids caching data in between file chunks to lowers memory usage.
-    
+
     def gen_json(file_url):
         with fs.open(file, **so) as infile:
-            h5chunks = SingleHdf5ToZarr(infile, file_url, inline_threshold=300) 
+            h5chunks = SingleHdf5ToZarr(infile, file_url, inline_threshold=300)
             # inline threshold adjusts the Size below which binary blocks are included directly in the output
             # a higher inline threshold can result in a larger json file but faster loading time
             variable = file_url.split('/')[-1].split('.')[0]
-            month = file_url.split('/')[2] 
+            month = file_url.split('/')[2]
             outf = f'{month}_{variable}.json' #file name to save json to
             with fs2.open(outf, 'wb') as f:
                 f.write(ujson.dumps(h5chunks.translate()).encode());
 
 ERA5-pds is located in us-west-2 and so depending on where this computation is taking place the time taken can vary dramatically.
 
-.. code:: 
+.. code::
 
     %%time
     for file in flist:
@@ -68,10 +68,10 @@ ERA5-pds is located in us-west-2 and so depending on where this computation is t
     Wall time: 14min 44s
 
 
-The ``.json`` reference files we have generated can now be used to open virtual datasets through xarray or zarr. It is necessary to specify location of the reference ``json`` files, using the ``target_options`` argument, and the source data using the ``remote_options`` and ``remote_protocol`` arguments. Here specifying that the source data is stored on ``AWS S3`` and can be accessed anonymously. 
+The ``.json`` reference files we have generated can now be used to open virtual datasets through xarray or zarr. It is necessary to specify location of the reference ``json`` files, using the ``target_options`` argument, and the source data using the ``remote_options`` and ``remote_protocol`` arguments. Here specifying that the source data is stored on ``AWS S3`` and can be accessed anonymously.
 
 
-.. code:: 
+.. code::
 
     import xarray as xr
 
@@ -106,30 +106,30 @@ Combine multiple kerchunk’d datasets into a single logical aggregate dataset
 
 The ``Kerchunk.combine.MultiZarrtoZarr`` method combines the ``.json`` reference files generated above to create a single virtual dataset, such that one reference file maps to all of the chunks in the individual files.
 
-.. code:: 
+.. code::
 
     from kerchunk.combine import MultiZarrToZarr
 
 MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, ``"Time0"`` in this instance. Specifying the identical coordinate across the files using the ``identical_dims`` argument is not strictly necessary but will speed up computation times.
 
-.. code:: 
+.. code::
 
     json_list = fs2.glob("*_air_pressure_at_mean_sea_level.json")
-    
-    mzz = MultiZarrToZarr(json_list,                
+
+    mzz = MultiZarrToZarr(json_list,
         remote_protocol='s3',
         remote_options={'anon':True},
         concat_dims=['time0'],
         identical_dims = ['lat', 'lon'])
-    
+
     d = mzz.translate()
-    
+
     with fs2.open('air_pressure_at_mean_sea_level_combined.json', 'wb') as f:
         f.write(ujson.dumps(d).encode())
 
 The reference json we have just generated can now be opened to reveal a single virtual dataset spanning both the input files, with little to no latency.
 
-.. code:: 
+.. code::
 
     %%time
     backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
@@ -157,20 +157,20 @@ The reference json we have just generated can now be opened to reveal a single v
 Using coo_map
 ~~~~~~~~~~~~~
 
-When the dimension along which we would like to concatenate is not already in the dataset, or when considering datasets from across an ensemble we can use the ``coo_map`` argument to create a new dimension. 
+When the dimension along which we would like to concatenate is not already in the dataset, or when considering datasets from across an ensemble we can use the ``coo_map`` argument to create a new dimension.
 
-.. code:: 
+.. code::
 
     new_dims = ['a' , 'b']
-    
-    mzz = MultiZarrToZarr(json_list,                
+
+    mzz = MultiZarrToZarr(json_list,
         remote_protocol='s3',
         remote_options={'anon':True},
         coo_map = {'new_dimension':new_dims},
         concat_dims=['new_dimension'],
         identical_dims = ['lat', 'lon']
     )
-    
+
     d = mzz.translate()
 
     backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
@@ -199,7 +199,7 @@ Here by providing a list of literal values to ``coo_map`` we created ``new_dimen
 
 For more complex uses it is also possible to pass in a compiled ``regex`` function which operates on the input file urls to generate a unique variable for each file.
 
-.. code:: 
+.. code::
 
     import re
     ex = re.compile(r'.*(\d+)_air')
@@ -209,16 +209,16 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
 
     '1'
 
-.. code:: 
+.. code::
 
-    mzz = MultiZarrToZarr(json_list,                
+    mzz = MultiZarrToZarr(json_list,
         remote_protocol='s3',
         remote_options={'anon':True},
         coo_map = {'new_dimension':ex},
         concat_dims=['new_dimension'],
         identical_dims = ['lat', 'lon']
     )
-    
+
     d = mzz.translate()
 
     backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
@@ -242,21 +242,21 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
         source:       Reanalysis
         title:        ERA5 forecasts
 
-Here the ``new_dimension`` values have been populated by the compiled ``regex`` function ``ex`` which takes the file urls as input. 
+Here the ``new_dimension`` values have been populated by the compiled ``regex`` function ``ex`` which takes the file urls as input.
 
 
 Similarly we can map each file to a new variable using the special ``var`` key in coo_map. Here we use the same ``regex`` function but instead map these as new variables.
 
-.. code:: 
+.. code::
 
-    mzz = MultiZarrToZarr(json_list,                
+    mzz = MultiZarrToZarr(json_list,
         remote_protocol='s3',
         remote_options={'anon':True},
         coo_map = {"var":ex},
         concat_dims=['time0'],
         identical_dims = ['lat', 'lon']
     )
-    
+
     d = mzz.translate()
 
     backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
@@ -282,16 +282,16 @@ Similarly we can map each file to a new variable using the special ``var`` key i
 
 Another special key in ``coo_map`` is ``attr:``. This allows the user to access values from each dataset's global attributes.
 
-.. code:: 
+.. code::
 
-    mzz = MultiZarrToZarr(json_list,                
+    mzz = MultiZarrToZarr(json_list,
         remote_protocol='s3',
         remote_options={'anon':True},
         coo_map = {"var":"attr:institution"},
         concat_dims=['time0'],
         identical_dims = ['lat', 'lon']
     )
-    
+
     d = mzz.translate()
 
     backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
@@ -314,18 +314,18 @@ Another special key in ``coo_map`` is ``attr:``. This allows the user to access 
         title:        ERA5 forecasts
 
 
-The special value ``vattr:{var}:{attr}`` allows access to variable attributes. Here renaming the variable to instead use its short name. 
+The special value ``vattr:{var}:{attr}`` allows access to variable attributes. Here renaming the variable to instead use its short name.
 
-.. code:: 
+.. code::
 
-    mzz = MultiZarrToZarr(json_list,                
+    mzz = MultiZarrToZarr(json_list,
         remote_protocol='s3',
         remote_options={'anon':True},
         coo_map = {"var":"vattr:air_pressure_at_mean_sea_level:shortNameECMWF"},
         concat_dims=['time0'],
         identical_dims = ['lat', 'lon']
     )
-    
+
     d = mzz.translate()
 
     backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
@@ -353,16 +353,16 @@ There are a number of other special characters for ``coo_map`` documented in the
 Merging variables across jsons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``Kerchunk.combine.merge_vars`` convenience function can be used to merge variables across datasets if we know the coordinates and global file attributes are identical. 
+The ``Kerchunk.combine.merge_vars`` convenience function can be used to merge variables across datasets if we know the coordinates and global file attributes are identical.
 
-.. code:: 
+.. code::
 
     from kerchunk.combine import merge_vars
-    
+
     json_list = fs2.glob("01_sea_surface_temperature.json") + fs2.glob("01_air_pressure_at_mean_sea_level.json")
-    
+
     d = merge_vars(json_list)
-    
+
     backend_args = {"consolidated": False, "storage_options": {"fo": d, "remote_protocol": "s3","remote_options": {"anon": True}}}
     print(xr.open_dataset("reference://", engine="zarr", backend_kwargs=backend_args))
 
@@ -389,7 +389,7 @@ Preprocessing
 
 Pre-process can be used to apply arbitrary functions to the refs item in the input jsons before combining. In this case we use preprocessing to drop the ``air_pressure_at_mean_sea_level`` variable before combining ``sea_surface_temperature`` with a json containing data for the following month.
 
-.. code:: 
+.. code::
 
     def pre_process(refs):
         for k in list(refs):
@@ -399,13 +399,13 @@ Pre-process can be used to apply arbitrary functions to the refs item in the inp
 
     json_list = fs2.glob("vars_combined.json") + fs2.glob("02_sea_surface_temperature.json")
 
-    mzz = MultiZarrToZarr(json_list,                
+    mzz = MultiZarrToZarr(json_list,
         remote_protocol='s3',
         remote_options={'anon':True},
         concat_dims=['time0'],
         identical_dims = ['lat', 'lon'],
         preprocess = pre_process)
-    
+
     d = mzz.translate()
 
     with fs2.open('sea_surface_temperature_combined.json', 'wb') as f:
@@ -438,7 +438,7 @@ Similarly post-process can be used to apply an arbitrary function to the final d
 
 Changing the fill_values could also be achieved by editing the final json through string manipulations or even a simple find and replace through an IDE.
 
-.. code:: 
+.. code::
 
     import zarr
     def modify_fill_value(out):
@@ -446,20 +446,20 @@ Changing the fill_values could also be achieved by editing the final json throug
         out_.lon.fill_value = -999
         out_.lat.fill_value = -999
         return out
-    
+
     def postprocess(out):
         out = modify_fill_value(out)
         return out
 
     json_list = fs2.glob("air_pressure_at_mean_sea_level_combined.json") + fs2.glob("sea_surface_temperature_combined.json")
-    
-    mzz = MultiZarrToZarr(json_list,                
+
+    mzz = MultiZarrToZarr(json_list,
         remote_protocol='s3',
         remote_options={'anon':True},
         concat_dims=['time0'],
         identical_dims = ['lat', 'lon'],
         postprocess = postprocess)
-    
+
     d = mzz.translate()
 
     with fs2.open('combined.json', 'wb') as f:
@@ -496,13 +496,13 @@ Here we open a remotely stored reference file that maps to 10 ERA5 variables acr
 
 The sidecar file has been compressed using zstd, from the original 1.8GB to 194MB. Opening this virtual dataset requires 7GB of free system memory.
 
-A smaller file containing only 2 years of data is available at: 
+A smaller file containing only 2 years of data is available at:
 s3://esip-qhub-public/ecmwf/ERA5_2020_2022_multivar.json.zst
 
-.. code:: 
+.. code::
 
     %%time
-    fs = fsspec.filesystem("reference", fo='s3://esip-qhub-public/ecmwf/ERA5_1979_2022_multivar.json.zst', 
+    fs = fsspec.filesystem("reference", fo='s3://esip-qhub-public/ecmwf/ERA5_1979_2022_multivar.json.zst',
                            ref_storage_args={"compression": "zstd"},
                            remote_protocol='s3', remote_options={'anon':True})
     m = fs.get_mapper("")
@@ -536,7 +536,7 @@ s3://esip-qhub-public/ecmwf/ERA5_2020_2022_multivar.json.zst
 
 The above script required to open reference is rather complex. For this reason it is suggested to instead hide the script in an `intake <https://intake.readthedocs.io/en/latest/index.html>`__ catalog such that all that is required to open the dataset is the following:
 
-.. code:: 
+.. code::
 
     import intake
     catalog = intake.open_catalog('s3://esip-qhub-public/ecmwf/intake_catalog.yml')
@@ -551,11 +551,11 @@ The above script required to open reference is rather complex. For this reason i
 
     ds = catalog['ERA5-Kerchunk-1979-2022'].to_dask()
 
-Multiple different different datasets can be managed in a single intake catalog and so can be used to create a one stop shop containing all datasets available to a group of users. 
+Multiple different different datasets can be managed in a single intake catalog and so can be used to create a one stop shop containing all datasets available to a group of users.
 
-Once the referenced dataset is loaded it can be operated on just like any other lazy `xarray <https://docs.xarray.dev/en/stable/>`__ dataset.  
+Once the referenced dataset is loaded it can be operated on just like any other lazy `xarray <https://docs.xarray.dev/en/stable/>`__ dataset.
 
-.. code:: 
+.. code::
 
     %%time
     da = ds.sel(time0 = '2021-01-01T00:00:00')
@@ -568,7 +568,7 @@ Once the referenced dataset is loaded it can be operated on just like any other 
     CPU times: user 3.79 s, sys: 382 ms, total: 4.18 s
     Wall time: 6.22 s
 
-.. code:: 
+.. code::
 
     %%time
     da = ds.sel(lat = -34).sel(lon = 198)

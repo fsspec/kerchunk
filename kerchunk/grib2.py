@@ -1,11 +1,13 @@
-from ast import Import
 import base64
 import logging
 
 try:
     import cfgrib
 except ModuleNotFoundError as err:
-    if err.name == 'cfgrib': raise ImportError('cfgrib is needed to kerchunk GRIB2 files. Please install it with `conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib for more details.')    
+    if err.name == "cfgrib":
+        raise ImportError(
+            "cfgrib is needed to kerchunk GRIB2 files. Please install it with `conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib for more details."
+        )
 
 import eccodes
 import fsspec
@@ -92,6 +94,7 @@ def scan_grib(
     inline_threshold=100,
     skip=0,
     filter={},
+    zarr_version=None,
 ):
     """
     Generate references for a GRIB2 file
@@ -113,7 +116,9 @@ def scan_grib(
         the exact value or is in the given set, are processed.
         E.g., the cf-style filter ``{'typeOfLevel': 'heightAboveGround', 'level': 2}``
         only keeps messages where heightAboveGround==2.
-
+    zarr_version: int
+        The desired zarr spec version to target (currently 2 or 3). The default
+        of None will use the default zarr version.
     Returns
     -------
 
@@ -142,7 +147,7 @@ def scan_grib(
             if good is False:
                 continue
 
-            z = zarr.open_group(store)
+            z = zarr.group(store=store, overwrite=True, zarr_version=zarr_version)
             global_attrs = {
                 k: m[k] for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS if k in m
             }

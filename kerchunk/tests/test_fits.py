@@ -13,12 +13,13 @@ range_im = os.path.join(testdir, "arange.fits")
 var = os.path.join(testdir, "variable_length_table.fits")
 
 
-def test_ascii_table():
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_ascii_table(zarr_version):
     # this one directly hits a remote server - should cache?
     url = "https://fits.gsfc.nasa.gov/samples/WFPC2u5780205r_c0fx.fits"
-    out = kerchunk.fits.process_file(url, extension=1)
+    out = kerchunk.fits.process_file(url, extension=1, zarr_version=zarr_version)
     m = fsspec.get_mapper("reference://", fo=out, remote_protocol="https")
-    g = zarr.open(m)
+    g = zarr.open(m, zarr_version=zarr_version)
     arr = g["u5780205r_cvt.c0h.tab"][:]
     with fsspec.open(
         "https://fits.gsfc.nasa.gov/samples/WFPC2u5780205r_c0fx.fits"
@@ -28,10 +29,11 @@ def test_ascii_table():
         assert list(hdu.data.astype(arr.dtype) == arr) == [True, True, True, True]
 
 
-def test_binary_table():
-    out = kerchunk.fits.process_file(btable, extension=1)
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_binary_table(zarr_version):
+    out = kerchunk.fits.process_file(btable, extension=1, zarr_version=zarr_version)
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m)
+    z = zarr.open(m, zarr_version=zarr_version)
     arr = z["1"]
     with open(btable, "rb") as f:
         hdul = fits.open(f)
@@ -45,10 +47,11 @@ def test_binary_table():
         ).all()  # string come out as bytes
 
 
-def test_cube():
-    out = kerchunk.fits.process_file(range_im)
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_cube(zarr_version):
+    out = kerchunk.fits.process_file(range_im, zarr_version=zarr_version)
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m)
+    z = zarr.open(m, zarr_version=zarr_version)
     arr = z["PRIMARY"]
     with open(range_im, "rb") as f:
         hdul = fits.open(f)
@@ -56,12 +59,13 @@ def test_cube():
     assert (arr[:] == expected).all()
 
 
-def test_with_class():
-    ftz = kerchunk.fits.FitsToZarr(range_im)
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_with_class(zarr_version):
+    ftz = kerchunk.fits.FitsToZarr(range_im, zarr_version=zarr_version)
     out = ftz.translate()
     assert "fits" in repr(ftz)
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m)
+    z = zarr.open(m, zarr_version=zarr_version)
     arr = z["PRIMARY"]
     with open(range_im, "rb") as f:
         hdul = fits.open(f)
@@ -69,14 +73,15 @@ def test_with_class():
     assert (arr[:] == expected).all()
 
 
-def test_var():
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_var(zarr_version):
     data = fits.open(var)[1].data
     expected = [_.tolist() for _ in data["var"]]
 
-    ftz = kerchunk.fits.FitsToZarr(var)
+    ftz = kerchunk.fits.FitsToZarr(var, zarr_version=zarr_version)
     out = ftz.translate()
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m)
+    z = zarr.open(m, zarr_version=zarr_version)
     arr = z["1"]
     vars = [_.tolist() for _ in arr["var"]]
 

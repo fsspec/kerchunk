@@ -81,6 +81,9 @@ class MultiZarrToZarr:
     :param postprocess: callable
         Acts on the references dict before output.
         postprocess(dict)-> dict
+    :param postprocess: int
+        The desired zarr spec version to target (currently 2 or 3). The default
+        of None will use the default zarr version.
     :param validate_dataet: callable
     :param validate_variable: callable
     :param validate_chunk: callable
@@ -99,6 +102,7 @@ class MultiZarrToZarr:
         inline_threshold=500,
         preprocess=None,
         postprocess=None,
+        zarr_version=None,
     ):
         self._fss = None
         self._paths = None
@@ -131,6 +135,7 @@ class MultiZarrToZarr:
             raise ValueError("Values being mapped cannot also be identical")
         self.preprocess = preprocess
         self.postprocess = postprocess
+        self.zarr_version = zarr_version or 2  # can we import zarr's default here?
         self.out = {}
         self.done = set()
 
@@ -234,7 +239,7 @@ class MultiZarrToZarr:
                 fs._dircache_from_items()
 
             logger.debug("First pass: %s", i)
-            z = zarr.open_group(fs.get_mapper(""))
+            z = zarr.open_group(fs.get_mapper(""), zarr_version=self.zarr_version)
             for var in self.concat_dims:
                 value = self._get_value(i, z, var, fn=self._paths[i])
                 if isinstance(value, np.ndarray):
@@ -260,7 +265,7 @@ class MultiZarrToZarr:
         Write coordinate arrays into the output
         """
         self.out.clear()
-        group = zarr.open(self.out)
+        group = zarr.open(self.out, zarr_version=self.zarr_version)
         m = self.fss[0].get_mapper("")
         z = zarr.open(m)
         for k, v in self.coos.items():
@@ -312,7 +317,15 @@ class MultiZarrToZarr:
                     arr.attrs.update(self.cf_units[k])
             # TODO: rewrite .zarray/.zattrs with ujson to save space. Maybe make them by hand anyway.
         logger.debug("Written coordinates")
-        for fn in [".zgroup", ".zattrs"]:
+
+        if self.zarr_version == 2:
+            keys = [".zgroup", ".zattrs"]
+        elif self.zarr_version == 3:
+            keys = ["meta/root.group.json"]
+        else:
+            raise ValueError("expected zarr_version to be 2 or 3")
+
+        for fn in keys:
             # top-level group attributes from first input
             if fn in m:
                 self.out[fn] = ujson.dumps(ujson.loads(m[fn]))
@@ -331,7 +344,11 @@ class MultiZarrToZarr:
         for i, fs in enumerate(self.fss):
             to_download = {}
             m = fs.get_mapper("")
-            z = zarr.open(m)
+            z = zarr.open(m, zarr_version=self.zarr_version)
+            # TODO: the rest of this method needs a refactor to support v3 stores
+            # raising an error for now
+            if self.zarr_version == 3:
+                raise ValueError("v3 not implemented here yet.")
 
             if no_deps is None:
                 # done first time only

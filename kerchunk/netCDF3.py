@@ -29,6 +29,7 @@ class NetCDF3ToZarr(netcdf_file):
         storage_options=None,
         inline_threshold=100,
         max_chunk_size=0,
+        zarr_version=None,
         **kwargs,
     ):
         """
@@ -46,7 +47,10 @@ class NetCDF3ToZarr(netcdf_file):
             subchunking, and there is never subchunking for coordinate/dimension arrays.
             E.g., if an array contains 10,000bytes, and this value is 6000, there will
             be two output chunks, split on the biggest available dimension. [TBC]
-        args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
+        zarr_version: int
+            The desired zarr spec version to target (currently 2 or 3). The default
+            of None will use the default zarr version.
+        args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``]
         """
         assert kwargs.pop("mmap", False) is False
         assert kwargs.pop("mode", "r") == "r"
@@ -57,6 +61,7 @@ class NetCDF3ToZarr(netcdf_file):
         self.chunks = {}
         self.threshold = inline_threshold
         self.max_chunk_size = max_chunk_size
+        self.zarr_version = zarr_version
         self.out = {}
         with fsspec.open(filename, **(storage_options or {})) as fp:
             super().__init__(
@@ -152,7 +157,7 @@ class NetCDF3ToZarr(netcdf_file):
         import zarr
 
         out = self.out
-        z = zarr.open(out, mode="w")
+        z = zarr.group(store=out, overwrite=True, zarr_version=self.zarr_version)
         for dim, var in self.variables.items():
             if dim in self.dimensions:
                 shape = self.dimensions[dim]

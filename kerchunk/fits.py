@@ -28,6 +28,7 @@ def process_file(
     extension=None,
     inline_threshold=100,
     primary_attr_to_group=False,
+    zarr_version=None,
 ):
     """
     Create JSON references for a single FITS file as a zarr group
@@ -46,6 +47,9 @@ def process_file(
     primary_attr_to_group: bool
         Whether the output top-level group contains the attributes of the primary extension
         (which often contains no data, just a general description)
+    zarr_version: int
+        The desired zarr spec version to target (currently 2 or 3). The default
+        of None will use the default zarr version.
 
     Returns
     -------
@@ -55,7 +59,7 @@ def process_file(
 
     storage_options = storage_options or {}
     out = {}
-    g = zarr.open(out)
+    g = zarr.open(out, zarr_version=zarr_version)
 
     with fsspec.open(url, mode="rb", **storage_options) as f:
         infile = fits.open(f, do_not_scale_image_data=True)
