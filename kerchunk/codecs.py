@@ -128,7 +128,7 @@ class AsciiTableCodec(numcodecs.abc.Codec):
     def decode(self, buf, out=None):
         indtypes = np.dtype([tuple(d) for d in self.indtypes])
         outdtypes = np.dtype([tuple(d) for d in self.outdtypes])
-        arr = np.fromstring(buf, dtype=indtypes)
+        arr = np.frombuffer(buf, dtype=indtypes)
         return arr.astype(outdtypes)
 
     def encode(self, _):

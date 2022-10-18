@@ -110,3 +110,28 @@ def rename_target_files(
         storage_options_out = storage_options_in
     with fsspec.open(url_out, mode="wt", **(storage_options_out or {})) as f:
         ujson.dump(new, f)
+
+
+def _do_inline(store, threshold, remote_options=None):
+    """Replace short chunks with the value of that chunk
+
+    The chunk may need encoding with base64 if not ascii, so actual
+    length may be larger than threshold.
+    """
+    fs = fsspec.filesystem("reference", fo=store, **(remote_options or {}))
+    out = fs.references.copy()
+    get_keys = [
+        k
+        for k, v in out.items()
+        if isinstance(v, list) and len(v) == 3 and v[2] < threshold
+    ]
+    values = fs.cat(get_keys)
+    for k, v in values.items():
+        if isinstance(v, list) and v[2] < threshold:
+            try:
+                # easiest way to test if data is ascii
+                v.decode("ascii")
+            except UnicodeDecodeError:
+                v = b"base64:" + base64.b64encode(v)
+            out[k] = v
+    return out

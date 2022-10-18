@@ -18,7 +18,7 @@ def test_single():
     url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
     so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
     with fsspec.open(url, **so) as f:
-        h5chunks = SingleHdf5ToZarr(f, url)
+        h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
         test_dict = h5chunks.translate()
 
     m = fsspec.get_mapper(
