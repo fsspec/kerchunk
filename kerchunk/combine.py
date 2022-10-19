@@ -81,7 +81,7 @@ class MultiZarrToZarr:
     :param postprocess: callable
         Acts on the references dict before output.
         postprocess(dict)-> dict
-    :param postprocess: int
+    :param zarr_version: int
         The desired zarr spec version to target (currently 2 or 3). The default
         of None will use the default zarr version.
     :param validate_dataet: callable
