@@ -54,7 +54,6 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
 
     shape = tuple(data.shape or ())
     if nbytes < inline_threshold:
-        # TODO: extract 1D lat/lon if appropriate, since will likely fit
         logger.debug(f"Store {var} inline")
         d = z.create_dataset(
             name=var,
