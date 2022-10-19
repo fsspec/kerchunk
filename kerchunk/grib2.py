@@ -1,11 +1,15 @@
-from ast import Import
 import base64
 import logging
 
 try:
     import cfgrib
 except ModuleNotFoundError as err:
-    if err.name == 'cfgrib': raise ImportError('cfgrib is needed to kerchunk GRIB2 files. Please install it with `conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib for more details.')    
+    if err.name == "cfgrib":
+        raise ImportError(
+            "cfgrib is needed to kerchunk GRIB2 files. Please install it with "
+            "`conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib "
+            "for more details."
+        )
 
 import eccodes
 import fsspec
@@ -50,6 +54,7 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
 
     shape = tuple(data.shape or ())
     if nbytes < inline_threshold:
+        # TODO: extract 1D lat/lon if appropriate, since will likely fit
         logger.debug(f"Store {var} inline")
         d = z.create_dataset(
             name=var,
@@ -186,20 +191,36 @@ def scan_grib(
                     x = m[coord2]
                 else:
                     continue
+                inline_extra = 0
                 if isinstance(x, np.ndarray) and x.size == vals.size:
-                    x = x.reshape(vals.shape)
                     if (
                         m["gridType"]
                         in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
                     ):
                         dims = ["x", "y"]
+                        x = x.reshape(vals.shape)
                     else:
                         dims = [coord]
+                        if coord == "latitude":
+                            x = x.reshape(vals.shape)[0].copy()
+                            inline_extra = x.nbytes + 1
+                        elif coord == "longitude":
+                            x = x.reshape(vals.shape)[:, 0].copy()
+                            inline_extra = x.nbytes + 1
                 else:
                     x = np.array([x])
                     dims = [coord]
                 attrs = cfgrib.dataset.COORD_ATTRS[coord]
-                _store_array(store, z, x, coord, inline_threshold, offset, size, attrs)
+                _store_array(
+                    store,
+                    z,
+                    x,
+                    coord,
+                    inline_threshold + inline_extra,
+                    offset,
+                    size,
+                    attrs,
+                )
                 z[coord].attrs["_ARRAY_DIMENSIONS"] = dims
 
             out.append(
