@@ -43,7 +43,7 @@
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#single-file-jsons">Single file JSONs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#combine-multiple-kerchunkd-datasets-into-a-single-logical-aggregate-dataset">Combine multiple kerchunk’d datasets into a single logical aggregate dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#combine-multiple-kerchunked-datasets-into-a-single-logical-aggregate-dataset">Combine multiple kerchunked datasets into a single logical aggregate dataset</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#using-coo-map">Using coo_map</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#merging-variables-across-jsons">Merging variables across jsons</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#preprocessing">Preprocessing</a></li>
@@ -166,13 +166,13 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="combine-multiple-kerchunkd-datasets-into-a-single-logical-aggregate-dataset">
-<h2>Combine multiple kerchunk’d datasets into a single logical aggregate dataset<a class="headerlink" href="#combine-multiple-kerchunkd-datasets-into-a-single-logical-aggregate-dataset" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="combine-multiple-kerchunked-datasets-into-a-single-logical-aggregate-dataset">
+<h2>Combine multiple kerchunked datasets into a single logical aggregate dataset<a class="headerlink" href="#combine-multiple-kerchunked-datasets-into-a-single-logical-aggregate-dataset" title="Permalink to this headline">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">Kerchunk.combine.MultiZarrtoZarr</span></code> method combines the <code class="docutils literal notranslate"><span class="pre">.json</span></code> reference files generated above to create a single virtual dataset, such that one reference file maps to all of the chunks in the individual files.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span>
 </pre></div>
 </div>
-<p>MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the <code class="docutils literal notranslate"><span class="pre">concat_dims</span></code> argument, <code class="docutils literal notranslate"><span class="pre">&quot;Time0&quot;</span></code> in this instance. Specifying the identical coordinate across the files using the <code class="docutils literal notranslate"><span class="pre">identical_dims</span></code> argument is not strictly necessary but will speed up computation times.</p>
+<p>MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the <code class="docutils literal notranslate"><span class="pre">concat_dims</span></code> argument, <code class="docutils literal notranslate"><span class="pre">&quot;Time0&quot;</span></code> in this instance. Variables that should not be concatenated (because they are not a function of the concat coordinates) should be listed in the <code class="docutils literal notranslate"><span class="pre">identical_dims</span></code> argument.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">json_list</span> <span class="o">=</span> <span class="n">fs2</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_air_pressure_at_mean_sea_level.json&quot;</span><span class="p">)</span>
 
 <span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">json_list</span><span class="p">,</span>
