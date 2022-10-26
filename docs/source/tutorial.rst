@@ -110,7 +110,7 @@ The ``Kerchunk.combine.MultiZarrtoZarr`` method combines the ``.json`` reference
 
     from kerchunk.combine import MultiZarrToZarr
 
-MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, ``"Time0"`` in this instance. Variables that should not be contatenated should be listed in the ``identical_dims`` argument.
+MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, ``"Time0"`` in this instance. Variables that should not be concatenated, because they are not a function of the concat coordinates) should be listed in the ``identical_dims`` argument.
 
 .. code:: 
 
