@@ -101,7 +101,7 @@ The ``.json`` reference files we have generated can now be used to open virtual 
     Wall time: 235 ms
 
 
-Combine multiple kerchunk’d datasets into a single logical aggregate dataset
+Combine multiple kerchunked datasets into a single logical aggregate dataset
 ----------------------------------------------------------------------------
 
 The ``Kerchunk.combine.MultiZarrtoZarr`` method combines the ``.json`` reference files generated above to create a single virtual dataset, such that one reference file maps to all of the chunks in the individual files.
@@ -110,7 +110,7 @@ The ``Kerchunk.combine.MultiZarrtoZarr`` method combines the ``.json`` reference
 
     from kerchunk.combine import MultiZarrToZarr
 
-MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, ``"Time0"`` in this instance. Specifying the identical coordinate across the files using the ``identical_dims`` argument is not strictly necessary but will speed up computation times.
+MultiZarrtoZarr provides a number of convenience methods to combine reference files. The simplest is to concatenate along a specified dimension using the ``concat_dims`` argument, ``"Time0"`` in this instance. Variables that should not be contatenated should be listed in the ``identical_dims`` argument.
 
 .. code:: 
 
