@@ -3,6 +3,7 @@ import base64
 import ujson
 
 import fsspec
+import zarr
 
 
 def class_factory(func):
@@ -112,6 +113,20 @@ def rename_target_files(
         ujson.dump(new, f)
 
 
+def _encode_for_JSON(store):
+    """Make store JSON encodable"""
+    # TODO: read and reincode JSON keys to save space?
+    for k, v in store.copy().items():
+        if isinstance(v, list):
+            store[k][0] = "{{u}}"
+        else:
+            try:
+                store[k] = v.decode() if isinstance(v, bytes) else v
+            except UnicodeDecodeError:
+                store[k] = "base64:" + base64.b64encode(v).decode()
+    return store
+
+
 def _do_inline(store, threshold, remote_options=None):
     """Replace short chunks with the value of that chunk
 
@@ -134,3 +149,60 @@ def _do_inline(store, threshold, remote_options=None):
             v = b"base64:" + base64.b64encode(v)
         out[k] = v
     return out
+
+
+def _inline_array(group, threshold, names, prefix=""):
+    for name, thing in group.items():
+        if prefix:
+            prefix1 = f"{prefix}.{name}"
+        else:
+            prefix1 = name
+        if isinstance(thing, zarr.Group):
+            _inline_array(thing, threshold=threshold, prefix=prefix1, names=names)
+        else:
+            cond1 = threshold and thing.nbytes < threshold and thing.nchunks > 1
+            cond2 = prefix1 in names
+            print(name, prefix1, cond1, cond2)
+            if cond1 or cond2:
+                print("inline")
+                group.create_dataset(
+                    name=name,
+                    dtype=thing.dtype,
+                    shape=thing.shape,
+                    data=thing[:],
+                    chunks=thing.shape,
+                    compression=None,
+                    overwrite=True,
+                )
+
+
+def inline_array(store, threshold=1000, names=None, remote_options=None):
+    """Inline whole arrays by threshold or name, repace with a single metadata chunk
+
+    Inlining whole arrays results in fewer keys. If the constituent keys were
+    already inlined, this also results in a smaller file overall. No action is taken
+    for arrays that are already of one chunk (they should be in
+
+    Parameters
+    ----------
+    store: dict/JSON file
+        reference set
+    threshold: int
+        Size in bytes below which to inline. Set to 0 to prevent inlining by size
+    names: list[str] | None
+        It the array name (as a dotted full path) appears in this list, it will
+        be inlined irrespective of the threshold size. Useful for coordinates.
+    remote_options: dict | None
+        Needed to fetch data, if the required keys are not already individually inlined
+        in the data.
+
+    Returns
+    -------
+    amended references set (simple style)
+    """
+    fs = fsspec.filesystem(
+        "reference", fo=store, **(remote_options or {}), skip_instance_cache=True
+    )
+    g = zarr.open_group(fs.get_mapper(), mode="r+")
+    _inline_array(g, threshold, names=names or [])
+    return fs.references

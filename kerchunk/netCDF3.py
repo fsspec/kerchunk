@@ -20,6 +20,7 @@ class NetCDF3ToZarr(netcdf_file):
 
     Uses scipy's netCDF3 reader, but only reads the metadata. Note that instances
     do behave like actual scipy netcdf files, but contain no valid data.
+    Also appears to work for netCDF2, although this is not currently tested.
     """
 
     def __init__(
