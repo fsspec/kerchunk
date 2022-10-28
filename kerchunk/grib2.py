@@ -175,7 +175,6 @@ def scan_grib(
                 _store_array(
                     store, z, data, name, inline_threshold, offset, size, attrs
                 )
-
             dims = (
                 ["x", "y"]
                 if m["gridType"] in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
