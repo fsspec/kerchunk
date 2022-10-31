@@ -75,3 +75,5 @@ Utilities
 .. autofunction:: kerchunk.utils.rename_target
 
 .. autofunction:: kerchunk.utils.rename_target_files
+
+.. autofunction:: kerchunk.tiff.generate_coords
