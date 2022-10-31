@@ -78,6 +78,7 @@
 <span class="kn">import</span> <span class="nn">ujson</span>
 
 <span class="kn">import</span> <span class="nn">fsspec</span>
+<span class="kn">import</span> <span class="nn">zarr</span>
 
 
 <span class="k">def</span> <span class="nf">class_factory</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
@@ -187,6 +188,24 @@
         <span class="n">ujson</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
 
 
+<span class="k">def</span> <span class="nf">_encode_for_JSON</span><span class="p">(</span><span class="n">store</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make store JSON encodable&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># minify JSON</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">store</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
+            <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+                <span class="n">store</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">store</span>
+
+
 <span class="k">def</span> <span class="nf">_do_inline</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Replace short chunks with the value of that chunk</span>
 
@@ -209,6 +228,63 @@
             <span class="n">v</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
         <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
     <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_inline_array</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">thing</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
+            <span class="n">prefix1</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{prefix}</span><span class="s2">.</span><span class="si">{name}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prefix1</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">zarr</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
+            <span class="n">_inline_array</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix1</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cond1</span> <span class="o">=</span> <span class="n">threshold</span> <span class="ow">and</span> <span class="n">thing</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">&lt;</span> <span class="n">threshold</span> <span class="ow">and</span> <span class="n">thing</span><span class="o">.</span><span class="n">nchunks</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="n">cond2</span> <span class="o">=</span> <span class="n">prefix1</span> <span class="ow">in</span> <span class="n">names</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">prefix1</span><span class="p">,</span> <span class="n">cond1</span><span class="p">,</span> <span class="n">cond2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cond1</span> <span class="ow">or</span> <span class="n">cond2</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;inline&quot;</span><span class="p">)</span>
+                <span class="n">group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">thing</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="n">thing</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                    <span class="n">data</span><span class="o">=</span><span class="n">thing</span><span class="p">[:],</span>
+                    <span class="n">chunks</span><span class="o">=</span><span class="n">thing</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                    <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">inline_array</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Inline whole arrays by threshold or name, repace with a single metadata chunk</span>
+
+<span class="sd">    Inlining whole arrays results in fewer keys. If the constituent keys were</span>
+<span class="sd">    already inlined, this also results in a smaller file overall. No action is taken</span>
+<span class="sd">    for arrays that are already of one chunk (they should be in</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    store: dict/JSON file</span>
+<span class="sd">        reference set</span>
+<span class="sd">    threshold: int</span>
+<span class="sd">        Size in bytes below which to inline. Set to 0 to prevent inlining by size</span>
+<span class="sd">    names: list[str] | None</span>
+<span class="sd">        It the array name (as a dotted full path) appears in this list, it will</span>
+<span class="sd">        be inlined irrespective of the threshold size. Useful for coordinates.</span>
+<span class="sd">    remote_options: dict | None</span>
+<span class="sd">        Needed to fetch data, if the required keys are not already individually inlined</span>
+<span class="sd">        in the data.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    amended references set (simple style)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
+        <span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{}),</span> <span class="n">skip_instance_cache</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span>
+    <span class="n">_inline_array</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span> <span class="ow">or</span> <span class="p">[])</span>
+    <span class="k">return</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span>
 </pre></div>
 
            </div>
