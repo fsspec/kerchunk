@@ -85,6 +85,8 @@ units = {
 def generate_coords(attrs, shape):
     """Produce coordinate arrays for given variable
 
+    Specific to GeoTIFF input attributes
+
     Parameters
     ----------
     attrs: dict
