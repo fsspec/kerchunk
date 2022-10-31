@@ -3,7 +3,7 @@ import logging
 
 try:
     import cfgrib
-except ModuleNotFoundError as err:
+except ModuleNotFoundError as err:  # pragma: no cover
     if err.name == "cfgrib":
         raise ImportError(
             "cfgrib is needed to kerchunk GRIB2 files. Please install it with "
@@ -16,7 +16,7 @@ import fsspec
 import zarr
 import numpy as np
 
-from kerchunk.utils import class_factory
+from kerchunk.utils import class_factory, _encode_for_JSON
 from kerchunk.codecs import GRIBCodec
 
 logger = logging.getLogger("grib2-to-zarr")
@@ -225,10 +225,7 @@ def scan_grib(
             out.append(
                 {
                     "version": 1,
-                    "refs": {
-                        k: v.decode() if isinstance(v, bytes) else v
-                        for k, v in store.items()
-                    },
+                    "refs": _encode_for_JSON(store),
                     "templates": {"u": url},
                 }
             )
@@ -239,7 +236,9 @@ def scan_grib(
 GribToZarr = class_factory(scan_grib)
 
 
-def example_combine(filter={"typeOfLevel": "heightAboveGround", "level": 2}):
+def example_combine(
+    filter={"typeOfLevel": "heightAboveGround", "level": 2}
+):  # pragma: no cover
     """Create combined dataset of weather measurements at 2m height
 
     Ten consecutive timepoints from ten 120MB files on s3.

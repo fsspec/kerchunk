@@ -8,10 +8,11 @@ import zarr
 from zarr.meta import encode_fill_value
 import numcodecs
 from .codecs import FillStringsCodec
+from .utils import _encode_for_JSON
 
 try:
     import h5py
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     raise ImportError(
         "h5py is required for kerchunking HDF5/NetCDF4 files. Please install with "
         "`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html "
@@ -118,15 +119,8 @@ class SingleHdf5ToZarr:
         if self.spec < 1:
             return self.store
         else:
-            for k, v in self.store.copy().items():
-                if isinstance(v, list):
-                    self.store[k][0] = "{{u}}"
-                else:
-                    try:
-                        self.store[k] = v.decode() if isinstance(v, bytes) else v
-                    except UnicodeDecodeError:
-                        self.store[k] = "base64:" + base64.b64encode(v).decode()
-            return {"version": 1, "templates": {"u": self._uri}, "refs": self.store}
+            store = _encode_for_JSON(self.store)
+            return {"version": 1, "refs": store}
 
     def _unref(self, ref):
         name = h5py.h5r.get_name(ref, self._h5f.id)

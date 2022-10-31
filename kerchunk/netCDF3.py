@@ -2,11 +2,11 @@ from functools import reduce
 from operator import mul
 
 import numpy as np
-from .utils import _do_inline
+from .utils import _do_inline, _encode_for_JSON
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     raise ImportError(
         "Scipy is required for kerchunking NetCDF3 files. Please install with "
         "`pip/conda install scipy`. See https://scipy.org/install/ for more details."
@@ -20,6 +20,7 @@ class NetCDF3ToZarr(netcdf_file):
 
     Uses scipy's netCDF3 reader, but only reads the metadata. Note that instances
     do behave like actual scipy netcdf files, but contain no valid data.
+    Also appears to work for netCDF2, although this is not currently tested.
     """
 
     def __init__(
@@ -259,7 +260,7 @@ class NetCDF3ToZarr(netcdf_file):
 
         if self.threshold > 0:
             out = _do_inline(out, self.threshold)
-        out = {k: (v.decode() if isinstance(v, bytes) else v) for k, v in out.items()}
+        out = _encode_for_JSON(out)
 
         return {"version": 1, "refs": out}
 
