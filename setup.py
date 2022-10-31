@@ -28,6 +28,7 @@ setup(
             "grib = kerchunk.codecs:GRIBCodec",
             "fill_hdf_strings = kerchunk.codecs:FillStringsCodec",
             "FITSAscii = kerchunk.codecs:AsciiTableCodec",
+            "FITSVarBintable = kerchunk.codecs:VarArrCodec",
             "record_member = kerchunk.codecs.RecordArrayMember",
         ],
     },

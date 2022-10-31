@@ -67,12 +67,11 @@ HRRR
 
 Native format: GRIB2.
 
-Effective in-memory size: 7.5GB (200-file subset)
+Effective in-memory size: 1.5GB (11-file subset)
 
 Documentation: https://rapidrefresh.noaa.gov/hrrr/
 
-Notebook (generation and use): https://nbviewer.org/gist/rsignell-usgs/ae7bfb16e8a4049bb1ca0379805c4dc2
+Notebook (generation and use): https://nbviewer.org/gist/peterm790/92eb1df3d58ba41d3411f8a840be2452
 
 Notes: High-Resolution Rapid Refresh, real-time 3-km resolution, hourly updated, cloud-resolving,
-convection-allowing atmospheric model from NOAA.  Notebook extracts only sections matching the filter "heightAboveGround=2". Requires importing ``kerchunk.grib2``
-to register the codec.
+convection-allowing atmospheric model from NOAA.  Notebook extracts only sections matching the filter "heightAboveGround=2".

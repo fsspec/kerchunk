@@ -1,7 +1,7 @@
-import base64
 import collections.abc
 import logging
 import re
+import warnings
 
 import fsspec
 import fsspec.utils
@@ -9,6 +9,8 @@ import numpy as np
 import numcodecs
 import ujson
 import zarr
+
+from kerchunk.utils import consolidate
 
 logger = logging.getLogger("kerchunk.combine")
 
@@ -144,10 +146,11 @@ class MultiZarrToZarr:
                 self._paths = [None] * len(fo_list)
             else:
                 self._paths = []
-                fo_list = []
                 for of in fsspec.open_files(self.path, **self.target_options):
-                    fo_list.append(of.open())
                     self._paths.append(of.full_name)
+                fs = fsspec.core.url_to_fs(self.path[0], **self.target_options)[0]
+                fo_list = fs.cat(self.path)
+                fo_list = list(fo_list.values())
 
             self._fss = [
                 fsspec.filesystem(
@@ -242,6 +245,12 @@ class MultiZarrToZarr:
                     coos[var].add(value)
 
         self.coos = _reorganise(coos)
+        for c, v in self.coos.items():
+            if len(v) < 2:
+                warnings.warn(
+                    f"Concatenated coordinate '{c}' contains less than expected"
+                    f"number of values across the datasets: {v}"
+                )
         logger.debug("Created coordinates map")
         self.done.add(1)
         return coos
@@ -342,9 +351,15 @@ class MultiZarrToZarr:
                     cv = tuple(sorted(set(cv)))[0]
                     cvalues[c] = cv
 
-            for v in fs.ls("", detail=False):
+            for v, _, attrs in fs.walk("", detail=False):
                 if v in self.coo_map or v in skip or v.startswith(".z"):
                     # already made coordinate variables and metadata
+                    continue
+                if ".zgroup" in attrs:
+                    if v:
+                        # non-base groups need group metadata copied
+                        for fn in [".zgroup", ".zattrs"]:
+                            self.out[f"{v}/{fn}"] = m[f"{v}/{fn}"]
                     continue
                 if v in self.identical_dims:
                     if f"{v}/.zarray" in self.out:
@@ -408,7 +423,7 @@ class MultiZarrToZarr:
                     # loop over the chunks and copy the references
                     if ".z" in fn:
                         continue
-                    key_parts = fn.split("/", 1)[1].split(".")
+                    key_parts = fn.split("/")[-1].split(".")
                     key = f"{var or v}/"
                     for loc, c in enumerate(coord_order):
                         if c in self.coos:
@@ -440,7 +455,11 @@ class MultiZarrToZarr:
         self.done.add(3)
 
     def translate(self, filename=None, storage_options=None):
-        """Perform all stages and return the resultant references dict"""
+        """Perform all stages and return the resultant references dict
+
+        If filename and storage options are given, the output is written to this
+        file using ujson and fsspec instead of being returned.
+        """
         if 1 not in self.done:
             self.first_pass()
         if 2 not in self.done:
@@ -459,21 +478,6 @@ class MultiZarrToZarr:
                 ujson.dump(out, f)
 
 
-def consolidate(refs):
-    """Turn raw references into output"""
-    out = {}
-    for k, v in refs.items():
-        if isinstance(v, bytes):
-            try:
-                # easiest way to test if data is ascii
-                out[k] = v.decode("ascii")
-            except UnicodeDecodeError:
-                out[k] = (b"base64:" + base64.b64encode(v)).decode()
-        else:
-            out[k] = v
-    return {"version": 1, "refs": out}
-
-
 def _reorganise(coos):
     # reorganise and sort coordinate values
     # extracted here to enable testing
@@ -482,26 +486,95 @@ def _reorganise(coos):
         out[k] = np.array(sorted(arr))
     return out
 
+
 def merge_vars(files, storage_options=None):
     """Merge variables across datasets with identical coordinates
 
     :param files: list(dict), list(str) or list(fsspec.OpenFile)
         List of reference dictionaries or list of paths to reference json files to be merged
     :param storage_options: dict
-        Dictionary containing kwargs to `fsspec.open_files`    
+        Dictionary containing kwargs to `fsspec.open_files`
     """
     if isinstance(files[0], collections.abc.Mapping):
         fo_list = files
         merged = fo_list[0].copy()
         for file in fo_list[1:]:
-            refs = file['refs']
-            merged['refs'].update(refs)
+            refs = file["refs"]
+            merged["refs"].update(refs)
     else:
         fo_list = fsspec.open_files(files, mode="rb", **(storage_options or {}))
         with fo_list[0] as f:
             merged = ujson.load(f)
         for file in fo_list[1:]:
             with file as f:
-                refs = ujson.load(f)['refs']
-            merged['refs'].update(refs)
+                refs = ujson.load(f)["refs"]
+            merged["refs"].update(refs)
     return merged
+
+
+def concatenate_arrays(
+    files,
+    storage_options=None,
+    axis=0,
+    key_seperator=".",
+    path=None,
+    check_arrays=False,
+):
+    """Simple concatenate of one zarr array along an axis
+
+    Assumes that each array is identical in shape/type.
+
+    If the inputs are groups, provide the path to the contained array, and all other arrays
+    will be ignored. You could concatentate the arrays separately and then recombine them
+    with ``merge_vars``.
+
+    Parameters
+    ----------
+    files: list[dict] | list[str]
+        Input reference sets, maybe generated by ``kerchunk.zarr.single_zarr``
+    storage_options: dict | None
+        To create the filesystems, such at target/remote protocol and target/remote options
+    key_seperator: str
+        "." or "/", how the zarr keys are stored
+    path: str or None
+        If the datasets are groups rather than simple arrays, this is the location in the
+        group hierarchy to concatenate. The group structure will be recreated.
+    check_arrays: bool
+        Whether we check the size and chunking of the inputs. If True, and an
+        inconsistency is found, an exception is raised. If False (default), the
+        user is expected to be certain that the chunking and shapes are
+        compatible.
+    """
+    out = {}
+    if path is None:
+        path = ""
+    else:
+        path = "/".join(path.rstrip(".").rstrip("/").split(".")) + "/"
+
+    for i, fn in enumerate(files):
+        fs = fsspec.filesystem("reference", fo=fn, **(storage_options or {}))
+        zdata = ujson.load(fs.open(f"{path}.zarray"))
+        if i == 0:
+            shape = zdata["shape"]
+            chunks = zdata["chunks"]
+            chunks_per_file = int(shape[axis] / chunks[axis])
+            shape[axis] *= len(files)
+            zdata["shape"] = shape
+            out[f"{path}.zarray"] = ujson.dumps(zdata)
+            for name in [".zgroup", ".zattrs", f"{path}.zattrs"]:
+                if name in fs.references:
+                    out[name] = fs.references[name]
+        if check_arrays:
+            if shape != zdata["shape"]:
+                raise ValueError(f"Incompatible array shapes at {fn}")
+            if chunks != zdata["chunks"]:
+                raise ValueError(f"Incompatible array chunks at {fn}")
+        for key in fs.find(""):
+            if key.startswith(f"{path}.z") or not key.startswith(path):
+                continue
+            parts = key.lstrip(path).split(key_seperator)
+            parts[axis] = str(int(parts[axis]) + i * chunks_per_file)
+            key2 = path + key_seperator.join(parts)
+            out[key2] = fs.references[key]
+
+    return consolidate(out)

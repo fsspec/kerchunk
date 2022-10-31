@@ -72,6 +72,7 @@ data = xr.DataArray(
     attrs={"attr0": 0},
 )
 xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk1.zarr")
+xr.Dataset({"data": data}).to_zarr("memory://group1.zarr", group="group")
 
 data = xr.DataArray(
     data=np.vstack([arr] * 4),
@@ -81,6 +82,7 @@ data = xr.DataArray(
     attrs={"attr0": 0},
 )
 xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk2.zarr")
+xr.Dataset({"data": data}).to_zarr("memory://group2.zarr", group="group")
 
 data = xr.DataArray(
     data=da.from_array(np.vstack([arr] * 4), chunks=(1, 10, 10)),
@@ -366,6 +368,7 @@ def test_outfile_postprocess(refs):
         [["quad_nochunk1", "quad_nochunk2"], ((4, 4), (10,), (10,))],
         [["quad_1chunk1", "quad_1chunk2"], ((1,) * 8, (10,), (10,))],
         [["quad_2chunk1", "quad_2chunk2"], ((2,) * 4, (10,), (10,))],
+        [["group1", "group2"], ((4, 4), (10,), (10,))],
     ],
 )
 def test_chunked(refs, inputs, chunks):
@@ -373,6 +376,7 @@ def test_chunked(refs, inputs, chunks):
         [refs[inputs[0]], refs[inputs[1]]],
         remote_protocol="memory",
         concat_dims=["time"],
+        coo_map={"time": "data:group/time"} if "group" in inputs[0] else None,
     )
     out = mzz.translate()
     z = xr.open_dataset(
@@ -383,6 +387,7 @@ def test_chunked(refs, inputs, chunks):
         },
         engine="zarr",
         chunks={},
+        group="group" if "group" in inputs[0] else None,
     )
     # TODO: make some assert_eq style function
     assert z.time.values.tolist() == [1, 2, 3, 4, 5, 6, 7, 8]
@@ -549,13 +554,28 @@ def test_inline(refs):
     assert isinstance(ref.references["data/0.0.0"], str)
     assert ref.references["data/0.0.0"].startswith("base64:")
 
+
 def test_merge_vars():
-    a = dict({"version":1,"refs":dict({"item1":1})})
-    b = dict({"version":1,"refs":dict({"item2":2})})
-    merge = kerchunk.combine.merge_vars([a,b])
-    assert list(merge['refs']) == ['item1', 'item2']
+    a = dict({"version": 1, "refs": dict({"item1": 1})})
+    b = dict({"version": 1, "refs": dict({"item2": 2})})
+    merge = kerchunk.combine.merge_vars([a, b])
+    assert list(merge["refs"]) == ["item1", "item2"]
     fs = fsspec.filesystem("memory")
-    fs.pipe("file1.json", b'''{"version": 1, "refs": {"item1": 1}}''')
-    fs.pipe("file2.json", b'''{"version": 1, "refs": {"item2": 2}}''')
-    merge = kerchunk.combine.merge_vars(['memory://file1.json', 'memory://file2.json'])
-    assert list(merge['refs']) == ['item1', 'item2']
+    fs.pipe("file1.json", b"""{"version": 1, "refs": {"item1": 1}}""")
+    fs.pipe("file2.json", b"""{"version": 1, "refs": {"item2": 2}}""")
+    merge = kerchunk.combine.merge_vars(["memory://file1.json", "memory://file2.json"])
+    assert list(merge["refs"]) == ["item1", "item2"]
+
+
+def test_bad_coo_warning(refs):
+    def f(*_, **__):
+        return 1
+
+    mzz = MultiZarrToZarr(
+        [refs["single1"], refs["single2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_map={"time": f},
+    )
+    with pytest.warns(match="contains less than expected"):
+        mzz.first_pass()

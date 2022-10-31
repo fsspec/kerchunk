@@ -2,8 +2,15 @@ from functools import reduce
 from operator import mul
 
 import numpy as np
+from .utils import _do_inline, _encode_for_JSON
 
-from scipy.io.netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
+try:
+    from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
+except ModuleNotFoundError:  # pragma: no cover
+    raise ImportError(
+        "Scipy is required for kerchunking NetCDF3 files. Please install with "
+        "`pip/conda install scipy`. See https://scipy.org/install/ for more details."
+    )
 
 import fsspec
 
@@ -13,6 +20,7 @@ class NetCDF3ToZarr(netcdf_file):
 
     Uses scipy's netCDF3 reader, but only reads the metadata. Note that instances
     do behave like actual scipy netcdf files, but contain no valid data.
+    Also appears to work for netCDF2, although this is not currently tested.
     """
 
     def __init__(
@@ -32,7 +40,8 @@ class NetCDF3ToZarr(netcdf_file):
         storage_options: dict
             passed to fsspec when opening filename
         inline_threshold: int
-            Byte size below which an array will be embedded in the output [TBC]
+            Byte size below which an array will be embedded in the output. Use 0
+            to disable inlining.
         max_chunk_size: int
             How big a chunk can be before triggering subchunking. If 0, there is no
             subchunking, and there is never subchunking for coordinate/dimension arrays.
@@ -44,8 +53,8 @@ class NetCDF3ToZarr(netcdf_file):
         assert kwargs.pop("mode", "r") == "r"
         assert kwargs.pop("maskandscale", False) is False
 
-        # attributes set before super().__init__ don' accidentally turn into
-        # dataset attribues
+        # attributes set before super().__init__ don't accidentally turn into
+        # dataset attributes
         self.chunks = {}
         self.threshold = inline_threshold
         self.max_chunk_size = max_chunk_size
@@ -186,6 +195,9 @@ class NetCDF3ToZarr(netcdf_file):
                     if k not in ["_FillValue", "missing_value"]
                 }
             )
+            for k in ["add_offset", "scale_factor"]:
+                if k in arr.attrs:
+                    arr.attrs[k] = float(arr.attrs[k])
             arr.attrs["_ARRAY_DIMENSIONS"] = list(var.dimensions)
         if "record_array" in self.chunks:
             # native chunks version (no codec, no options)
@@ -221,6 +233,10 @@ class NetCDF3ToZarr(netcdf_file):
                         if k not in ["_FillValue", "missing_value"]
                     }
                 )
+                for k in ["add_offset", "scale_factor"]:
+                    if k in arr.attrs:
+                        arr.attrs[k] = float(arr.attrs[k])
+
                 arr.attrs["_ARRAY_DIMENSIONS"] = list(var.dimensions)
 
                 suffix = (
@@ -242,10 +258,9 @@ class NetCDF3ToZarr(netcdf_file):
             }
         )
 
-        # remove bytes
-        out = {
-            k: (v.decode() if isinstance(v, bytes) else v) for k, v in self.out.items()
-        }
+        if self.threshold > 0:
+            out = _do_inline(out, self.threshold)
+        out = _encode_for_JSON(out)
 
         return {"version": 1, "refs": out}
 
