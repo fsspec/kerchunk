@@ -178,7 +178,9 @@ def scan_grib(
             dims = (
                 ["x", "y"]
                 if m["gridType"] in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
-                else ["longitude", "latitude"]
+                else ["latitude", "longitude"]
+                    if m["gridType"] in cfgrib.dataset.GRID_TYPES_DIMENSION_COORDS
+                    else ["longitude", "latitude"]
             )
             z[m["shortName"]].attrs["_ARRAY_DIMENSIONS"] = dims
 
@@ -201,10 +203,16 @@ def scan_grib(
                     else:
                         dims = [coord]
                         if coord == "latitude":
-                            x = x.reshape(vals.shape)[0].copy()
+                            if m["gridType"] in cfgrib.dataset.GRID_TYPES_DIMENSION_COORDS:
+                                x = x.reshape(vals.shape)[:,0].copy()
+                            else:
+                                x = x.reshape(vals.shape)[0].copy()
                             inline_extra = x.nbytes + 1
                         elif coord == "longitude":
-                            x = x.reshape(vals.shape)[:, 0].copy()
+                            if m["gridType"] in cfgrib.dataset.GRID_TYPES_DIMENSION_COORDS:
+                                x = x.reshape(vals.shape)[0].copy()
+                            else:
+                                x = x.reshape(vals.shape)[:,0].copy()
                             inline_extra = x.nbytes + 1
                 else:
                     x = np.array([x])
