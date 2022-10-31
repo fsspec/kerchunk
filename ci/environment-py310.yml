@@ -1,0 +1,28 @@
+name: test_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - zarr
+  - xarray
+  - h5netcdf
+  - pandas
+  - cfgrib
+  - cftime
+  - astropy
+  - requests
+  - aiohttp
+  - pytest-cov
+  - fsspec
+  - dask
+  - scipy
+  - s3fs
+  - python-blosc
+  - flake8
+  - black
+  - pip
+  - tifffile
+  - netCDF4
+  - pip:
+      - git+https://github.com/fsspec/filesystem_spec
