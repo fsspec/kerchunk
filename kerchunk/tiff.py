@@ -3,10 +3,17 @@ import fsspec
 import enum
 import ujson
 
+try:
+    import tifffile
+except ModuleNotFoundError:  # pragma: no cover
+    raise ImportError(
+        "tifffile is required for kerchunking TIFF files. Please install with "
+        "`pip/conda install tifffile`."
+    )
+
 
 def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None):
-    """
-    Wraps TIFFFile's fsspec writer to extract metadata as attributes
+    """Wraps TIFFFile's fsspec writer to extract metadata as attributes
 
     Parameters
     ----------
@@ -23,7 +30,6 @@ def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None)
     -------
     references dict
     """
-    import tifffile
 
     with fsspec.open(urlpath, **(remote_options or {})) as of:
         url, name = urlpath.rsplit("/", 1)

@@ -9,6 +9,15 @@ import zarr
 from kerchunk.utils import class_factory
 from kerchunk.codecs import AsciiTableCodec, VarArrCodec
 
+try:
+    from astropy.wcs import WCS
+    from astropy.io import fits
+except ModuleNotFoundError:  # pragma: no cover
+    raise ImportError(
+        "astropy is required for kerchunking FIST files. Please install with "
+        "`pip/conda install astropy`."
+    )
+
 logger = logging.getLogger("fits-to-zarr")
 
 
@@ -200,9 +209,6 @@ def add_wcs_coords(hdu, zarr_group=None, dataset=None, dtype="float32"):
     -------
     If dataset is given, returns the modified dataset.
     """
-    from astropy.wcs import WCS
-    from astropy.io import fits
-
     if zarr_group is None and dataset is None:
         raise ValueError("please provide a zarr group or xarray dataset")
 

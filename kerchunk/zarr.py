@@ -1,5 +1,7 @@
 import fsspec
 
+from kerchunk.utils import _do_inline
+
 
 def single_zarr(uri_or_store, storage_options=None, inline=100):
     """kerchunk-style view on zarr mapper
@@ -10,7 +12,6 @@ def single_zarr(uri_or_store, storage_options=None, inline=100):
 
     This is useful for testing, so that we can pass hand-made zarrs to combine.
     """
-
     if isinstance(uri_or_store, str):
         mapper = fsspec.get_mapper(uri_or_store, **(storage_options or {}))
     else:
@@ -20,8 +21,7 @@ def single_zarr(uri_or_store, storage_options=None, inline=100):
     for k in mapper:
         if k.startswith("."):
             refs[k] = mapper[k]
-        # TODO: inline small values here
-        # elif mapper.fs.info(...)["size"] < inline ?
         else:
             refs[k] = [fsspec.utils._unstrip_protocol(mapper._key_to_str(k), mapper.fs)]
+    refs = _do_inline(refs, inline)
     return refs

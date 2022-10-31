@@ -1,0 +1,14 @@
+[run]
+omit =
+    */test_*.py
+    kerchunk/_version.py
+source =
+    kerchunk
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    pragma: no cover
+    NotImplementedError
+
+ignore_errors = True

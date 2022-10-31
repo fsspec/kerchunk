@@ -115,11 +115,15 @@ def rename_target_files(
 
 def _encode_for_JSON(store):
     """Make store JSON encodable"""
-    # TODO: read and reincode JSON keys to save space?
     for k, v in store.copy().items():
         if isinstance(v, list):
-            store[k][0] = "{{u}}"
+            continue
         else:
+            try:
+                # minify JSON
+                v = ujson.dumps(ujson.loads(v))
+            except (ValueError, TypeError):
+                pass
             try:
                 store[k] = v.decode() if isinstance(v, bytes) else v
             except UnicodeDecodeError:

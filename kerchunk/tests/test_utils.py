@@ -80,3 +80,10 @@ def test_inline_array():
     fs = fsspec.filesystem("reference", fo=out3)
     g = zarr.open(fs.get_mapper())
     assert g.data[:].tolist() == [1, 2]
+
+
+def test_json():
+    data = {"a": "a", "b": b"b", "c": [None, None, None], "d": '{"key": 0}'}
+    out = kerchunk.utils._encode_for_JSON(data)
+    expected = {"a": "a", "b": "b", "c": [None, None, None], "d": '{"key":0}'}
+    assert out == expected
