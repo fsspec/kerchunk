@@ -63,7 +63,7 @@ so that blocks from one or more files can be arranged into aggregate datasets ac
    test_example
    tutorial
    detail
-   cases
+   case_studies/index
    spec
    beyond
    nonzarr
