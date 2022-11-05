@@ -1,4 +1,5 @@
 import base64
+from math import ceil
 
 import ujson
 
@@ -210,3 +211,60 @@ def inline_array(store, threshold=1000, names=None, remote_options=None):
     g = zarr.open_group(fs.get_mapper(), mode="r+")
     _inline_array(g, threshold, names=names or [])
     return fs.references
+
+
+def subchunk(store, variable, factor):
+    """
+    Split uncompressed chunks into integer subchunks on the largest axis
+
+    Parameters
+    ----------
+    store: dict
+        reference set
+    variable: str
+        the named zarr variable (give as /-separated path if deep)
+    factor: int
+        the number of chunks each input chunk turns into. Must be an exact divisor
+        of the original largest dimension length, unless the input has only one
+        chunk.
+
+    Returns
+    -------
+    modified store
+    """
+    fs = fsspec.filesystem("reference", fo=store)
+    meta_file = f"{variable}/.zarray"
+    meta = ujson.load(fs.cat(meta_file))
+    if meta["compressor"] is not None:
+        raise ValueError("Can only subchunk an uncompressed array")
+    chunks_orig = meta["chunks"]
+    shape = meta["shape"]
+    if chunks_orig[0] == shape[0]:
+        raise NotImplementedError
+        chunk_new = [ceil(chunks_orig[0] / factor)] + chunks_orig[1:]
+    else:
+        assert chunks_orig[0] % factor == 0
+        chunk_new = [chunks_orig[0] // factor] + chunks_orig[1:]
+
+    meta["chunks"] = chunk_new
+    store[meta_file] = ujson.dumps(meta)
+
+    for k, v in store.copy().items():
+        if k.startswith(f"{variable}/"):
+            kpart = k[len(variable) + 1 :]
+            if kpart.startswith(".z"):
+                continue
+            sep = "." if "." in k else "/"
+            chunk_index = [int(_) for _ in kpart.split(sep)]
+            if len(v) > 1:
+                url, offset, size = v
+            else:
+                (url,) = v
+                offset = 0
+                size = fs.size(k)
+            for subpart in range(factor):
+                new_index = [chunk_index[0] * factor + subpart] + chunk_index[1:]
+                newpart = sep.join(new_index)
+                newv = [url, offset + subpart * size // factor, size // factor]
+                store[f"{variable}/{newpart}"] = newv
+    return store
