@@ -234,17 +234,18 @@ def subchunk(store, variable, factor):
     """
     fs = fsspec.filesystem("reference", fo=store)
     meta_file = f"{variable}/.zarray"
-    meta = ujson.load(fs.cat(meta_file))
+    meta = ujson.loads(fs.cat(meta_file))
     if meta["compressor"] is not None:
         raise ValueError("Can only subchunk an uncompressed array")
     chunks_orig = meta["chunks"]
     shape = meta["shape"]
-    if chunks_orig[0] == shape[0]:
+    if chunks_orig[0] % factor == 0:
+        chunk_new = [chunks_orig[0] // factor] + chunks_orig[1:]
+    elif chunks_orig[0] == shape[0]:
         raise NotImplementedError
         chunk_new = [ceil(chunks_orig[0] / factor)] + chunks_orig[1:]
     else:
-        assert chunks_orig[0] % factor == 0
-        chunk_new = [chunks_orig[0] // factor] + chunks_orig[1:]
+        raise ValueError("Must subchunk by exact integer factor")
 
     meta["chunks"] = chunk_new
     store[meta_file] = ujson.dumps(meta)
@@ -264,7 +265,7 @@ def subchunk(store, variable, factor):
                 size = fs.size(k)
             for subpart in range(factor):
                 new_index = [chunk_index[0] * factor + subpart] + chunk_index[1:]
-                newpart = sep.join(new_index)
+                newpart = sep.join(str(_) for _ in new_index)
                 newv = [url, offset + subpart * size // factor, size // factor]
                 store[f"{variable}/{newpart}"] = newv
     return store
