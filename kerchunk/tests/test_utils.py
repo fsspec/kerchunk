@@ -1,5 +1,8 @@
 import fsspec
 import kerchunk.utils
+import kerchunk.zarr
+import numpy as np
+import pytest
 import zarr
 
 
@@ -87,3 +90,26 @@ def test_json():
     out = kerchunk.utils._encode_for_JSON(data)
     expected = {"a": "a", "b": "b", "c": [None, None, None], "d": '{"key":0}'}
     assert out == expected
+
+
+@pytest.mark.parametrize("chunks", [[10, 10], [5, 10]])
+def test_subchunk_exact(m, chunks):
+    store = m.get_mapper("test.zarr")
+    g = zarr.open_group(store, mode="w")
+    data = np.arange(100).reshape(10, 10)
+    arr = g.create_dataset("data", data=data, chunks=chunks, compression=None)
+    ref = kerchunk.zarr.single_zarr("memory://test.zarr")
+
+    extra = [] if chunks[0] == 10 else ["data/1.0"]
+    assert list(ref) == [".zgroup", "data/.zarray", "data/0.0"] + extra
+
+    out = kerchunk.utils.subchunk(ref, "data", 5)
+    nchunk = 10 // chunks[0] * 5
+    assert list(ref) == [".zgroup", "data/.zarray"] + [
+        f"data/{_}.0" for _ in range(nchunk)
+    ]
+
+    g2 = zarr.open_group(
+        "reference://", storage_options={"fo": out, "remote_protocol": "memory"}
+    )
+    assert (g2.data[:] == data).all()
