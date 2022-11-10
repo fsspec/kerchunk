@@ -1,5 +1,4 @@
 import base64
-from math import ceil
 
 import ujson
 
@@ -225,8 +224,7 @@ def subchunk(store, variable, factor):
         the named zarr variable (give as /-separated path if deep)
     factor: int
         the number of chunks each input chunk turns into. Must be an exact divisor
-        of the original largest dimension length, unless the input has only one
-        chunk.
+        of the original largest dimension length.
 
     Returns
     -------
@@ -238,12 +236,8 @@ def subchunk(store, variable, factor):
     if meta["compressor"] is not None:
         raise ValueError("Can only subchunk an uncompressed array")
     chunks_orig = meta["chunks"]
-    shape = meta["shape"]
     if chunks_orig[0] % factor == 0:
         chunk_new = [chunks_orig[0] // factor] + chunks_orig[1:]
-    elif chunks_orig[0] == shape[0]:
-        raise NotImplementedError
-        chunk_new = [ceil(chunks_orig[0] / factor)] + chunks_orig[1:]
     else:
         raise ValueError("Must subchunk by exact integer factor")
 
