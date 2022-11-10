@@ -68,8 +68,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>API Reference</li>
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/reference.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -462,6 +462,9 @@ compatible.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.utils.rename_target_files" title="kerchunk.utils.rename_target_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.rename_target_files</span></code></a>(url_in, …)</p></td>
 <td><p>Perform URL renames on a reference set - read and write from JSON</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.utils.subchunk" title="kerchunk.utils.subchunk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.subchunk</span></code></a>(store, variable, factor)</p></td>
+<td><p>Split uncompressed chunks into integer subchunks on the largest axis</p></td>
+</tr>
 </tbody>
 </table>
 <dl class="function">
@@ -511,6 +514,30 @@ in the original) to new URL</p>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><dl class="simple">
 <dt>None</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="kerchunk.utils.subchunk">
+<code class="sig-prename descclassname">kerchunk.utils.</code><code class="sig-name descname">subchunk</code><span class="sig-paren">(</span><em class="sig-param">store</em>, <em class="sig-param">variable</em>, <em class="sig-param">factor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/utils.html#subchunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.utils.subchunk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split uncompressed chunks into integer subchunks on the largest axis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>store: dict</strong></dt><dd><p>reference set</p>
+</dd>
+<dt><strong>variable: str</strong></dt><dd><p>the named zarr variable (give as /-separated path if deep)</p>
+</dd>
+<dt><strong>factor: int</strong></dt><dd><p>the number of chunks each input chunk turns into. Must be an exact divisor
+of the original largest dimension length.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>modified store</dt><dd></dd>
 </dl>
 </dd>
 </dl>

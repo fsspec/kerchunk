@@ -61,9 +61,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../index.html">Module code</a> &raquo;</li>
-      <li>kerchunk.utils</li>
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">kerchunk.utils</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -285,6 +285,59 @@
     <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span>
     <span class="n">_inline_array</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span> <span class="ow">or</span> <span class="p">[])</span>
     <span class="k">return</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span>
+
+
+<div class="viewcode-block" id="subchunk"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.subchunk">[docs]</a><span class="k">def</span> <span class="nf">subchunk</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Split uncompressed chunks into integer subchunks on the largest axis</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    store: dict</span>
+<span class="sd">        reference set</span>
+<span class="sd">    variable: str</span>
+<span class="sd">        the named zarr variable (give as /-separated path if deep)</span>
+<span class="sd">    factor: int</span>
+<span class="sd">        the number of chunks each input chunk turns into. Must be an exact divisor</span>
+<span class="sd">        of the original largest dimension length.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    modified store</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">store</span><span class="p">)</span>
+    <span class="n">meta_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{variable}</span><span class="s2">/.zarray&quot;</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">meta_file</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;compressor&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can only subchunk an uncompressed array&quot;</span><span class="p">)</span>
+    <span class="n">chunks_orig</span> <span class="o">=</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">chunks_orig</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="n">factor</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">chunk_new</span> <span class="o">=</span> <span class="p">[</span><span class="n">chunks_orig</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="n">factor</span><span class="p">]</span> <span class="o">+</span> <span class="n">chunks_orig</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must subchunk by exact integer factor&quot;</span><span class="p">)</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chunk_new</span>
+    <span class="n">store</span><span class="p">[</span><span class="n">meta_file</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{variable}</span><span class="s2">/&quot;</span><span class="p">):</span>
+            <span class="n">kpart</span> <span class="o">=</span> <span class="n">k</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">variable</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+            <span class="k">if</span> <span class="n">kpart</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.z&quot;</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">sep</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span> <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">else</span> <span class="s2">&quot;/&quot;</span>
+            <span class="n">chunk_index</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">kpart</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">url</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="p">(</span><span class="n">url</span><span class="p">,)</span> <span class="o">=</span> <span class="n">v</span>
+                <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">subpart</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">factor</span><span class="p">):</span>
+                <span class="n">new_index</span> <span class="o">=</span> <span class="p">[</span><span class="n">chunk_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">factor</span> <span class="o">+</span> <span class="n">subpart</span><span class="p">]</span> <span class="o">+</span> <span class="n">chunk_index</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="n">newpart</span> <span class="o">=</span> <span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">new_index</span><span class="p">)</span>
+                <span class="n">newv</span> <span class="o">=</span> <span class="p">[</span><span class="n">url</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">subpart</span> <span class="o">*</span> <span class="n">size</span> <span class="o">//</span> <span class="n">factor</span><span class="p">,</span> <span class="n">size</span> <span class="o">//</span> <span class="n">factor</span><span class="p">]</span>
+                <span class="n">store</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{variable}</span><span class="s2">/</span><span class="si">{newpart}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newv</span>
+    <span class="k">return</span> <span class="n">store</span></div>
 </pre></div>
 
            </div>
