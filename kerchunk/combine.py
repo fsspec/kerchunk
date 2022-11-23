@@ -1,6 +1,7 @@
 import collections.abc
 import logging
 import re
+from typing import List
 import warnings
 
 import fsspec
@@ -578,3 +579,88 @@ def concatenate_arrays(
             out[key2] = fs.references[key]
 
     return consolidate(out)
+
+
+def auto_dask(
+    urls: List[str],
+    driver: str,
+    single_kwargs: dict,
+    mzz_kwargs: dict,
+    n_batches: int,
+    remote_ptotocol=None,
+    remote_options=None,
+    filename=None,
+    output_options=None,
+):
+    """Batched tree combine using dask.
+
+    If you wish to run on a distributed cluster (recommended), create
+    a client before calling this function.
+
+    Parameters
+    ----------
+    urls: list of input datasets
+    single_driver: class with ``translate()`` method
+    single_kwargs: to pass to single-input driver
+    mzz_kwargs: passed to ``MultiZarrToZarr`` for each batch
+    n_batches: int
+        Number of MZZ instances in the first combine stage. Maybe set equal
+        to the number of dask workers, or a multple thereof.
+    remote_ptotocol: str | None
+    remote_options: dict
+        To fsspec for opening the remote files
+    filename: str | None
+        Ouput filename, if writing
+    output_options
+        If ``filename`` is not None, open it with these options
+
+    Returns
+    -------
+    reference set
+    """
+    import dask
+
+    # make delayed functions
+    single_task = dask.delayed(lambda x: driver(x, **single_kwargs).translate())
+    post = mzz_kwargs.pop("postprocess", None)
+    inline = mzz_kwargs.pop("inline_threshold", None)
+    batch_task = dask.delayed(lambda x: MultiZarrToZarr(x, **mzz_kwargs).translate())
+
+    # sort out kwargs
+    dims = mzz_kwargs["concat_dims"]
+    dims += [k for k in mzz_kwargs["coo_map"] if k not in dims]
+    kwargs = {"concat_dims": dims}
+    if post:
+        kwargs["postprocess"] = post
+    if inline:
+        kwargs["inline_threshold"] = inline
+    for field in ["remote_protocol", "remote_options", "coo_dtypes", "identical_dims"]:
+        if field in mzz_kwargs:
+            kwargs[field] = mzz_kwargs[field]
+    final_task = dask.delayed(
+        lambda x: MultiZarrToZarr(x, **kwargs).translate(filename, output_options)
+    )
+
+    # make delayed calls
+    tasks = [single_task(u) for u in urls]
+    tasks_per_batch = len(tasks) // n_batches
+    tasks2 = []
+    for batch in range(tasks_per_batch + 1):
+        in_tasks = tasks[batch * tasks_per_batch : batch * (tasks_per_batch + 1)]
+        if in_tasks:
+            # skip if on last iteration and no remaining tasks
+            tasks2.append(batch_task(in_tasks))
+    all_tasks = tasks + tasks2 + [final_task(tasks2)]
+    dask.compute(all_tasks)
+
+
+class JustLoad:
+    """For auto_dask, in the case that single file references already exist"""
+
+    def __init__(self, url, storage_options=None):
+        self.url = url
+        self.storage_options = storage_options or {}
+
+    def translate(self):
+        with fsspec.open(self.url, moe="rt", **self.storage_options) as f:
+            return ujson.load(f)
