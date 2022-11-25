@@ -18,11 +18,9 @@ bdata = xr.Dataset({"data": data}, attrs={"attr0": 3}).to_netcdf(
     format="NETCDF3_CLASSIC"
 )
 
-m = fsspec.filesystem("memory")
-m.pipe("data.nc3", bdata)
 
-
-def test_one():
+def test_one(m):
+    m.pipe("data.nc3", bdata)
     h = netCDF3.netcdf_recording_file("memory://data.nc3")
     out = h.translate()
     ds = xr.open_dataset(
