@@ -33,7 +33,11 @@ class MultiZarrToZarr:
     Combine multiple kerchunk'd datasets into a single logical aggregate dataset
 
     :param path: str, list(str) or list(dict)
-        Local paths, each containing a references JSON; or a list of references dicts
+        Local paths, each containing a references JSON; or a list of references dicts.
+        You may pass a list of reference dicts only, but then they will not have assicuated
+        filenames; if you need filenames for producing coordinates, pass the list
+        of filenames with path=, and the references with indicts=
+    :param indicts: list(dict)
     :param concat_dims: str or list(str)
         Names of the dimensions to expand with
     :param coo_map: dict(str, selector)
@@ -90,6 +94,7 @@ class MultiZarrToZarr:
     def __init__(
         self,
         path,
+        indicts=None,
         coo_map=None,
         concat_dims=None,
         coo_dtypes=None,
@@ -103,6 +108,7 @@ class MultiZarrToZarr:
     ):
         self._fss = None
         self._paths = None
+        self._indicts = indicts
         self.ds = None
         self.path = path
         if concat_dims is None:
@@ -142,7 +148,10 @@ class MultiZarrToZarr:
 
         if self._fss is None:
             logger.debug("setup filesystems")
-            if isinstance(self.path[0], collections.abc.Mapping):
+            if self._indicts is not None:
+                fo_list = self._indicts
+                self._paths = self.path
+            elif isinstance(self.path[0], collections.abc.Mapping):
                 fo_list = self.path
                 self._paths = [None] * len(fo_list)
             else:
@@ -293,6 +302,8 @@ class MultiZarrToZarr:
                         for _ in v
                     ]
                 ).ravel()
+            if "fill_value" not in kw and data.dtype.kind == "i":
+                kw["fill_value"] = None
             arr = group.create_dataset(
                 name=k,
                 data=data,
@@ -583,7 +594,7 @@ def concatenate_arrays(
 
 def auto_dask(
     urls: List[str],
-    driver: str,
+    single_driver: str,
     single_kwargs: dict,
     mzz_kwargs: dict,
     n_batches: int,
@@ -621,14 +632,16 @@ def auto_dask(
     import dask
 
     # make delayed functions
-    single_task = dask.delayed(lambda x: driver(x, **single_kwargs).translate())
+    single_task = dask.delayed(lambda x: single_driver(x, **single_kwargs).translate())
     post = mzz_kwargs.pop("postprocess", None)
     inline = mzz_kwargs.pop("inline_threshold", None)
-    batch_task = dask.delayed(lambda x: MultiZarrToZarr(x, **mzz_kwargs).translate())
+    batch_task = dask.delayed(
+        lambda u, x: MultiZarrToZarr(u, indicts=x, **mzz_kwargs).translate()
+    )
 
     # sort out kwargs
-    dims = mzz_kwargs["concat_dims"]
-    dims += [k for k in mzz_kwargs["coo_map"] if k not in dims]
+    dims = mzz_kwargs.get("concat_dims", [])
+    dims += [k for k in mzz_kwargs.get("coo_map", []) if k not in dims]
     kwargs = {"concat_dims": dims}
     if post:
         kwargs["postprocess"] = post
@@ -646,12 +659,12 @@ def auto_dask(
     tasks_per_batch = len(tasks) // n_batches
     tasks2 = []
     for batch in range(tasks_per_batch + 1):
-        in_tasks = tasks[batch * tasks_per_batch : batch * (tasks_per_batch + 1)]
+        in_tasks = tasks[batch * tasks_per_batch : (batch + 1) * tasks_per_batch]
+        u = urls[batch * tasks_per_batch : (batch + 1) * tasks_per_batch]
         if in_tasks:
             # skip if on last iteration and no remaining tasks
-            tasks2.append(batch_task(in_tasks))
-    all_tasks = tasks + tasks2 + [final_task(tasks2)]
-    dask.compute(all_tasks)
+            tasks2.append(batch_task(u, in_tasks))
+    return dask.compute(final_task(tasks2))[0]
 
 
 class JustLoad:
