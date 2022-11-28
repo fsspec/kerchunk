@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - python=3.10
+  - dask
   - zarr
   - xarray
   - h5netcdf
