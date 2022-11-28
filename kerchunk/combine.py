@@ -598,7 +598,7 @@ def auto_dask(
     single_kwargs: dict,
     mzz_kwargs: dict,
     n_batches: int,
-    remote_ptotocol=None,
+    remote_protocol=None,
     remote_options=None,
     filename=None,
     output_options=None,
