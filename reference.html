@@ -309,13 +309,17 @@ parsable by <code class="docutils literal notranslate"><span class="pre">np.dtyp
 </table>
 <dl class="class">
 <dt id="kerchunk.combine.MultiZarrToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">MultiZarrToZarr</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">indicts=None</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combine multiple kerchunk’d datasets into a single logical aggregate dataset</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>path</strong> – str, list(str) or list(dict)
-Local paths, each containing a references JSON; or a list of references dicts</p></li>
+Local paths, each containing a references JSON; or a list of references dicts.
+You may pass a list of reference dicts only, but then they will not have assicuated
+filenames; if you need filenames for producing coordinates, pass the list
+of filenames with path=, and the references with indicts=</p></li>
+<li><p><strong>indicts</strong> – list(dict)</p></li>
 <li><p><strong>concat_dims</strong> – str or list(str)
 Names of the dimensions to expand with</p></li>
 <li><p><strong>coo_map</strong> – <p>dict(str, selector)
@@ -387,7 +391,7 @@ postprocess(dict)-&gt; dict</p></li>
 </table>
 <dl class="method">
 <dt id="kerchunk.combine.MultiZarrToZarr.__init__">
-<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.__init__" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">indicts=None</em>, <em class="sig-param">coo_map=None</em>, <em class="sig-param">concat_dims=None</em>, <em class="sig-param">coo_dtypes=None</em>, <em class="sig-param">identical_dims=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">remote_protocol=None</em>, <em class="sig-param">remote_options=None</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">preprocess=None</em>, <em class="sig-param">postprocess=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
 </dd></dl>
 

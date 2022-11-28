@@ -76,6 +76,7 @@
 <span></span><span class="kn">import</span> <span class="nn">collections.abc</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="kn">import</span> <span class="nn">fsspec</span>
@@ -107,7 +108,11 @@
 <span class="sd">    Combine multiple kerchunk&#39;d datasets into a single logical aggregate dataset</span>
 
 <span class="sd">    :param path: str, list(str) or list(dict)</span>
-<span class="sd">        Local paths, each containing a references JSON; or a list of references dicts</span>
+<span class="sd">        Local paths, each containing a references JSON; or a list of references dicts.</span>
+<span class="sd">        You may pass a list of reference dicts only, but then they will not have assicuated</span>
+<span class="sd">        filenames; if you need filenames for producing coordinates, pass the list</span>
+<span class="sd">        of filenames with path=, and the references with indicts=</span>
+<span class="sd">    :param indicts: list(dict)</span>
 <span class="sd">    :param concat_dims: str or list(str)</span>
 <span class="sd">        Names of the dimensions to expand with</span>
 <span class="sd">    :param coo_map: dict(str, selector)</span>
@@ -164,6 +169,7 @@
 <div class="viewcode-block" id="MultiZarrToZarr.__init__"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">,</span>
+        <span class="n">indicts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">coo_map</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">concat_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">coo_dtypes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -177,6 +183,7 @@
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fss</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indicts</span> <span class="o">=</span> <span class="n">indicts</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ds</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
         <span class="k">if</span> <span class="n">concat_dims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -216,7 +223,10 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;setup filesystems&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indicts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">fo_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indicts</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
                 <span class="n">fo_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">fo_list</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
@@ -367,6 +377,8 @@
                         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">v</span>
                     <span class="p">]</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">if</span> <span class="s2">&quot;fill_value&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kw</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
+                <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;fill_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">arr</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
@@ -653,6 +665,93 @@
             <span class="n">out</span><span class="p">[</span><span class="n">key2</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">auto_dask</span><span class="p">(</span>
+    <span class="n">urls</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">single_driver</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">single_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">mzz_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">n_batches</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">output_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Batched tree combine using dask.</span>
+
+<span class="sd">    If you wish to run on a distributed cluster (recommended), create</span>
+<span class="sd">    a client before calling this function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    urls: list of input datasets</span>
+<span class="sd">    single_driver: class with ``translate()`` method</span>
+<span class="sd">    single_kwargs: to pass to single-input driver</span>
+<span class="sd">    mzz_kwargs: passed to ``MultiZarrToZarr`` for each batch</span>
+<span class="sd">    n_batches: int</span>
+<span class="sd">        Number of MZZ instances in the first combine stage. Maybe set equal</span>
+<span class="sd">        to the number of dask workers, or a multple thereof.</span>
+<span class="sd">    remote_protocol: str | None</span>
+<span class="sd">    remote_options: dict</span>
+<span class="sd">        To fsspec for opening the remote files</span>
+<span class="sd">    filename: str | None</span>
+<span class="sd">        Ouput filename, if writing</span>
+<span class="sd">    output_options</span>
+<span class="sd">        If ``filename`` is not None, open it with these options</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    reference set</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">dask</span>
+
+    <span class="c1"># make delayed functions</span>
+    <span class="n">single_task</span> <span class="o">=</span> <span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">single_driver</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">single_kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span>
+    <span class="n">post</span> <span class="o">=</span> <span class="n">mzz_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;postprocess&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">inline</span> <span class="o">=</span> <span class="n">mzz_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;inline_threshold&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">batch_task</span> <span class="o">=</span> <span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">indicts</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">mzz_kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="c1"># sort out kwargs</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="n">mzz_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;concat_dims&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">dims</span> <span class="o">+=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">mzz_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;coo_map&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">]</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;concat_dims&quot;</span><span class="p">:</span> <span class="n">dims</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">post</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;postprocess&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">post</span>
+    <span class="k">if</span> <span class="n">inline</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;inline_threshold&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inline</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;remote_protocol&quot;</span><span class="p">,</span> <span class="s2">&quot;remote_options&quot;</span><span class="p">,</span> <span class="s2">&quot;coo_dtypes&quot;</span><span class="p">,</span> <span class="s2">&quot;identical_dims&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">mzz_kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">mzz_kwargs</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+    <span class="n">final_task</span> <span class="o">=</span> <span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">output_options</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># make delayed calls</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="n">single_task</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">urls</span><span class="p">]</span>
+    <span class="n">tasks_per_batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">//</span> <span class="n">n_batches</span>
+    <span class="n">tasks2</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">tasks_per_batch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">in_tasks</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="n">batch</span> <span class="o">*</span> <span class="n">tasks_per_batch</span> <span class="p">:</span> <span class="p">(</span><span class="n">batch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tasks_per_batch</span><span class="p">]</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">urls</span><span class="p">[</span><span class="n">batch</span> <span class="o">*</span> <span class="n">tasks_per_batch</span> <span class="p">:</span> <span class="p">(</span><span class="n">batch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tasks_per_batch</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">in_tasks</span><span class="p">:</span>
+            <span class="c1"># skip if on last iteration and no remaining tasks</span>
+            <span class="n">tasks2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_task</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">in_tasks</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">dask</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">final_task</span><span class="p">(</span><span class="n">tasks2</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">JustLoad</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;For auto_dask, in the case that single file references already exist&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">moe</span><span class="o">=</span><span class="s2">&quot;rt&quot;</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
 
            </div>
