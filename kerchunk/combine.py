@@ -617,7 +617,7 @@ def auto_dask(
     n_batches: int
         Number of MZZ instances in the first combine stage. Maybe set equal
         to the number of dask workers, or a multple thereof.
-    remote_ptotocol: str | None
+    remote_protocol: str | None
     remote_options: dict
         To fsspec for opening the remote files
     filename: str | None
