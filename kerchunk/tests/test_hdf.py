@@ -32,18 +32,21 @@ def test_single():
         xr.testing.assert_equal(ds.drop_vars("crs"), expected.drop_vars("crs"))
 
 
-
 def test_single_direct_open():
-    """Test creating references by passing the url directly to SingleHdf5ToZarr for a single HDF file """
+    """Test creating references by passing the url directly to SingleHdf5ToZarr for a single HDF file"""
     url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
-    so = dict(anon=True, default_fill_cache=False, default_cache_type='first')
+    so = dict(anon=True, default_fill_cache=False, default_cache_type="first")
 
-    test_dict = SingleHdf5ToZarr(h5f = url, inline_threshold=300, storage_options = so).translate()
+    test_dict = SingleHdf5ToZarr(
+        h5f=url, inline_threshold=300, storage_options=so
+    ).translate()
 
     m = fsspec.get_mapper(
         "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
-    ds_direct = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    ds_direct = xr.open_dataset(
+        m, engine="zarr", backend_kwargs=dict(consolidated=False)
+    )
 
     with fsspec.open(url, **so) as f:
         h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
@@ -52,10 +55,13 @@ def test_single_direct_open():
     m = fsspec.get_mapper(
         "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
-    ds_from_file_opener = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    ds_from_file_opener = xr.open_dataset(
+        m, engine="zarr", backend_kwargs=dict(consolidated=False)
+    )
 
-    xr.testing.assert_equal(ds_from_file_opener.drop_vars("crs"), ds_direct.drop_vars("crs"))
-
+    xr.testing.assert_equal(
+        ds_from_file_opener.drop_vars("crs"), ds_direct.drop_vars("crs")
+    )
 
 
 urls = [
