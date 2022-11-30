@@ -44,7 +44,10 @@ def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None)
                 for k in dir(tif):
                     if not k.endswith("metadata"):
                         continue
-                    met = getattr(tif, k, None)
+                    try:
+                        met = getattr(tif, k, None)
+                    except Exception:
+                        continue
                     try:
                         d = dict(met or {})
                     except ValueError:
