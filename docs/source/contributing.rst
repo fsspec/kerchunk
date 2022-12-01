@@ -6,32 +6,30 @@ Contributing to kerchunk
 
 .. note::
 
-  Large parts of this document are based on the `Xarray Contributing
-  Guide <http://docs.xarray.dev/en/stable/contributing.html>`, the `Pandas Contributing Guide
-  <http://pandas.pydata.org/pandas-docs/stable/contributing.html>`_. and the `xbatcher Contributing Guide <https://xbatcher.readthedocs.io/en/latest/contributing.html>`]
-  on the `Pandas Contributing Guide
-  <http://pandas.pydata.org/pandas-docs/stable/contributing.html>`_.
+  Large parts of this document are based on the 
+  `Xarray Contributing Guide <http://docs.xarray.dev/en/stable/contributing.html>`_
+  , the `Pandas Contributing Guide <http://pandas.pydata.org/pandas-docs/stable/contributing.html>`_
+  and the `xbatcher Contributing Guide <https://xbatcher.readthedocs.io/en/latest/contributing.html>`_.
 
 Bug reports and feature requests
 ================================
 
-Bug reports or feature requests to the kerchunk project can be submitted by opening up an `issue in the repository <https://github.com/fsspec/kerchunk/issues>`.
+Bug reports or feature requests to the kerchunk project can be submitted by opening up an `Issue in the repository <https://github.com/fsspec/kerchunk/issues>`_.
 
 
 Contributing code
 ==================
 
-This project uses git for version control and github for issue tracking. If you need instructions on how to setup git, they can be found on
-`GitHub<https://help.github.com/set-up-git-redirect>`__.
+This project uses git for version control and github for issue tracking. If you need instructions on how to setup git, they can be found on `GitHub <https://help.github.com/set-up-git-redirect>`_.
 
 
 .. _contributing.forking:
 
-Forking
--------
+Creating a Fork
+---------------
 
-Once you have your git credential setup, the next step is to create a fork of the project to work off of.
-To fork the repo, navigate to `https://github.com/fsspec/kerchunk` and click the *Fork* button in the top right of the page.
+Once you have your git credentials setup, the next step is to create a fork of the project to work off of.
+To fork the repo, navigate to the `kerchunk repository on github <https://github.com/fsspec/kerchunk>`_ and click the *Fork* button in the top right of the page.
 This will create a fork of the kerchunk project in your own repository.
 
 Next, you will want to clone this forked version of the repository onto the machine you are working on.
@@ -73,7 +71,7 @@ This will create an isolated development environment where you can install the k
 
 
 .. tip::
-    If your conda build solving times are taking a long time, you can try `mamba <https://mamba.readthedocs.io/en/latest/installation.html#installation>`,
+    If your conda build solving times are taking a long time, you can try `mamba <https://mamba.readthedocs.io/en/latest/installation.html#installation>`_,
     which is a mirror of conda written in c++`.
 
 First we'll create and activate the build environment:
@@ -84,13 +82,13 @@ First we'll create and activate the build environment:
     conda activate kerchunk
 
 
-
 Now that you have the correct dependencies installed in your environment,
 you should be able to install your development version of kerchunk locally.
 In the projects home directory run:
 
 .. code-block:: sh
-pip install -e .
+
+    pip install -e .
 
 To test that the installation was successful run:
 
@@ -101,19 +99,19 @@ To test that the installation was successful run:
    >>> kerchunk.__version__
 
 
-To view your environments::
+To view your environments
 
 .. code-block:: sh
 
       conda info --envs
 
-To return to your base environment::
+To return to your base environment
 
 .. code-block:: sh
 
       conda deactivate
 
-See the full conda docs `here <http://conda.pydata.org/docs>`__.
+See the full conda docs `here <http://conda.pydata.org/docs>`_.
 
 Setting up pre-commit
 ~~~~~~~~~~~~~~~~~~~~~
@@ -133,14 +131,14 @@ Creating a branch
 
 
 You want your ``main`` branch to reflect only production-ready code, so create a
-feature branch before making your changes. For example::
+feature branch before making your changes. For example
 
 .. code-block:: sh
 
     git branch shiny-new-feature
     git checkout shiny-new-feature
 
-The above can be simplified to::
+The above can be simplified to
 
 .. code-block:: sh
 
@@ -151,7 +149,7 @@ changes in this branch specific to one bug or feature so it is clear
 what the branch brings to *kerchunk*. You can have many "shiny-new-features"
 and switch in between them using the ``git checkout`` command.
 
-To update this branch, you need to retrieve the changes from the ``main`` branch::
+To update this branch, you need to retrieve the changes from the ``main`` branch
 
 .. code-block:: sh
 
@@ -168,7 +166,7 @@ Running the test suite
 ----------------------
 
 *kerchunk* uses the `pytest <https://docs.pytest.org/en/latest/contents.html>`_
-framework for testing. You can run the test suite using::
+framework for testing. You can run the test suite using:
 
 .. code-block:: sh
 
@@ -193,13 +191,13 @@ Once you make changes to the docs, you can build them with:
 Contributing changes
 ====================
 
-Once you feel good about your changes you can see them by typing::
+Once you feel good about your changes you can see them by typing:
 
 .. code-block:: sh
 
     git status
 
-If you have created a new file, it is not being tracked by git. Add it by typing::
+If you have created a new file, it is not being tracked by git. Add it by typing:
 
 .. code-block:: sh
 
@@ -207,21 +205,21 @@ If you have created a new file, it is not being tracked by git. Add it by typing
 
 
 
-Now you can commit your changes in your local repository::
+Now you can commit your changes in your local repository.
 
 .. code-block:: sh
 
     git commit -m "<commit message>"
 
 When you want your changes to appear publicly on your GitHub page, push your
-commits to a branch off your fork::
+commits to a branch off your fork.
 
 .. code-block:: sh
 
     git push origin shiny-new-feature
 
 Here ``origin`` is the default name given to your remote repository on GitHub.
-You can see the remote repositories::
+You can see the remote repositories.
 
 .. code-block:: sh
 
