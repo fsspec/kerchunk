@@ -6,7 +6,7 @@ Contributing to kerchunk
 
 .. note::
 
-  Large parts of this document are based on the 
+  Large parts of this document are based on the
   `Xarray Contributing Guide <http://docs.xarray.dev/en/stable/contributing.html>`_
   , the `Pandas Contributing Guide <http://pandas.pydata.org/pandas-docs/stable/contributing.html>`_
   and the `xbatcher Contributing Guide <https://xbatcher.readthedocs.io/en/latest/contributing.html>`_.
@@ -174,12 +174,20 @@ framework for testing. You can run the test suite using:
 
 Ideally any new feature added should have test coverage.
 
+
 Contributing documentation
 ==========================
 
-Documentation improvements are appreciated. The documentation is contained within the `/docs` directory of the project.
-It is written in `ReStructured Text (.rst)`, which is similar to markdown, but features more functionality.
-These ReStructured text files are built into `html` using the python `sphinx (https://www.sphinx-doc.org/en/master/)` package.
+Documentation improvements are appreciated. The documentation is contained within the ``docs`` directory of the project.
+It is written in ``ReStructured Text (.rst)``, which is similar to markdown, but features more functionality.
+These ReStructured text files are built into ``html`` using the python `sphinx (https://www.sphinx-doc.org/en/master/)_` package.
+
+You can create a virtual environment by running:
+
+.. code-block:: sh
+
+    conda env create --file ci/docs.yml
+    conda activate kerchunk-docs
 
 Once you make changes to the docs, you can build them with:
 
