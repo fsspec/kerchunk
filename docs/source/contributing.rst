@@ -11,6 +11,11 @@ Contributing to kerchunk
   , the `Pandas Contributing Guide <http://pandas.pydata.org/pandas-docs/stable/contributing.html>`_
   and the `xbatcher Contributing Guide <https://xbatcher.readthedocs.io/en/latest/contributing.html>`_.
 
+.. warning::
+    kerchunk is actively in development and breaking changes may be introduced at any point.
+    In its current state, it is possible for experienced users to build kerchunk indices of datasets, where end users never have to touch kerchunk.
+
+
 Bug reports and feature requests
 ================================
 
