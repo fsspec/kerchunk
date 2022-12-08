@@ -13,18 +13,27 @@ from kerchunk.combine import MultiZarrToZarr, drop
 here = osp.dirname(__file__)
 
 
-def test_single():
+@pytest.mark.parametrize("zarr_version", [2, 3], ids=["zarr-v2", "zarr-v3"])
+def test_single(zarr_version):
     """Test creating references for a single HDF file"""
     url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
     so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
     with fsspec.open(url, **so) as f:
-        h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
+        h5chunks = SingleHdf5ToZarr(
+            f, url, storage_options=so, zarr_version=zarr_version
+        )
         test_dict = h5chunks.translate()
 
     m = fsspec.get_mapper(
         "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
-    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    print(test_dict)
+    ds = xr.open_dataset(
+        m,
+        engine="zarr",
+        backend_kwargs=dict(consolidated=False),
+        zarr_version=zarr_version,
+    )
 
     with fsspec.open(url, **so) as f:
         expected = xr.open_dataset(f, engine="h5netcdf")

@@ -2,6 +2,9 @@ name: Tests
 
 on: [push, pull_request]
 
+env:
+  ZARR_V3_EXPERIMENTAL_API=1: 1
+
 jobs:
   build:
 

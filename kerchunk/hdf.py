@@ -74,6 +74,7 @@ class SingleHdf5ToZarr:
         storage_options=None,
         error="warn",
         vlen_encode="embed",
+        zarr_version=2,
     ):
 
         # Open HDF5 file in read mode...
@@ -92,7 +93,9 @@ class SingleHdf5ToZarr:
         self._h5f = h5py.File(self.input_file, mode="r")
 
         self.store = {}
-        self._zroot = zarr.group(store=self.store, overwrite=True)
+        self._zroot = zarr.group(
+            store=self.store, overwrite=True, zarr_version=zarr_version
+        )
 
         self._uri = url
         self.error = error
