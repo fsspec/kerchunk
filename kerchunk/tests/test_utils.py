@@ -1,3 +1,5 @@
+import io
+
 import fsspec
 import kerchunk.utils
 import kerchunk.zarr
@@ -113,3 +115,34 @@ def test_subchunk_exact(m, chunks):
         "reference://", storage_options={"fo": out, "remote_protocol": "memory"}
     )
     assert (g2.data[:] == data).all()
+
+
+@pytest.mark.parametrize("archive", ["zip", "tar"])
+def test_archive(m, archive):
+    import zipfile
+    import tarfile
+
+    data = b"piece of data"
+    with fsspec.open("memory://archive", "wb") as f:
+        if archive == "zip":
+            arc = zipfile.ZipFile(file=f, mode="w")
+            arc.writestr("data1", data)
+            arc.close()
+        else:
+            arc = tarfile.TarFile(fileobj=f, mode="w")
+            ti = tarfile.TarInfo("data1")
+            ti.size = len(data)
+            arc.addfile(ti, io.BytesIO(data))
+            arc.close()
+    refs = {
+        "a": b"stuff",
+        "b": [f"{archive}://data1::memory://archive"],
+        "c": [f"{archive}://data1::memory://archive", 5, 2],
+    }
+
+    refs2 = kerchunk.utils.dereference_archives(refs)
+
+    fs = fsspec.filesystem("reference", fo=refs2)
+    assert fs.cat("a") == b"stuff"
+    assert fs.cat("b") == data
+    assert fs.cat("c") == data[5:7]

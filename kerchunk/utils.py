@@ -303,12 +303,13 @@ def dereference_archives(references, remote_options=None):
                 }
             elif tar_or_zip == "zip":
                 zf = zipfile.ZipFile(file=tf)
+                offsets[target] = {}
                 for zipinfo in zf.filelist:
                     if zipinfo.is_dir():
                         continue
-                    offsets[target] = {
-                        "offset": zf.header_offset + len(zf.FileHeader),
-                        "size": zf.compress_size,
+                    offsets[target][zipinfo.filename] = {
+                        "offset": zipinfo.header_offset + len(zipinfo.FileHeader()),
+                        "size": zipinfo.compress_size,
                         "comp": zipinfo.compress_type != zipfile.ZIP_STORED,
                     }
 
