@@ -191,14 +191,11 @@ class SingleHdf5ToZarr:
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
         try:  # method must not raise exception
+            kwargs = {}
             if isinstance(h5obj, h5py.Dataset):
                 lggr.debug(f"HDF5 dataset: {h5obj.name}")
                 if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
-                    RuntimeError(
-                        f"Compact HDF5 datasets not yet supported: <{h5obj.name} "
-                        f"{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>"
-                    )
-                    return
+                    kwargs["data"] = h5obj[:]
 
                 #
                 # check for unsupported HDF encoding/filters
@@ -215,7 +212,6 @@ class SingleHdf5ToZarr:
                     compression = numcodecs.Zlib(level=h5obj.compression_opts)
                 else:
                     compression = None
-                kwargs = {}
                 filters = []
                 dt = None
                 # Get storage info of this HDF5 dataset...
@@ -386,12 +382,12 @@ class SingleHdf5ToZarr:
                 )
                 lggr.debug(f"Created Zarr array: {za}")
                 self._transfer_attrs(h5obj, za)
-                if "data" in kwargs:
-                    return  # embedded bytes, no chunks to copy
-
                 adims = self._get_array_dims(h5obj)
                 za.attrs["_ARRAY_DIMENSIONS"] = adims
                 lggr.debug(f"_ARRAY_DIMENSIONS = {adims}")
+
+                if "data" in kwargs:
+                    return  # embedded bytes, no chunks to copy
 
                 # Store chunk location metadata...
                 if cinfo:
