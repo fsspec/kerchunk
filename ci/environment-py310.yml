@@ -27,4 +27,4 @@ dependencies:
   - netCDF4
   - pip:
       - git+https://github.com/fsspec/filesystem_spec
-      - ipfspsec
+      - ipfsspec
