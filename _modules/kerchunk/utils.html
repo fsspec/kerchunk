@@ -46,6 +46,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../beyond.html">Beyond Python</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../nonzarr.html">Non-zarr uses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
 </ul>
 
         </div>
@@ -74,6 +75,7 @@
              
   <h1>Source code for kerchunk.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">copy</span>
 
 <span class="kn">import</span> <span class="nn">ujson</span>
 
@@ -110,7 +112,7 @@
     <span class="k">return</span> <span class="n">FunctionWrapper</span>
 
 
-<span class="k">def</span> <span class="nf">consolidate</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
+<div class="viewcode-block" id="consolidate"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.consolidate">[docs]</a><span class="k">def</span> <span class="nf">consolidate</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Turn raw references into output&quot;&quot;&quot;</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -122,7 +124,7 @@
                 <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">v</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="rename_target"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.rename_target">[docs]</a><span class="k">def</span> <span class="nf">rename_target</span><span class="p">(</span><span class="n">refs</span><span class="p">,</span> <span class="n">renames</span><span class="p">):</span>
@@ -206,7 +208,7 @@
     <span class="k">return</span> <span class="n">store</span>
 
 
-<span class="k">def</span> <span class="nf">_do_inline</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="do_inline"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.do_inline">[docs]</a><span class="k">def</span> <span class="nf">do_inline</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Replace short chunks with the value of that chunk</span>
 
 <span class="sd">    The chunk may need encoding with base64 if not ascii, so actual</span>
@@ -227,7 +229,7 @@
         <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
             <span class="n">v</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
         <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-    <span class="k">return</span> <span class="n">out</span>
+    <span class="k">return</span> <span class="n">out</span></div>
 
 
 <span class="k">def</span> <span class="nf">_inline_array</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
@@ -241,9 +243,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">cond1</span> <span class="o">=</span> <span class="n">threshold</span> <span class="ow">and</span> <span class="n">thing</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">&lt;</span> <span class="n">threshold</span> <span class="ow">and</span> <span class="n">thing</span><span class="o">.</span><span class="n">nchunks</span> <span class="o">&gt;</span> <span class="mi">1</span>
             <span class="n">cond2</span> <span class="o">=</span> <span class="n">prefix1</span> <span class="ow">in</span> <span class="n">names</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">prefix1</span><span class="p">,</span> <span class="n">cond1</span><span class="p">,</span> <span class="n">cond2</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">cond1</span> <span class="ow">or</span> <span class="n">cond2</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;inline&quot;</span><span class="p">)</span>
                 <span class="n">group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
                     <span class="n">dtype</span><span class="o">=</span><span class="n">thing</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
@@ -255,7 +255,7 @@
                 <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">inline_array</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="inline_array"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.inline_array">[docs]</a><span class="k">def</span> <span class="nf">inline_array</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Inline whole arrays by threshold or name, repace with a single metadata chunk</span>
 
 <span class="sd">    Inlining whole arrays results in fewer keys. If the constituent keys were</span>
@@ -284,7 +284,7 @@
     <span class="p">)</span>
     <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span>
     <span class="n">_inline_array</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span> <span class="ow">or</span> <span class="p">[])</span>
-    <span class="k">return</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span>
+    <span class="k">return</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span></div>
 
 
 <div class="viewcode-block" id="subchunk"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.subchunk">[docs]</a><span class="k">def</span> <span class="nf">subchunk</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
@@ -338,6 +338,78 @@
                 <span class="n">newv</span> <span class="o">=</span> <span class="p">[</span><span class="n">url</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">subpart</span> <span class="o">*</span> <span class="n">size</span> <span class="o">//</span> <span class="n">factor</span><span class="p">,</span> <span class="n">size</span> <span class="o">//</span> <span class="n">factor</span><span class="p">]</span>
                 <span class="n">store</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{variable}</span><span class="s2">/</span><span class="si">{newpart}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newv</span>
     <span class="k">return</span> <span class="n">store</span></div>
+
+
+<div class="viewcode-block" id="dereference_archives"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.dereference_archives">[docs]</a><span class="k">def</span> <span class="nf">dereference_archives</span><span class="p">(</span><span class="n">references</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Directly point to uncompressed byte ranges in ZIP/TAR archives</span>
+
+<span class="sd">    If a set of references have been made for files contained within ZIP or</span>
+<span class="sd">    (uncompressed) TAR archives, the &quot;zip://...&quot; and &quot;tar://...&quot; URLs should</span>
+<span class="sd">    be converted to byte ranges in the overall file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    references: dict</span>
+<span class="sd">        a simple reference set</span>
+<span class="sd">    remote_options: dict or None</span>
+<span class="sd">        For opening the archives</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">zipfile</span>
+    <span class="kn">import</span> <span class="nn">tarfile</span>
+
+    <span class="k">if</span> <span class="s2">&quot;version&quot;</span> <span class="ow">in</span> <span class="n">references</span> <span class="ow">and</span> <span class="n">references</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">references</span> <span class="o">=</span> <span class="n">references</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span>
+
+    <span class="n">target_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">references</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="nb">list</span><span class="p">)]</span>
+    <span class="n">target_files</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="n">t</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target_files</span>
+        <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;tar://&quot;</span><span class="p">,</span> <span class="s2">&quot;zip://&quot;</span><span class="p">))</span>
+    <span class="p">}</span>
+
+    <span class="c1"># find all member file offsets in all archives</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">target</span><span class="p">,</span> <span class="n">tar_or_zip</span> <span class="ow">in</span> <span class="n">target_files</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">tf</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tar_or_zip</span> <span class="o">==</span> <span class="s2">&quot;tar&quot;</span><span class="p">:</span>
+                <span class="n">tar</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">TarFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">tf</span><span class="p">)</span>
+                <span class="n">offsets</span><span class="p">[</span><span class="n">target</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">ti</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="n">ti</span><span class="o">.</span><span class="n">offset_data</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="n">ti</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="s2">&quot;comp&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+                    <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="n">tar</span><span class="o">.</span><span class="n">getmembers</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">ti</span><span class="o">.</span><span class="n">isfile</span><span class="p">()</span>
+                <span class="p">}</span>
+            <span class="k">elif</span> <span class="n">tar_or_zip</span> <span class="o">==</span> <span class="s2">&quot;zip&quot;</span><span class="p">:</span>
+                <span class="n">zf</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">tf</span><span class="p">)</span>
+                <span class="n">offsets</span><span class="p">[</span><span class="n">target</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">zipinfo</span> <span class="ow">in</span> <span class="n">zf</span><span class="o">.</span><span class="n">filelist</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">zipinfo</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+                        <span class="k">continue</span>
+                    <span class="n">offsets</span><span class="p">[</span><span class="n">target</span><span class="p">][</span><span class="n">zipinfo</span><span class="o">.</span><span class="n">filename</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="n">zipinfo</span><span class="o">.</span><span class="n">header_offset</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">zipinfo</span><span class="o">.</span><span class="n">FileHeader</span><span class="p">()),</span>
+                        <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="n">zipinfo</span><span class="o">.</span><span class="n">compress_size</span><span class="p">,</span>
+                        <span class="s2">&quot;comp&quot;</span><span class="p">:</span> <span class="n">zipinfo</span><span class="o">.</span><span class="n">compress_type</span> <span class="o">!=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZIP_STORED</span><span class="p">,</span>
+                    <span class="p">}</span>
+
+    <span class="c1"># modify references</span>
+    <span class="n">mods</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">references</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mods</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">infile</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">6</span><span class="p">:]</span>  <span class="c1"># strip &quot;zip://&quot; or &quot;tar://&quot;</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">detail</span> <span class="o">=</span> <span class="n">offsets</span><span class="p">[</span><span class="n">target</span><span class="p">][</span><span class="n">infile</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">detail</span><span class="p">[</span><span class="s2">&quot;comp&quot;</span><span class="p">]:</span>
+            <span class="c1"># leave compressed member file alone</span>
+            <span class="k">continue</span>
+        <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detail</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
+            <span class="n">v</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detail</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">detail</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">mods</span></div>
 </pre></div>
 
            </div>

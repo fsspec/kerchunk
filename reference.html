@@ -16,6 +16,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Advanced Topics" href="advanced.html" />
     <link rel="prev" title="Non-zarr uses" href="nonzarr.html" /> 
 </head>
 
@@ -53,6 +54,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 </ul>
 
         </div>
@@ -305,6 +307,9 @@ parsable by <code class="docutils literal notranslate"><span class="pre">np.dtyp
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.concatenate_arrays" title="kerchunk.combine.concatenate_arrays"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.concatenate_arrays</span></code></a>(files[, …])</p></td>
 <td><p>Simple concatenate of one zarr array along an axis</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.auto_dask" title="kerchunk.combine.auto_dask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask</span></code></a>(urls, …[, …])</p></td>
+<td><p>Batched tree combine using dask.</p></td>
+</tr>
 </tbody>
 </table>
 <dl class="class">
@@ -451,6 +456,41 @@ compatible.</p>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="kerchunk.combine.auto_dask">
+<code class="sig-prename descclassname">kerchunk.combine.</code><code class="sig-name descname">auto_dask</code><span class="sig-paren">(</span><em class="sig-param">urls: List[str], single_driver: str, single_kwargs: dict, mzz_kwargs: dict, n_batches: int, remote_protocol=None, remote_options=None, filename=None, output_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#auto_dask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.combine.auto_dask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Batched tree combine using dask.</p>
+<p>If you wish to run on a distributed cluster (recommended), create
+a client before calling this function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>urls: list[str]</strong></dt><dd><p>input dataset URLs</p>
+</dd>
+<dt><strong>single_driver: class</strong></dt><dd><p>class with <code class="docutils literal notranslate"><span class="pre">translate()</span></code> method</p>
+</dd>
+<dt><strong>single_kwargs: to pass to single-input driver</strong></dt><dd></dd>
+<dt><strong>mzz_kwargs: passed to ``MultiZarrToZarr`` for each batch</strong></dt><dd></dd>
+<dt><strong>n_batches: int</strong></dt><dd><p>Number of MZZ instances in the first combine stage. Maybe set equal
+to the number of dask workers, or a multple thereof.</p>
+</dd>
+<dt><strong>remote_protocol: str | None</strong></dt><dd></dd>
+<dt><strong>remote_options: dict</strong></dt><dd><p>To fsspec for opening the remote files</p>
+</dd>
+<dt><strong>filename: str | None</strong></dt><dd><p>Ouput filename, if writing</p>
+</dd>
+<dt><strong>output_options</strong></dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">filename</span></code> is not None, open it with these options</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>reference set</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 <div class="section" id="utilities">
 <h2>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h2>
@@ -468,6 +508,18 @@ compatible.</p>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.utils.subchunk" title="kerchunk.utils.subchunk"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.subchunk</span></code></a>(store, variable, factor)</p></td>
 <td><p>Split uncompressed chunks into integer subchunks on the largest axis</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.utils.dereference_archives" title="kerchunk.utils.dereference_archives"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.dereference_archives</span></code></a>(references)</p></td>
+<td><p>Directly point to uncompressed byte ranges in ZIP/TAR archives</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.utils.consolidate" title="kerchunk.utils.consolidate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.consolidate</span></code></a>(refs)</p></td>
+<td><p>Turn raw references into output</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.utils.do_inline" title="kerchunk.utils.do_inline"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.do_inline</span></code></a>(store, threshold[, …])</p></td>
+<td><p>Replace short chunks with the value of that chunk</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.utils.inline_array" title="kerchunk.utils.inline_array"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.inline_array</span></code></a>(store[, …])</p></td>
+<td><p>Inline whole arrays by threshold or name, repace with a single metadata chunk</p></td>
 </tr>
 </tbody>
 </table>
@@ -547,6 +599,69 @@ of the original largest dimension length.</p>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="kerchunk.utils.dereference_archives">
+<code class="sig-prename descclassname">kerchunk.utils.</code><code class="sig-name descname">dereference_archives</code><span class="sig-paren">(</span><em class="sig-param">references</em>, <em class="sig-param">remote_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/utils.html#dereference_archives"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.utils.dereference_archives" title="Permalink to this definition">¶</a></dt>
+<dd><p>Directly point to uncompressed byte ranges in ZIP/TAR archives</p>
+<p>If a set of references have been made for files contained within ZIP or
+(uncompressed) TAR archives, the “zip://…” and “tar://…” URLs should
+be converted to byte ranges in the overall file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>references: dict</strong></dt><dd><p>a simple reference set</p>
+</dd>
+<dt><strong>remote_options: dict or None</strong></dt><dd><p>For opening the archives</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="kerchunk.utils.consolidate">
+<code class="sig-prename descclassname">kerchunk.utils.</code><code class="sig-name descname">consolidate</code><span class="sig-paren">(</span><em class="sig-param">refs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/utils.html#consolidate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.utils.consolidate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn raw references into output</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kerchunk.utils.do_inline">
+<code class="sig-prename descclassname">kerchunk.utils.</code><code class="sig-name descname">do_inline</code><span class="sig-paren">(</span><em class="sig-param">store</em>, <em class="sig-param">threshold</em>, <em class="sig-param">remote_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/utils.html#do_inline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.utils.do_inline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace short chunks with the value of that chunk</p>
+<p>The chunk may need encoding with base64 if not ascii, so actual
+length may be larger than threshold.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="kerchunk.utils.inline_array">
+<code class="sig-prename descclassname">kerchunk.utils.</code><code class="sig-name descname">inline_array</code><span class="sig-paren">(</span><em class="sig-param">store</em>, <em class="sig-param">threshold=1000</em>, <em class="sig-param">names=None</em>, <em class="sig-param">remote_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/utils.html#inline_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.utils.inline_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inline whole arrays by threshold or name, repace with a single metadata chunk</p>
+<p>Inlining whole arrays results in fewer keys. If the constituent keys were
+already inlined, this also results in a smaller file overall. No action is taken
+for arrays that are already of one chunk (they should be in</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>store: dict/JSON file</strong></dt><dd><p>reference set</p>
+</dd>
+<dt><strong>threshold: int</strong></dt><dd><p>Size in bytes below which to inline. Set to 0 to prevent inlining by size</p>
+</dd>
+<dt><strong>names: list[str] | None</strong></dt><dd><p>It the array name (as a dotted full path) appears in this list, it will
+be inlined irrespective of the threshold size. Useful for coordinates.</p>
+</dd>
+<dt><strong>remote_options: dict | None</strong></dt><dd><p>Needed to fetch data, if the required keys are not already individually inlined
+in the data.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>amended references set (simple style)</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 </div>
 
@@ -555,6 +670,7 @@ of the original largest dimension length.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="nonzarr.html" class="btn btn-neutral float-left" title="Non-zarr uses" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="advanced.html" class="btn btn-neutral float-right" title="Advanced Topics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

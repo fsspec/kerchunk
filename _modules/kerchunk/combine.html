@@ -46,6 +46,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../beyond.html">Beyond Python</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../nonzarr.html">Non-zarr uses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
 </ul>
 
         </div>
@@ -667,7 +668,7 @@
     <span class="k">return</span> <span class="n">consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">auto_dask</span><span class="p">(</span>
+<div class="viewcode-block" id="auto_dask"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.auto_dask">[docs]</a><span class="k">def</span> <span class="nf">auto_dask</span><span class="p">(</span>
     <span class="n">urls</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">single_driver</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">single_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
@@ -685,8 +686,10 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    urls: list of input datasets</span>
-<span class="sd">    single_driver: class with ``translate()`` method</span>
+<span class="sd">    urls: list[str]</span>
+<span class="sd">        input dataset URLs</span>
+<span class="sd">    single_driver: class</span>
+<span class="sd">        class with ``translate()`` method</span>
 <span class="sd">    single_kwargs: to pass to single-input driver</span>
 <span class="sd">    mzz_kwargs: passed to ``MultiZarrToZarr`` for each batch</span>
 <span class="sd">    n_batches: int</span>
@@ -710,6 +713,7 @@
     <span class="n">single_task</span> <span class="o">=</span> <span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">single_driver</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">single_kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span>
     <span class="n">post</span> <span class="o">=</span> <span class="n">mzz_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;postprocess&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">inline</span> <span class="o">=</span> <span class="n">mzz_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;inline_threshold&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># TODO: if single files produce list of reference sets (e.g., grib2)</span>
     <span class="n">batch_task</span> <span class="o">=</span> <span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span>
         <span class="k">lambda</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">indicts</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">mzz_kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
     <span class="p">)</span>
@@ -739,7 +743,7 @@
         <span class="k">if</span> <span class="n">in_tasks</span><span class="p">:</span>
             <span class="c1"># skip if on last iteration and no remaining tasks</span>
             <span class="n">tasks2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_task</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">in_tasks</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">dask</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">final_task</span><span class="p">(</span><span class="n">tasks2</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">dask</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">final_task</span><span class="p">(</span><span class="n">tasks2</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
 <span class="k">class</span> <span class="nc">JustLoad</span><span class="p">:</span>
