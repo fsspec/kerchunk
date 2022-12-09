@@ -9,7 +9,7 @@ File format backends
    kerchunk.grib2.scan_grib
    kerchunk.fits.process_file
    kerchunk.tiff.tiff_to_zarr
-   kerchunk.netCDF3.netcdf_recording_file
+   kerchunk.netCDF3.NetCDF3ToZarr
 
 .. autoclass:: kerchunk.hdf.SingleHdf5ToZarr
     :members:
@@ -21,7 +21,7 @@ File format backends
 
 .. autofunction:: kerchunk.tiff.tiff_to_zarr
 
-.. autoclass:: kerchunk.netCDF3.netcdf_recording_file
+.. autoclass:: kerchunk.netCDF3.NetCDF3ToZarr
     :members: __init__, translate
 
 Codecs

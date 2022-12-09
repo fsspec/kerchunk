@@ -103,8 +103,8 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr" title="kerchunk.tiff.tiff_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></a>(urlpath[, …])</p></td>
 <td><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.netcdf_recording_file" title="kerchunk.netCDF3.netcdf_recording_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.netcdf_recording_file</span></code></a></p></td>
-<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="kerchunk.netCDF3.NetCDF3ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></a>(filename, *args)</p></td>
+<td><p>Generate references for a netCDF3 file</p></td>
 </tr>
 </tbody>
 </table>
@@ -259,10 +259,61 @@ uses the first data extension</p>
 </dl>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="kerchunk.netCDF3.netcdf_recording_file">
-<code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">netcdf_recording_file</code><a class="headerlink" href="#kerchunk.netCDF3.netcdf_recording_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></p>
+<dl class="class">
+<dt id="kerchunk.netCDF3.NetCDF3ToZarr">
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">NetCDF3ToZarr</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">*args</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">max_chunk_size=0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#NetCDF3ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate references for a netCDF3 file</p>
+<p>Uses scipy’s netCDF3 reader, but only reads the metadata. Note that instances
+do behave like actual scipy netcdf files, but contain no valid data.
+Also appears to work for netCDF2, although this is not currently tested.</p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr.translate" title="kerchunk.netCDF3.NetCDF3ToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>()</p></td>
+<td><p>Produce references dictionary</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="kerchunk.netCDF3.NetCDF3ToZarr.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">*args</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">max_chunk_size=0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#NetCDF3ToZarr.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.NetCDF3ToZarr.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>filename: str</strong></dt><dd><p>location of the input</p>
+</dd>
+<dt><strong>storage_options: dict</strong></dt><dd><p>passed to fsspec when opening filename</p>
+</dd>
+<dt><strong>inline_threshold: int</strong></dt><dd><p>Byte size below which an array will be embedded in the output. Use 0
+to disable inlining.</p>
+</dd>
+<dt><strong>max_chunk_size: int</strong></dt><dd><p>How big a chunk can be before triggering subchunking. If 0, there is no
+subchunking, and there is never subchunking for coordinate/dimension arrays.
+E.g., if an array contains 10,000bytes, and this value is 6000, there will
+be two output chunks, split on the biggest available dimension. [TBC]</p>
+</dd>
+<dt><strong>args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="kerchunk.netCDF3.NetCDF3ToZarr.translate">
+<code class="sig-name descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#NetCDF3ToZarr.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.NetCDF3ToZarr.translate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produce references dictionary</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><blockquote>
+<div></div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </div>

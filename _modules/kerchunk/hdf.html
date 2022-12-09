@@ -267,186 +267,189 @@
     <span class="k">def</span> <span class="nf">_translator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">h5obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">]):</span>
         <span class="sd">&quot;&quot;&quot;Produce Zarr metadata for all groups and datasets in the HDF5 file.&quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>  <span class="c1"># method must not raise exception</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
                 <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HDF5 dataset: </span><span class="si">{h5obj.name}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">get_create_plist</span><span class="p">()</span><span class="o">.</span><span class="n">get_layout</span><span class="p">()</span> <span class="o">==</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5d</span><span class="o">.</span><span class="n">COMPACT</span><span class="p">:</span>
-                    <span class="ne">RuntimeError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Compact HDF5 datasets not yet supported: &lt;</span><span class="si">{h5obj.name}</span><span class="s2"> &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.shape}</span><span class="s2"> </span><span class="si">{h5obj.dtype}</span><span class="s2"> </span><span class="si">{h5obj.nbytes}</span><span class="s2"> bytes&gt;&quot;</span>
-                    <span class="p">)</span>
-                    <span class="k">return</span>
+                    <span class="c1"># Only do if h5obj.nbytes &lt; self.inline??</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
 
-                <span class="c1">#</span>
-                <span class="c1"># check for unsupported HDF encoding/filters</span>
-                <span class="c1">#</span>
-                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">scaleoffset</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.name}</span><span class="s2"> uses HDF5 scaleoffset filter - not supported by reference-maker&quot;</span>
-                    <span class="p">)</span>
-                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;szip&quot;</span><span class="p">,</span> <span class="s2">&quot;lzf&quot;</span><span class="p">):</span>
-                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.name}</span><span class="s2"> uses szip or lzf compression - not supported by reference-maker&quot;</span>
-                    <span class="p">)</span>
-                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="s2">&quot;gzip&quot;</span><span class="p">:</span>
-                    <span class="n">compression</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">Zlib</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">compression_opts</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">compression</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="c1">#</span>
+                    <span class="c1"># check for unsupported HDF encoding/filters</span>
+                    <span class="c1">#</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">scaleoffset</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.name}</span><span class="s2"> uses HDF5 scaleoffset filter - not supported by reference-maker&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;szip&quot;</span><span class="p">,</span> <span class="s2">&quot;lzf&quot;</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.name}</span><span class="s2"> uses szip or lzf compression - not supported by reference-maker&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="s2">&quot;gzip&quot;</span><span class="p">:</span>
+                        <span class="n">compression</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">Zlib</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">compression_opts</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">compression</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">dt</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="c1"># Get storage info of this HDF5 dataset...</span>
                 <span class="n">cinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_info</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
 
-                <span class="c1"># encodings</span>
-                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;US&quot;</span><span class="p">:</span>
-                    <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span> <span class="ow">or</span> <span class="s2">&quot; &quot;</span>  <span class="c1"># cannot be None</span>
-                <span class="k">elif</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;embed&quot;</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
-                            <span class="n">out</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
-                        <span class="k">elif</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                            <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">out</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
-                            <span class="n">out2</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
-                            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">out2</span><span class="p">):</span>
-                                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
-                                    <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-                                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                                    <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
-                                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5r</span><span class="o">.</span><span class="n">Reference</span><span class="p">):</span>
-                                    <span class="c1"># TODO: recursively recreate references</span>
-                                    <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-                                <span class="k">else</span><span class="p">:</span>
-                                    <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-                                        <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
-                                        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span>
-                                    <span class="p">]</span>
-                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span>
-                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">JSON</span><span class="p">()</span>
-                        <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
-                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;null&quot;</span><span class="p">:</span>
-                        <span class="n">dt</span> <span class="o">=</span> <span class="s2">&quot;O&quot;</span>
-                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FillStringsCodec</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;S16&quot;</span><span class="p">)</span>
-                        <span class="n">fill</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
-                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;leave&quot;</span><span class="p">:</span>
-                        <span class="n">dt</span> <span class="o">=</span> <span class="s2">&quot;S16&quot;</span>
-                        <span class="n">fill</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
-                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;encode&quot;</span><span class="p">:</span>
-                        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cinfo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-                        <span class="n">v</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cinfo</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="n">data</span> <span class="o">=</span> <span class="n">_read_block</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_file</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">])</span>
-                        <span class="n">indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;S16&quot;</span><span class="p">)</span>
-                        <span class="n">labels</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
-                        <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span>
-                            <span class="n">index</span><span class="o">.</span><span class="n">decode</span><span class="p">():</span> <span class="n">label</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-                            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-                        <span class="p">}</span>
-                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FillStringsCodec</span><span class="p">(</span>
-                            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;S16&quot;</span><span class="p">,</span> <span class="n">id_map</span><span class="o">=</span><span class="n">mapping</span>
-                        <span class="p">)</span>
-                        <span class="n">fill</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-                <span class="k">elif</span> <span class="n">_is_netcdf_datetime</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
+                <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                     <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">compression</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span>
-                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span>
-                    <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
-                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;encode&quot;</span><span class="p">:</span>
-                        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cinfo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-                        <span class="n">v</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cinfo</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
-                            <span class="p">(</span>
-                                <span class="n">v</span><span class="p">,</span>
-                                <span class="p">(</span>
-                                    <span class="s2">&quot;S16&quot;</span>
-                                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
-                                    <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
-                                <span class="p">),</span>
+                    <span class="c1"># encodings</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;US&quot;</span><span class="p">:</span>
+                        <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span> <span class="ow">or</span> <span class="s2">&quot; &quot;</span>  <span class="c1"># cannot be None</span>
+                    <span class="k">elif</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;embed&quot;</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
+                                <span class="n">out</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">out</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
+                                <span class="n">out2</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">out2</span><span class="p">):</span>
+                                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                                        <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                                        <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5r</span><span class="o">.</span><span class="n">Reference</span><span class="p">):</span>
+                                        <span class="c1"># TODO: recursively recreate references</span>
+                                        <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="n">out2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                            <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
+                                            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span>
+                                        <span class="p">]</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">JSON</span><span class="p">()</span>
+                            <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;null&quot;</span><span class="p">:</span>
+                            <span class="n">dt</span> <span class="o">=</span> <span class="s2">&quot;O&quot;</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FillStringsCodec</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;S16&quot;</span><span class="p">)</span>
+                            <span class="n">fill</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;leave&quot;</span><span class="p">:</span>
+                            <span class="n">dt</span> <span class="o">=</span> <span class="s2">&quot;S16&quot;</span>
+                            <span class="n">fill</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;encode&quot;</span><span class="p">:</span>
+                            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cinfo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+                            <span class="n">v</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cinfo</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                            <span class="n">data</span> <span class="o">=</span> <span class="n">_read_block</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_file</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">])</span>
+                            <span class="n">indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;S16&quot;</span><span class="p">)</span>
+                            <span class="n">labels</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
+                            <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span>
+                                <span class="n">index</span><span class="o">.</span><span class="n">decode</span><span class="p">():</span> <span class="n">label</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                                <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indexes</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+                            <span class="p">}</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FillStringsCodec</span><span class="p">(</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;S16&quot;</span><span class="p">,</span> <span class="n">id_map</span><span class="o">=</span><span class="n">mapping</span>
                             <span class="p">)</span>
-                            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
-                        <span class="p">]</span>
-                        <span class="n">data</span> <span class="o">=</span> <span class="n">_read_block</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_file</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">])</span>
-                        <span class="n">labels</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
-                        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
-                        <span class="n">mapping</span> <span class="o">=</span> <span class="p">{}</span>
-                        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">labels</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
-                            <span class="k">if</span> <span class="n">labels</span><span class="p">[</span><span class="n">field</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
-                                <span class="n">mapping</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                                    <span class="p">{</span>
-                                        <span class="n">index</span><span class="o">.</span><span class="n">decode</span><span class="p">():</span> <span class="n">label</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-                                        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-                                            <span class="n">arr</span><span class="p">[</span><span class="n">field</span><span class="p">],</span> <span class="n">labels</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
-                                        <span class="p">)</span>
-                                    <span class="p">}</span>
-                                <span class="p">)</span>
-                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FillStringsCodec</span><span class="p">(</span>
-                            <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">dt</span><span class="p">),</span> <span class="n">id_map</span><span class="o">=</span><span class="n">mapping</span>
-                        <span class="p">)</span>
-                        <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
-                            <span class="p">(</span>
-                                <span class="n">v</span><span class="p">,</span>
-                                <span class="p">(</span>
-                                    <span class="s2">&quot;O&quot;</span>
-                                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
-                                    <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
-                                <span class="p">),</span>
-                            <span class="p">)</span>
-                            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
-                        <span class="p">]</span>
-                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;null&quot;</span><span class="p">:</span>
-                        <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
-                            <span class="p">(</span>
-                                <span class="n">v</span><span class="p">,</span>
-                                <span class="p">(</span>
-                                    <span class="s2">&quot;S16&quot;</span>
-                                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
-                                    <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
-                                <span class="p">),</span>
-                            <span class="p">)</span>
-                            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
-                        <span class="p">]</span>
-                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FillStringsCodec</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">dt</span><span class="p">))</span>
-                        <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
-                            <span class="p">(</span>
-                                <span class="n">v</span><span class="p">,</span>
-                                <span class="p">(</span>
-                                    <span class="s2">&quot;O&quot;</span>
-                                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
-                                    <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
-                                <span class="p">),</span>
-                            <span class="p">)</span>
-                            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
-                        <span class="p">]</span>
-                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;leave&quot;</span><span class="p">:</span>
-                        <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
-                            <span class="p">(</span>
-                                <span class="n">v</span><span class="p">,</span>
-                                <span class="p">(</span>
-                                    <span class="s2">&quot;S16&quot;</span>
-                                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
-                                    <span class="k">else</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
-                                <span class="p">),</span>
-                            <span class="p">)</span>
-                            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
-                        <span class="p">]</span>
+                            <span class="n">fill</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+                    <span class="k">elif</span> <span class="n">_is_netcdf_datetime</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
+                        <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="c1"># embed fails due to https://github.com/zarr-developers/numcodecs/issues/333</span>
-                        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+                        <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span><span class="p">:</span>
+                        <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;encode&quot;</span><span class="p">:</span>
+                            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cinfo</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+                            <span class="n">v</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cinfo</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                            <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="p">(</span>
+                                    <span class="n">v</span><span class="p">,</span>
+                                    <span class="p">(</span>
+                                        <span class="s2">&quot;S16&quot;</span>
+                                        <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
+                                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
+                                    <span class="p">),</span>
+                                <span class="p">)</span>
+                                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                            <span class="p">]</span>
+                            <span class="n">data</span> <span class="o">=</span> <span class="n">_read_block</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_file</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">])</span>
+                            <span class="n">labels</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
+                            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+                            <span class="n">mapping</span> <span class="o">=</span> <span class="p">{}</span>
+                            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">labels</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">labels</span><span class="p">[</span><span class="n">field</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
+                                    <span class="n">mapping</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                                        <span class="p">{</span>
+                                            <span class="n">index</span><span class="o">.</span><span class="n">decode</span><span class="p">():</span> <span class="n">label</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                                            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                                                <span class="n">arr</span><span class="p">[</span><span class="n">field</span><span class="p">],</span> <span class="n">labels</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+                                            <span class="p">)</span>
+                                        <span class="p">}</span>
+                                    <span class="p">)</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FillStringsCodec</span><span class="p">(</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">dt</span><span class="p">),</span> <span class="n">id_map</span><span class="o">=</span><span class="n">mapping</span>
+                            <span class="p">)</span>
+                            <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="p">(</span>
+                                    <span class="n">v</span><span class="p">,</span>
+                                    <span class="p">(</span>
+                                        <span class="s2">&quot;O&quot;</span>
+                                        <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
+                                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
+                                    <span class="p">),</span>
+                                <span class="p">)</span>
+                                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                            <span class="p">]</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;null&quot;</span><span class="p">:</span>
+                            <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="p">(</span>
+                                    <span class="n">v</span><span class="p">,</span>
+                                    <span class="p">(</span>
+                                        <span class="s2">&quot;S16&quot;</span>
+                                        <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
+                                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
+                                    <span class="p">),</span>
+                                <span class="p">)</span>
+                                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                            <span class="p">]</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FillStringsCodec</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">dt</span><span class="p">))</span>
+                            <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="p">(</span>
+                                    <span class="n">v</span><span class="p">,</span>
+                                    <span class="p">(</span>
+                                        <span class="s2">&quot;O&quot;</span>
+                                        <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
+                                        <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">])</span>
+                                    <span class="p">),</span>
+                                <span class="p">)</span>
+                                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                            <span class="p">]</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;leave&quot;</span><span class="p">:</span>
+                            <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="p">(</span>
+                                    <span class="n">v</span><span class="p">,</span>
+                                    <span class="p">(</span>
+                                        <span class="s2">&quot;S16&quot;</span>
+                                        <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span>
+                                        <span class="k">else</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+                                    <span class="p">),</span>
+                                <span class="p">)</span>
+                                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+                            <span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># embed fails due to https://github.com/zarr-developers/numcodecs/issues/333</span>
+                            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+                    <span class="c1"># Add filter for shuffle</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">shuffle</span> <span class="ow">and</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
+                        <span class="c1"># cannot use shuffle if we materialised objects</span>
+                        <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="n">numcodecs</span><span class="o">.</span><span class="n">Shuffle</span><span class="p">(</span><span class="n">elementsize</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">)</span>
+                        <span class="p">)</span>
 
-                <span class="c1"># Add filter for shuffle</span>
-                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">shuffle</span> <span class="ow">and</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
-                    <span class="c1"># cannot use shuffle if we materialised objects</span>
-                    <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">Shuffle</span><span class="p">(</span><span class="n">elementsize</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">))</span>
-
-                <span class="k">if</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5ds</span><span class="o">.</span><span class="n">is_scale</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cinfo</span><span class="p">:</span>
-                    <span class="k">return</span>
-                <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_FillValue&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">fill</span> <span class="o">=</span> <span class="n">encode_fill_value</span><span class="p">(</span>
-                        <span class="n">h5obj</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_FillValue&quot;</span><span class="p">),</span> <span class="n">dt</span> <span class="ow">or</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span>
-                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5ds</span><span class="o">.</span><span class="n">is_scale</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cinfo</span><span class="p">:</span>
+                        <span class="k">return</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_FillValue&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">fill</span> <span class="o">=</span> <span class="n">encode_fill_value</span><span class="p">(</span>
+                            <span class="n">h5obj</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_FillValue&quot;</span><span class="p">),</span> <span class="n">dt</span> <span class="ow">or</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span>
+                        <span class="p">)</span>
 
                 <span class="c1"># Create a Zarr array equivalent to this HDF5 dataset...</span>
                 <span class="n">za</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
@@ -462,12 +465,12 @@
                 <span class="p">)</span>
                 <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created Zarr array: </span><span class="si">{za}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">za</span><span class="p">)</span>
-                <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-                    <span class="k">return</span>  <span class="c1"># embedded bytes, no chunks to copy</span>
-
                 <span class="n">adims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_array_dims</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
                 <span class="n">za</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">adims</span>
                 <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_ARRAY_DIMENSIONS = </span><span class="si">{adims}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="k">return</span>  <span class="c1"># embedded bytes, no chunks to copy</span>
 
                 <span class="c1"># Store chunk location metadata...</span>
                 <span class="k">if</span> <span class="n">cinfo</span><span class="p">:</span>
