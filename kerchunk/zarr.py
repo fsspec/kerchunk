@@ -1,6 +1,6 @@
 import fsspec
 
-from kerchunk.utils import _do_inline, class_factory
+from kerchunk.utils import do_inline, class_factory
 
 
 def single_zarr(uri_or_store, storage_options=None, inline_threshold=100, inline=None):
@@ -24,7 +24,7 @@ def single_zarr(uri_or_store, storage_options=None, inline_threshold=100, inline
             refs[k] = mapper[k]
         else:
             refs[k] = [fsspec.utils._unstrip_protocol(mapper._key_to_str(k), mapper.fs)]
-    refs = _do_inline(refs, inline)
+    refs = do_inline(refs, inline)
     return refs
 
 

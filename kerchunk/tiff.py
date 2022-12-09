@@ -11,6 +11,8 @@ except ModuleNotFoundError:  # pragma: no cover
         "`pip/conda install tifffile`."
     )
 
+import kerchunk.utils
+
 
 def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None):
     """Wraps TIFFFile's fsspec writer to extract metadata as attributes
@@ -83,6 +85,9 @@ units = {
     9003: "US survey foot",
     9015: "mile international nautical",  # ... and many more
 }
+
+
+TiffToZarr = kerchunk.utils.class_factory(tiff_to_zarr)
 
 
 def generate_coords(attrs, shape):

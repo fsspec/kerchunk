@@ -132,7 +132,7 @@ def _encode_for_JSON(store):
     return store
 
 
-def _do_inline(store, threshold, remote_options=None):
+def do_inline(store, threshold, remote_options=None):
     """Replace short chunks with the value of that chunk
 
     The chunk may need encoding with base64 if not ascii, so actual
@@ -167,9 +167,7 @@ def _inline_array(group, threshold, names, prefix=""):
         else:
             cond1 = threshold and thing.nbytes < threshold and thing.nchunks > 1
             cond2 = prefix1 in names
-            print(name, prefix1, cond1, cond2)
             if cond1 or cond2:
-                print("inline")
                 group.create_dataset(
                     name=name,
                     dtype=thing.dtype,
@@ -282,6 +280,9 @@ def dereference_archives(references, remote_options=None):
     """
     import zipfile
     import tarfile
+
+    if "version" in references and references["version"] == 1:
+        references = references["refs"]
 
     target_files = [l[0] for l in references.values() if isinstance(l, list)]
     target_files = {

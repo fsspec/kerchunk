@@ -39,7 +39,7 @@ def test_inline(m):
         "key2": ["memory://data", 1, 1],
         "key1": ["memory://data", 2, 4],
     }
-    out = kerchunk.utils._do_inline(refs, 2)
+    out = kerchunk.utils.do_inline(refs, 2)
     expected = {
         "key0": b"00",
         "key1": ["memory://data"],
