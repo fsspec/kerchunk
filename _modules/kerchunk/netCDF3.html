@@ -38,13 +38,15 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../test_example.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../test_example.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../detail.html">Detailed description</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../cases.html">Case studies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../spec.html">References specification</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../beyond.html">Beyond Python</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../nonzarr.html">Non-zarr uses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
 </ul>
 
         </div>
@@ -60,9 +62,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../index.html">Module code</a> &raquo;</li>
-      <li>kerchunk.netCDF3</li>
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">kerchunk.netCDF3</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -75,17 +77,16 @@
 <span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">mul</span>
 
-<span class="kn">from</span> <span class="nn">numcodecs.abc</span> <span class="kn">import</span> <span class="n">Codec</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">do_inline</span><span class="p">,</span> <span class="n">_encode_for_JSON</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="c1"># causes warning on newer scipy, all moved to scipy.io</span>
-    <span class="c1"># TODO: this construct is only here to make the codec importable without</span>
-    <span class="c1">#  scipy. Should instead move to separate module.</span>
-    <span class="kn">from</span> <span class="nn">scipy.io.netcdf</span> <span class="kn">import</span> <span class="n">ZERO</span><span class="p">,</span> <span class="n">NC_VARIABLE</span><span class="p">,</span> <span class="n">netcdf_file</span><span class="p">,</span> <span class="n">netcdf_variable</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-
-    <span class="n">netcdf_file</span> <span class="o">=</span> <span class="nb">object</span>
+    <span class="kn">from</span> <span class="nn">scipy.io._netcdf</span> <span class="kn">import</span> <span class="n">ZERO</span><span class="p">,</span> <span class="n">NC_VARIABLE</span><span class="p">,</span> <span class="n">netcdf_file</span><span class="p">,</span> <span class="n">netcdf_variable</span>
+<span class="k">except</span> <span class="n">ModuleNotFoundError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+        <span class="s2">&quot;Scipy is required for kerchunking NetCDF3 files. Please install with &quot;</span>
+        <span class="s2">&quot;`pip/conda install scipy`. See https://scipy.org/install/ for more details.&quot;</span>
+    <span class="p">)</span>
 
 <span class="kn">import</span> <span class="nn">fsspec</span>
 
@@ -95,6 +96,7 @@
 
 <span class="sd">    Uses scipy&#39;s netCDF3 reader, but only reads the metadata. Note that instances</span>
 <span class="sd">    do behave like actual scipy netcdf files, but contain no valid data.</span>
+<span class="sd">    Also appears to work for netCDF2, although this is not currently tested.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -114,27 +116,30 @@
 <span class="sd">        storage_options: dict</span>
 <span class="sd">            passed to fsspec when opening filename</span>
 <span class="sd">        inline_threshold: int</span>
-<span class="sd">            Byte size below which an array will be embedded in the output</span>
+<span class="sd">            Byte size below which an array will be embedded in the output. Use 0</span>
+<span class="sd">            to disable inlining.</span>
 <span class="sd">        max_chunk_size: int</span>
 <span class="sd">            How big a chunk can be before triggering subchunking. If 0, there is no</span>
 <span class="sd">            subchunking, and there is never subchunking for coordinate/dimension arrays.</span>
 <span class="sd">            E.g., if an array contains 10,000bytes, and this value is 6000, there will</span>
-<span class="sd">            be two output chunks, split on the biggest available dimension.</span>
+<span class="sd">            be two output chunks, split on the biggest available dimension. [TBC]</span>
 <span class="sd">        args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">netcdf_file</span> <span class="ow">is</span> <span class="nb">object</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;scipy was not imported, and is required for netCDF3&quot;</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;mmap&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span>
         <span class="k">assert</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;r&quot;</span>
         <span class="k">assert</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;maskandscale&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span>
+
+        <span class="c1"># attributes set before super().__init__ don&#39;t accidentally turn into</span>
+        <span class="c1"># dataset attributes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">inline_threshold</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_chukn_size</span> <span class="o">=</span> <span class="n">max_chunk_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_chunk_size</span> <span class="o">=</span> <span class="n">max_chunk_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
                 <span class="n">fp</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">maskandscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
             <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>  <span class="c1"># this becomes an attribute, so must ignore on write</span>
 
     <span class="k">def</span> <span class="nf">_read_var_array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
@@ -212,9 +217,6 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;record_array&quot;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">begin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recsize</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">]</span>
             <span class="p">)</span>
-            <span class="c1"># rec_array = frombuffer(self.fp.read(self._recs*self._recsize),</span>
-            <span class="c1">#                        dtype=dtypes).copy()</span>
-            <span class="c1"># rec_array.shape = (self._recs,)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -226,27 +228,34 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">import</span> <span class="nn">zarr</span>
 
-        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">:</span>
                 <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">dim</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">:</span>
                 <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># defer record array</span>
+                <span class="k">continue</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
                 <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,)</span>
             <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="ow">and</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
-                <span class="c1"># record array: either simple chunks, or use codec</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">var</span><span class="p">[:]</span>
-                <span class="n">arr</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">None</span>
-                <span class="p">)</span>
+                <span class="c1"># defer record array</span>
+                <span class="k">continue</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># simple array block</span>
-                <span class="n">arr</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="c1"># TODO: chance to sub-chunk</span>
+                <span class="n">fill</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">_attributes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;missing_value&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">fill</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">var</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fill</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">fill</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">var</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fill</span><span class="p">)</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
                     <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
                     <span class="n">dtype</span><span class="o">=</span><span class="n">var</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">fill_value</span><span class="o">=</span><span class="n">fill</span><span class="p">,</span>
                     <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
                     <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -259,39 +268,80 @@
                 <span class="p">{</span>
                     <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">_attributes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;_FillValue&quot;</span><span class="p">,</span> <span class="s2">&quot;missing_value&quot;</span><span class="p">]</span>
                 <span class="p">}</span>
             <span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;add_offset&quot;</span><span class="p">,</span> <span class="s2">&quot;scale_factor&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+                    <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
             <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">dimensions</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span>
+        <span class="k">if</span> <span class="s2">&quot;record_array&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">:</span>
+            <span class="c1"># native chunks version (no codec, no options)</span>
+            <span class="n">start</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">[</span><span class="s2">&quot;record_array&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+            <span class="n">outer_shape</span> <span class="o">=</span> <span class="n">size</span> <span class="o">//</span> <span class="n">dt</span><span class="o">.</span><span class="n">itemsize</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="n">start</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dt</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                <span class="c1"># the order of the names if fixed and important!</span>
+                <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">dt</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">base</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">base</span>  <span class="c1"># actual dtype</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">outer_shape</span><span class="p">,)</span> <span class="o">+</span> <span class="n">dtype</span><span class="o">.</span><span class="n">shape</span>
+
+                <span class="c1"># TODO: avoid this code repeat</span>
+                <span class="n">fill</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">_attributes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;missing_value&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">fill</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">base</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">fill</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">fill</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">base</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
+                    <span class="n">fill</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fill</span><span class="p">)</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">base</span><span class="p">,</span>
+                    <span class="n">fill_value</span><span class="o">=</span><span class="n">fill</span><span class="p">,</span>
+                    <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="n">dtype</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                    <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">_attributes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;_FillValue&quot;</span><span class="p">,</span> <span class="s2">&quot;missing_value&quot;</span><span class="p">]</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;add_offset&quot;</span><span class="p">,</span> <span class="s2">&quot;scale_factor&quot;</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+                        <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+
+                <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">dimensions</span><span class="p">)</span>
+
+                <span class="n">suffix</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;0&quot;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dtype</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span> <span class="k">if</span> <span class="n">dtype</span><span class="o">.</span><span class="n">shape</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">outer_shape</span><span class="p">):</span>
+                    <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{name}</span><span class="s2">/</span><span class="si">{i}{suffix}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="n">offset</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">dt</span><span class="o">.</span><span class="n">itemsize</span><span class="p">),</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">),</span>
+                    <span class="p">]</span>
+
+                <span class="n">offset</span> <span class="o">+=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span>
+        <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attributes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;filename&quot;</span>  <span class="c1"># special &quot;attribute&quot;</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">do_inline</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">_encode_for_JSON</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span>
 
 
 <span class="n">netcdf_recording_file</span> <span class="o">=</span> <span class="n">NetCDF3ToZarr</span>
-
-
-<div class="viewcode-block" id="RecordArrayMember"><a class="viewcode-back" href="../../reference.html#kerchunk.netCDF3.RecordArrayMember">[docs]</a><span class="k">class</span> <span class="nc">RecordArrayMember</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read components of a record array (complex dtype)&quot;&quot;&quot;</span>
-
-    <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;record_member&quot;</span>
-
-<div class="viewcode-block" id="RecordArrayMember.__init__"><a class="viewcode-back" href="../../reference.html#kerchunk.netCDF3.RecordArrayMember.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">member</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        member: str</span>
-<span class="sd">            name of desired subarray</span>
-<span class="sd">        dtype: list of lists</span>
-<span class="sd">            description of the complex dtype of the overall record array. Must be both</span>
-<span class="sd">            parsable by ``np.dtype()`` and also be JSON serialisable</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">member</span> <span class="o">=</span> <span class="n">member</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span></div>
-
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">arr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">member</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 </pre></div>
 
            </div>

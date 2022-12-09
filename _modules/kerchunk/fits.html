@@ -46,6 +46,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../beyond.html">Beyond Python</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../nonzarr.html">Non-zarr uses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
 </ul>
 
         </div>
@@ -61,9 +62,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../index.html">Module code</a> &raquo;</li>
-      <li>kerchunk.fits</li>
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">kerchunk.fits</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -83,6 +84,15 @@
 
 <span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span>
 <span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">AsciiTableCodec</span><span class="p">,</span> <span class="n">VarArrCodec</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+    <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="k">except</span> <span class="n">ModuleNotFoundError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+        <span class="s2">&quot;astropy is required for kerchunking FIST files. Please install with &quot;</span>
+        <span class="s2">&quot;`pip/conda install astropy`.&quot;</span>
+    <span class="p">)</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;fits-to-zarr&quot;</span><span class="p">)</span>
 
@@ -275,9 +285,6 @@
 <span class="sd">    -------</span>
 <span class="sd">    If dataset is given, returns the modified dataset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
-    <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
-
     <span class="k">if</span> <span class="n">zarr_group</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;please provide a zarr group or xarray dataset&quot;</span><span class="p">)</span>
 

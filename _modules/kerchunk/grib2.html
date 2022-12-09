@@ -38,13 +38,15 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../test_example.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../test_example.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../detail.html">Detailed description</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../cases.html">Case studies</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../spec.html">References specification</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../beyond.html">Beyond Python</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../nonzarr.html">Non-zarr uses</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
 </ul>
 
         </div>
@@ -60,9 +62,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../index.html">Module code</a> &raquo;</li>
-      <li>kerchunk.grib2</li>
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">kerchunk.grib2</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -74,17 +76,23 @@
   <h1>Source code for kerchunk.grib2</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">base64</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">tempfile</span>
 
-<span class="kn">import</span> <span class="nn">cfgrib</span>
-<span class="kn">import</span> <span class="nn">numcodecs.abc</span>
-<span class="kn">from</span> <span class="nn">numcodecs.compat</span> <span class="kn">import</span> <span class="n">ndarray_copy</span><span class="p">,</span> <span class="n">ensure_contiguous_ndarray</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cfgrib</span>
+<span class="k">except</span> <span class="n">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cfgrib&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;cfgrib is needed to kerchunk GRIB2 files. Please install it with &quot;</span>
+            <span class="s2">&quot;`conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib &quot;</span>
+            <span class="s2">&quot;for more details.&quot;</span>
+        <span class="p">)</span>
+
 <span class="kn">import</span> <span class="nn">fsspec</span>
 <span class="kn">import</span> <span class="nn">zarr</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span>
+<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span><span class="p">,</span> <span class="n">_encode_for_JSON</span>
+<span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">GRIBCodec</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;grib2-to-zarr&quot;</span><span class="p">)</span>
 
@@ -101,18 +109,16 @@
     <span class="k">while</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;extract part {part + 1}&quot;</span><span class="p">)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">part_size</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
+        <span class="n">head</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+        <span class="n">marker</span> <span class="o">=</span> <span class="n">head</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">marker</span><span class="p">:</span>
+            <span class="k">break</span>  <span class="c1"># EOF</span>
+        <span class="k">assert</span> <span class="n">head</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;GRIB&quot;</span><span class="p">,</span> <span class="s2">&quot;Bad grib message start marker&quot;</span>
+        <span class="n">part_size</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="mi">12</span><span class="p">:],</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
         <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">part_size</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">data</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;GRIB&quot;</span>
-        <span class="k">assert</span> <span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">:]</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;7777&quot;</span>
-        <span class="n">fn</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mktemp</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;grib2&quot;</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fo</span><span class="p">:</span>
-            <span class="n">fo</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="k">yield</span> <span class="n">fn</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">part_size</span>
+        <span class="k">yield</span> <span class="n">start</span><span class="p">,</span> <span class="n">part_size</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">part_size</span><span class="p">)</span>
         <span class="n">part</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">skip</span> <span class="ow">and</span> <span class="n">part</span> <span class="o">&gt;</span> <span class="n">skip</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">skip</span> <span class="ow">and</span> <span class="n">part</span> <span class="o">&gt;=</span> <span class="n">skip</span><span class="p">:</span>
             <span class="k">break</span>
 
 
@@ -129,7 +135,7 @@
             <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
             <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">fill_value</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;missing_value&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">fill_value</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;missingValue&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">compressor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;tobytes&quot;</span><span class="p">):</span>
@@ -149,8 +155,8 @@
             <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
             <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">fill_value</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;missing_value&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-            <span class="n">filters</span><span class="o">=</span><span class="p">[</span><span class="n">GRIBCodec</span><span class="p">(</span><span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">)],</span>
+            <span class="n">fill_value</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;missingValue&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">filters</span><span class="o">=</span><span class="p">[</span><span class="n">GRIBCodec</span><span class="p">(</span><span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">))],</span>
             <span class="n">compressor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
@@ -160,9 +166,9 @@
 
 <div class="viewcode-block" id="scan_grib"><a class="viewcode-back" href="../../reference.html#kerchunk.grib2.scan_grib">[docs]</a><span class="k">def</span> <span class="nf">scan_grib</span><span class="p">(</span>
     <span class="n">url</span><span class="p">,</span>
-    <span class="n">common_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">common</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">inline_threashold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
     <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="nb">filter</span><span class="o">=</span><span class="p">{},</span>
 <span class="p">):</span>
@@ -174,148 +180,168 @@
 
 <span class="sd">    url: str</span>
 <span class="sd">        File location</span>
-<span class="sd">    common_vars: list[str]</span>
-<span class="sd">        Names of variables that are common to multiple measurable (i.e., coordinates)</span>
+<span class="sd">    common_vars: (depr, do not use)</span>
 <span class="sd">    storage_options: dict</span>
 <span class="sd">        For accessing the data, passed to filesystem</span>
-<span class="sd">    inline_threashold: int</span>
+<span class="sd">    inline_threshold: int</span>
 <span class="sd">        If given, store array data smaller than this value directly in the output</span>
 <span class="sd">    skip: int</span>
 <span class="sd">        If non-zero, stop processing the file after this many messages</span>
 <span class="sd">    filter: dict</span>
-<span class="sd">        cfgrib-style filter dictionary</span>
+<span class="sd">        keyword filtering. For each key, only messages where the key exists and has</span>
+<span class="sd">        the exact value or is in the given set, are processed.</span>
+<span class="sd">        E.g., the cf-style filter ``{&#39;typeOfLevel&#39;: &#39;heightAboveGround&#39;, &#39;level&#39;: 2}``</span>
+<span class="sd">        only keeps messages where heightAboveGround==2.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 
-<span class="sd">    dict: references dict in Version 1 format.</span>
+<span class="sd">    list(dict): references dicts in Version 1 format, one per message in the file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">common_vars</span> <span class="o">=</span> <span class="n">common_vars</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="kn">import</span> <span class="nn">eccodes</span>
+
     <span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
-    <span class="k">if</span> <span class="nb">filter</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="s2">&quot;typeOfLevel&quot;</span> <span class="ow">in</span> <span class="nb">filter</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Open </span><span class="si">{url}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">store</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">z</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
-    <span class="n">common</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">fn</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="n">_split_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="n">skip</span><span class="p">):</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{fn}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">ds</span> <span class="o">=</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">filter</span><span class="p">:</span>
-                <span class="n">var</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">[</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="k">if</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="nb">filter</span> <span class="ow">and</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                    <span class="nb">filter</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">]</span>
-                <span class="p">):</span>
-                    <span class="k">continue</span>
-                <span class="n">attr</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">attributes</span> <span class="ow">or</span> <span class="p">{}</span>
-                <span class="n">attr</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-                <span class="k">if</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">z</span><span class="p">:</span>
-                    <span class="n">_store_array</span><span class="p">(</span>
-                        <span class="n">store</span><span class="p">,</span>
-                        <span class="n">z</span><span class="p">,</span>
-                        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
-                        <span class="n">var</span><span class="p">,</span>
-                        <span class="mi">100000</span><span class="p">,</span>
-                        <span class="mi">0</span><span class="p">,</span>
-                        <span class="mi">0</span><span class="p">,</span>
-                        <span class="n">attr</span><span class="p">,</span>
-                    <span class="p">)</span>
-            <span class="k">if</span> <span class="n">common</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-                <span class="c1"># done for first valid message</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Common variables&quot;</span><span class="p">)</span>
-                <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">attributes</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">common_vars</span><span class="p">:</span>
-                    <span class="c1"># assume grid, etc is the same across all messages</span>
-                    <span class="n">attr</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">attributes</span> <span class="ow">or</span> <span class="p">{}</span>
-                    <span class="n">attr</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dimensions</span>
-                    <span class="n">_store_array</span><span class="p">(</span>
-                        <span class="n">store</span><span class="p">,</span>
-                        <span class="n">z</span><span class="p">,</span>
-                        <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-                        <span class="n">var</span><span class="p">,</span>
-                        <span class="n">inline_threashold</span><span class="p">,</span>
-                        <span class="n">offset</span><span class="p">,</span>
-                        <span class="n">size</span><span class="p">,</span>
-                        <span class="n">attr</span><span class="p">,</span>
-                    <span class="p">)</span>
-                <span class="n">common</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{url}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">_split_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="n">skip</span><span class="p">):</span>
+            <span class="n">store</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">mid</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_new_from_message</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">cfmessage</span><span class="o">.</span><span class="n">CfMessage</span><span class="p">(</span><span class="n">mid</span><span class="p">)</span>
 
-            <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
-                <span class="k">if</span> <span class="p">(</span>
-                    <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">common_vars</span>
-                    <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;shape&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-                    <span class="ow">and</span> <span class="n">var</span> <span class="o">!=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-                <span class="p">):</span>
+            <span class="n">good</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">filter</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
+                    <span class="n">good</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+                        <span class="n">good</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">elif</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v</span><span class="p">:</span>
+                    <span class="n">good</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">good</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">continue</span>
 
-                    <span class="n">attr</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">attributes</span> <span class="ow">or</span> <span class="p">{}</span>
-                    <span class="k">if</span> <span class="s2">&quot;(deprecated)&quot;</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;GRIB_name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
-                        <span class="k">continue</span>
-                    <span class="n">attr</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dimensions</span>
-                    <span class="n">_store_array</span><span class="p">(</span>
-                        <span class="n">store</span><span class="p">,</span>
-                        <span class="n">z</span><span class="p">,</span>
-                        <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
-                        <span class="n">var</span><span class="p">,</span>
-                        <span class="n">inline_threashold</span><span class="p">,</span>
-                        <span class="n">offset</span><span class="p">,</span>
-                        <span class="n">size</span><span class="p">,</span>
-                        <span class="n">attr</span><span class="p">,</span>
-                    <span class="p">)</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
+            <span class="n">global_attrs</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GLOBAL_ATTRIBUTES_KEYS</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">m</span>
+            <span class="p">}</span>
+            <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">global_attrs</span><span class="p">)</span>
+
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;Ny&quot;</span><span class="p">],</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;Nx&quot;</span><span class="p">]))</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">DATA_ATTRIBUTES_KEYS</span>
+                <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">DATA_TIME_KEYS</span>
+                <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">EXTRA_DATA_ATTRIBUTES_KEYS</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">m</span>
+            <span class="p">}</span>
+            <span class="n">_store_array</span><span class="p">(</span>
+                <span class="n">store</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;shortName&quot;</span><span class="p">],</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attrs</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;typeOfLevel&quot;</span> <span class="ow">in</span> <span class="n">m</span> <span class="ow">and</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">]</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">]])</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">attrs</span> <span class="o">=</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">COORD_ATTRS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find coord </span><span class="si">{name}</span><span class="s2"> in dataset&quot;</span><span class="p">)</span>
+                    <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">_store_array</span><span class="p">(</span>
+                    <span class="n">store</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attrs</span>
+                <span class="p">)</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_2D_NON_DIMENSION_COORDS</span>
+                <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_DIMENSION_COORDS</span>
+                <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">z</span><span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;shortName&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dims</span>
+
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">COORD_ATTRS</span><span class="p">:</span>
+                <span class="n">coord2</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;latitudes&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;longitudes&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="n">coord</span><span class="p">,</span> <span class="n">coord</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">coord2</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="n">coord2</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">inline_extra</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">vals</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">]</span>
+                        <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_2D_NON_DIMENSION_COORDS</span>
+                    <span class="p">):</span>
+                        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">]</span>
+                        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">coord</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">coord</span> <span class="o">==</span> <span class="s2">&quot;latitude&quot;</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="p">(</span>
+                                <span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">]</span>
+                                <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_DIMENSION_COORDS</span>
+                            <span class="p">):</span>
+                                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                            <span class="n">inline_extra</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">+</span> <span class="mi">1</span>
+                        <span class="k">elif</span> <span class="n">coord</span> <span class="o">==</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="p">(</span>
+                                <span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">]</span>
+                                <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_DIMENSION_COORDS</span>
+                            <span class="p">):</span>
+                                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                            <span class="n">inline_extra</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">])</span>
+                    <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">coord</span><span class="p">]</span>
+                <span class="n">attrs</span> <span class="o">=</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">COORD_ATTRS</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span>
+                <span class="n">_store_array</span><span class="p">(</span>
+                    <span class="n">store</span><span class="p">,</span>
+                    <span class="n">z</span><span class="p">,</span>
+                    <span class="n">x</span><span class="p">,</span>
+                    <span class="n">coord</span><span class="p">,</span>
+                    <span class="n">inline_threshold</span> <span class="o">+</span> <span class="n">inline_extra</span><span class="p">,</span>
+                    <span class="n">offset</span><span class="p">,</span>
+                    <span class="n">size</span><span class="p">,</span>
+                    <span class="n">attrs</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">z</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dims</span>
+
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="n">_encode_for_JSON</span><span class="p">(</span><span class="n">store</span><span class="p">),</span>
+                    <span class="s2">&quot;templates&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Done&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="p">},</span>
-        <span class="s2">&quot;templates&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span>
-    <span class="p">}</span></div>
+    <span class="k">return</span> <span class="n">out</span></div>
 
 
 <span class="n">GribToZarr</span> <span class="o">=</span> <span class="n">class_factory</span><span class="p">(</span><span class="n">scan_grib</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="GRIBCodec"><a class="viewcode-back" href="../../reference.html#kerchunk.grib2.GRIBCodec">[docs]</a><span class="k">class</span> <span class="nc">GRIBCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Read GRIB stream of bytes by writing to a temp file and calling cfgrib</span>
+<span class="k">def</span> <span class="nf">example_combine</span><span class="p">(</span>
+    <span class="nb">filter</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;heightAboveGround&quot;</span><span class="p">,</span> <span class="s2">&quot;level&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+    <span class="sd">&quot;&quot;&quot;Create combined dataset of weather measurements at 2m height</span>
+
+<span class="sd">    Ten consecutive timepoints from ten 120MB files on s3.</span>
+<span class="sd">    Example usage:</span>
+
+<span class="sd">    &gt;&gt;&gt; tot = example_combine()</span>
+<span class="sd">    &gt;&gt;&gt; ds = xr.open_dataset(&quot;reference://&quot;, engine=&quot;zarr&quot;, backend_kwargs={</span>
+<span class="sd">    ...        &quot;consolidated&quot;: False,</span>
+<span class="sd">    ...        &quot;storage_options&quot;: {&quot;fo&quot;: tot, &quot;remote_options&quot;: {&quot;anon&quot;: True}}})</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span><span class="p">,</span> <span class="n">drop</span>
 
-    <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;grib&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">var</span>
-
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
-        <span class="c1"># on encode, pass through</span>
-        <span class="k">return</span> <span class="n">buf</span>
-
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="n">buf</span> <span class="o">=</span> <span class="n">ensure_contiguous_ndarray</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
-        <span class="n">fn</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mktemp</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;grib2&quot;</span><span class="p">)</span>
-        <span class="n">buf</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-
-        <span class="c1"># do decode</span>
-        <span class="n">ds</span> <span class="o">=</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">open_file</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;build_array&quot;</span><span class="p">):</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">build_array</span><span class="p">()</span>
-
-        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">ndarray_copy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">data</span></div>
-
-
-<span class="n">numcodecs</span><span class="o">.</span><span class="n">register_codec</span><span class="p">(</span><span class="n">GRIBCodec</span><span class="p">,</span> <span class="s2">&quot;grib&quot;</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">example_multi</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;heightAboveGround&quot;</span><span class="p">,</span> <span class="s2">&quot;level&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}):</span>
-    <span class="kn">import</span> <span class="nn">json</span>
-
-    <span class="c1"># 1GB of data files, forming a time-series</span>
     <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
         <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t22z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
         <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t23z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
@@ -328,34 +354,18 @@
         <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t06z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
     <span class="p">]</span>
     <span class="n">so</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;default_cache_type&quot;</span><span class="p">:</span> <span class="s2">&quot;readahead&quot;</span><span class="p">}</span>
-    <span class="n">common</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;valid_time&quot;</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">url</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">scan_grib</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">common</span><span class="p">,</span> <span class="n">so</span><span class="p">,</span> <span class="n">inline_threashold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;grib2&quot;</span><span class="p">,</span> <span class="s2">&quot;json&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
 
-
-<span class="k">def</span> <span class="nf">example_combine</span><span class="p">():</span>
-    <span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span>
-
-    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">&quot;hrrr.t22z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;hrrr.t23z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;hrrr.t00z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;hrrr.t01z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;hrrr.t02z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;hrrr.t03z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;hrrr.t04z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;hrrr.t05z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;hrrr.t06z.wrfsfcf01.json&quot;</span><span class="p">,</span>
-    <span class="p">]</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">scan_grib</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">so</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[])</span>
     <span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span>
-        <span class="n">files</span><span class="p">,</span>
+        <span class="n">out</span><span class="p">,</span>
         <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span>
-        <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
-        <span class="n">xarray_concat_args</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;dim&quot;</span><span class="p">:</span> <span class="s2">&quot;valid_time&quot;</span><span class="p">},</span>
+        <span class="n">preprocess</span><span class="o">=</span><span class="n">drop</span><span class="p">((</span><span class="s2">&quot;valid_time&quot;</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">)),</span>
+        <span class="n">remote_options</span><span class="o">=</span><span class="n">so</span><span class="p">,</span>
+        <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;var&quot;</span><span class="p">],</span>
+        <span class="n">identical_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;heightAboveGround&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">],</span>
     <span class="p">)</span>
-    <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="s2">&quot;hrrr.total.json&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
 </pre></div>
 
            </div>
