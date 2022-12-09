@@ -8,6 +8,8 @@ numcodecs
 tifffile
 scipy
 cfgrib
+eccodes
+astropy
 xarray
 zarr
 ujson
