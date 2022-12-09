@@ -11,7 +11,6 @@ except ModuleNotFoundError as err:  # pragma: no cover
             "for more details."
         )
 
-import eccodes
 import fsspec
 import zarr
 import numpy as np
@@ -123,6 +122,8 @@ def scan_grib(
 
     list(dict): references dicts in Version 1 format, one per message in the file
     """
+    import eccodes
+
     storage_options = storage_options or {}
     logger.debug(f"Open {url}")
 
