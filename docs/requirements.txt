@@ -5,6 +5,9 @@ numpy
 fsspec
 h5py
 numcodecs
+tifffile
+scipy
+cfgrib
 xarray
 zarr
 ujson
