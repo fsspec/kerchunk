@@ -2,7 +2,7 @@ from functools import reduce
 from operator import mul
 
 import numpy as np
-from .utils import _do_inline, _encode_for_JSON
+from .utils import do_inline, _encode_for_JSON
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
@@ -259,7 +259,7 @@ class NetCDF3ToZarr(netcdf_file):
         )
 
         if self.threshold > 0:
-            out = _do_inline(out, self.threshold)
+            out = do_inline(out, self.threshold)
         out = _encode_for_JSON(out)
 
         return {"version": 1, "refs": out}

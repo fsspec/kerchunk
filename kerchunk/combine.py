@@ -610,8 +610,10 @@ def auto_dask(
 
     Parameters
     ----------
-    urls: list of input datasets
-    single_driver: class with ``translate()`` method
+    urls: list[str]
+        input dataset URLs
+    single_driver: class
+        class with ``translate()`` method
     single_kwargs: to pass to single-input driver
     mzz_kwargs: passed to ``MultiZarrToZarr`` for each batch
     n_batches: int
@@ -635,6 +637,7 @@ def auto_dask(
     single_task = dask.delayed(lambda x: single_driver(x, **single_kwargs).translate())
     post = mzz_kwargs.pop("postprocess", None)
     inline = mzz_kwargs.pop("inline_threshold", None)
+    # TODO: if single files produce list of reference sets (e.g., grib2)
     batch_task = dask.delayed(
         lambda u, x: MultiZarrToZarr(u, indicts=x, **mzz_kwargs).translate()
     )
