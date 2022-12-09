@@ -277,7 +277,7 @@ def test_compound_string_encode():
 
 
 def test_compact():
-    pytest.importorskip("ipfs")
+    pytest.importorskip("ipfsspec")
     h = kerchunk.hdf.SingleHdf5ToZarr(
         "ipfs://QmVZc4TzRP7zydgKzDX7CH2JpYw2LJKkWBm6jhCfigeon6"
     )
