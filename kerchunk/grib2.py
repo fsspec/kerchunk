@@ -177,11 +177,9 @@ def scan_grib(
                     store, z, data, name, inline_threshold, offset, size, attrs
                 )
             dims = (
-                ["x", "y"]
+                ["y", "x"]
                 if m["gridType"] in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
                 else ["latitude", "longitude"]
-                if m["gridType"] in cfgrib.dataset.GRID_TYPES_DIMENSION_COORDS
-                else ["longitude", "latitude"]
             )
             z[m["shortName"]].attrs["_ARRAY_DIMENSIONS"] = dims
 
@@ -199,28 +197,15 @@ def scan_grib(
                         m["gridType"]
                         in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
                     ):
-                        dims = ["x", "y"]
+                        dims = ["y", "x"]
                         x = x.reshape(vals.shape)
                     else:
                         dims = [coord]
                         if coord == "latitude":
-                            if (
-                                m["gridType"]
-                                in cfgrib.dataset.GRID_TYPES_DIMENSION_COORDS
-                            ):
-                                x = x.reshape(vals.shape)[:, 0].copy()
-                            else:
-                                x = x.reshape(vals.shape)[0].copy()
-                            inline_extra = x.nbytes + 1
+                            x = x.reshape(vals.shape)[:, 0].copy()
                         elif coord == "longitude":
-                            if (
-                                m["gridType"]
-                                in cfgrib.dataset.GRID_TYPES_DIMENSION_COORDS
-                            ):
-                                x = x.reshape(vals.shape)[0].copy()
-                            else:
-                                x = x.reshape(vals.shape)[:, 0].copy()
-                            inline_extra = x.nbytes + 1
+                            x = x.reshape(vals.shape)[0].copy()
+                        inline_extra = x.nbytes + 1
                 else:
                     x = np.array([x])
                     dims = [coord]
