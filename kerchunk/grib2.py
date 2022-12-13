@@ -161,8 +161,13 @@ def scan_grib(
                 + cfgrib.dataset.EXTRA_DATA_ATTRIBUTES_KEYS
                 if k in m
             }
+            ## try to use cfVarName if available,
+            ## otherwise use the grib shortName
+            varName = m["cfVarName"]
+            if varName in ("undef", "unknown"):
+                varName = m["shortName"]
             _store_array(
-                store, z, vals, m["shortName"], inline_threshold, offset, size, attrs
+                store, z, vals, varName, inline_threshold, offset, size, attrs
             )
             if "typeOfLevel" in m and "level" in m:
                 name = m["typeOfLevel"]
@@ -181,7 +186,7 @@ def scan_grib(
                 if m["gridType"] in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
                 else ["latitude", "longitude"]
             )
-            z[m["shortName"]].attrs["_ARRAY_DIMENSIONS"] = dims
+            z[varName].attrs["_ARRAY_DIMENSIONS"] = dims
 
             for coord in cfgrib.dataset.COORD_ATTRS:
                 coord2 = {"latitude": "latitudes", "longitude": "longitudes"}.get(
