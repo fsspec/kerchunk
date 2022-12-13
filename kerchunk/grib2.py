@@ -161,8 +161,8 @@ def scan_grib(
                 + cfgrib.dataset.EXTRA_DATA_ATTRIBUTES_KEYS
                 if k in m
             }
-            ## try to use cfVarName if available,
-            ## otherwise use the grib shortName
+            # try to use cfVarName if available,
+            # otherwise use the grib shortName
             varName = m["cfVarName"]
             if varName in ("undef", "unknown"):
                 varName = m["shortName"]
