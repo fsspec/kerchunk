@@ -9,7 +9,7 @@ File format backends
    kerchunk.grib2.scan_grib
    kerchunk.fits.process_file
    kerchunk.tiff.tiff_to_zarr
-   kerchunk.netCDF3.netcdf_recording_file
+   kerchunk.netCDF3.NetCDF3ToZarr
 
 .. autoclass:: kerchunk.hdf.SingleHdf5ToZarr
     :members:
@@ -21,7 +21,7 @@ File format backends
 
 .. autofunction:: kerchunk.tiff.tiff_to_zarr
 
-.. autoclass:: kerchunk.netCDF3.netcdf_recording_file
+.. autoclass:: kerchunk.netCDF3.NetCDF3ToZarr
     :members: __init__, translate
 
 Codecs
@@ -57,6 +57,7 @@ Combining
    kerchunk.combine.MultiZarrToZarr
    kerchunk.combine.merge_vars
    kerchunk.combine.concatenate_arrays
+   kerchunk.combine.auto_dask
 
 .. autoclass:: kerchunk.combine.MultiZarrToZarr
     :members: __init__, translate
@@ -65,6 +66,8 @@ Combining
 
 .. autofunction:: kerchunk.combine.concatenate_arrays
 
+.. autofunction:: kerchunk.combine.auto_dask
+
 Utilities
 ---------
 
@@ -72,6 +75,10 @@ Utilities
     kerchunk.utils.rename_target
     kerchunk.utils.rename_target_files
     kerchunk.utils.subchunk
+    kerchunk.utils.dereference_archives
+    kerchunk.utils.consolidate
+    kerchunk.utils.do_inline
+    kerchunk.utils.inline_array
 
 .. autofunction:: kerchunk.utils.rename_target
 
@@ -80,3 +87,11 @@ Utilities
 .. autofunction:: kerchunk.tiff.generate_coords
 
 .. autofunction:: kerchunk.utils.subchunk
+
+.. autofunction:: kerchunk.utils.dereference_archives
+
+.. autofunction:: kerchunk.utils.consolidate
+
+.. autofunction:: kerchunk.utils.do_inline
+
+.. autofunction:: kerchunk.utils.inline_array

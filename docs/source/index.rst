@@ -69,6 +69,7 @@ so that blocks from one or more files can be arranged into aggregate datasets ac
    nonzarr
    reference
    contributing
+   advanced
 
 Indices and tables
 ==================

@@ -1,4 +1,5 @@
 import base64
+import copy
 
 import ujson
 
@@ -131,7 +132,7 @@ def _encode_for_JSON(store):
     return store
 
 
-def _do_inline(store, threshold, remote_options=None):
+def do_inline(store, threshold, remote_options=None):
     """Replace short chunks with the value of that chunk
 
     The chunk may need encoding with base64 if not ascii, so actual
@@ -166,9 +167,7 @@ def _inline_array(group, threshold, names, prefix=""):
         else:
             cond1 = threshold and thing.nbytes < threshold and thing.nchunks > 1
             cond2 = prefix1 in names
-            print(name, prefix1, cond1, cond2)
             if cond1 or cond2:
-                print("inline")
                 group.create_dataset(
                     name=name,
                     dtype=thing.dtype,
@@ -263,3 +262,75 @@ def subchunk(store, variable, factor):
                 newv = [url, offset + subpart * size // factor, size // factor]
                 store[f"{variable}/{newpart}"] = newv
     return store
+
+
+def dereference_archives(references, remote_options=None):
+    """Directly point to uncompressed byte ranges in ZIP/TAR archives
+
+    If a set of references have been made for files contained within ZIP or
+    (uncompressed) TAR archives, the "zip://..." and "tar://..." URLs should
+    be converted to byte ranges in the overall file.
+
+    Parameters
+    ----------
+    references: dict
+        a simple reference set
+    remote_options: dict or None
+        For opening the archives
+    """
+    import zipfile
+    import tarfile
+
+    if "version" in references and references["version"] == 1:
+        references = references["refs"]
+
+    target_files = [l[0] for l in references.values() if isinstance(l, list)]
+    target_files = {
+        (t.split("::", 1)[1], t[:3])
+        for t in target_files
+        if t.startswith(("tar://", "zip://"))
+    }
+
+    # find all member file offsets in all archives
+    offsets = {}
+    for target, tar_or_zip in target_files:
+        with fsspec.open(target, **(remote_options or {})) as tf:
+            if tar_or_zip == "tar":
+                tar = tarfile.TarFile(fileobj=tf)
+                offsets[target] = {
+                    ti.name: {"offset": ti.offset_data, "size": ti.size, "comp": False}
+                    for ti in tar.getmembers()
+                    if ti.isfile()
+                }
+            elif tar_or_zip == "zip":
+                zf = zipfile.ZipFile(file=tf)
+                offsets[target] = {}
+                for zipinfo in zf.filelist:
+                    if zipinfo.is_dir():
+                        continue
+                    offsets[target][zipinfo.filename] = {
+                        "offset": zipinfo.header_offset + len(zipinfo.FileHeader()),
+                        "size": zipinfo.compress_size,
+                        "comp": zipinfo.compress_type != zipfile.ZIP_STORED,
+                    }
+
+    # modify references
+    mods = copy.deepcopy(references)
+    for k, v in mods.items():
+        if not isinstance(v, list):
+            continue
+        target = v[0].split("::", 1)[1]
+        infile = v[0].split("::", 1)[0][6:]  # strip "zip://" or "tar://"
+        if target not in offsets:
+            continue
+        detail = offsets[target][infile]
+        if detail["comp"]:
+            # leave compressed member file alone
+            continue
+        v[0] = target
+        if len(v) == 1:
+            v.append(detail["offset"])
+            v.append(detail["size"])
+        else:
+            v[1] += detail["offset"]
+    return mods
