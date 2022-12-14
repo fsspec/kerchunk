@@ -1,4 +1,4 @@
-sphinx-rtd-theme
+pangeo-sphinx-book-theme
 numpydoc==1.2.1
 autodoc
 numpy
