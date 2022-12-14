@@ -54,5 +54,5 @@ autodoc_mock_imports = [
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['images']
 pygments_style = "sphinx"
-html_theme = "sphinx_rtd_theme"
+html_theme = "pangeo_sphinx_book_theme"
 html_logo = "kerchunk.png"
