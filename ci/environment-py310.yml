@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.10
   - dask
   - zarr
   - xarray
@@ -24,7 +24,6 @@ dependencies:
   - black
   - pip
   - tifffile
-  - rioxarray
   - netCDF4
   - pip:
       - git+https://github.com/fsspec/filesystem_spec

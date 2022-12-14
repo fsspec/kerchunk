@@ -1,27 +1,21 @@
 API Reference
 *************
 
-.. currentmodule:: kerchunk
+File format backends
+--------------------
 
 .. autosummary::
    kerchunk.hdf.SingleHdf5ToZarr
    kerchunk.grib2.scan_grib
-   kerchunk.grib2.GRIBCodec
-   kerchunk.combine.MultiZarrToZarr
    kerchunk.fits.process_file
    kerchunk.tiff.tiff_to_zarr
    kerchunk.netCDF3.netcdf_recording_file
-   kerchunk.netCDF3.RecordArrayMember
 
 .. autoclass:: kerchunk.hdf.SingleHdf5ToZarr
     :members:
 
 .. autofunction:: kerchunk.grib2.scan_grib
 
-.. autoclass:: kerchunk.grib2.GRIBCodec
-
-.. autoclass:: kerchunk.combine.MultiZarrToZarr
-    :members:
 
 .. autofunction:: kerchunk.fits.process_file
 
@@ -30,5 +24,59 @@ API Reference
 .. autoclass:: kerchunk.netCDF3.netcdf_recording_file
     :members: __init__, translate
 
-.. autoclass:: kerchunk.netCDF3.RecordArrayMember
+Codecs
+------
+
+.. autosummary::
+   kerchunk.codecs.GRIBCodec
+   kerchunk.codecs.AsciiTableCodec
+   kerchunk.codecs.FillStringsCodec
+   kerchunk.codecs.VarArrCodec
+   kerchunk.codecs.RecordArrayMember
+
+
+.. autoclass:: kerchunk.codecs.GRIBCodec
     :members: __init__
+
+.. autoclass:: kerchunk.codecs.AsciiTableCodec
+    :members: __init__
+
+.. autoclass:: kerchunk.codecs.FillStringsCodec
+    :members: __init__
+
+.. autoclass:: kerchunk.codecs.VarArrCodec
+    :members: __init__
+
+.. autoclass:: kerchunk.codecs.RecordArrayMember
+    :members: __init__
+
+Combining
+---------
+
+.. autosummary::
+   kerchunk.combine.MultiZarrToZarr
+   kerchunk.combine.merge_vars
+   kerchunk.combine.concatenate_arrays
+
+.. autoclass:: kerchunk.combine.MultiZarrToZarr
+    :members: __init__, translate
+
+.. autofunction:: kerchunk.combine.merge_vars
+
+.. autofunction:: kerchunk.combine.concatenate_arrays
+
+Utilities
+---------
+
+.. autosummary::
+    kerchunk.utils.rename_target
+    kerchunk.utils.rename_target_files
+    kerchunk.utils.subchunk
+
+.. autofunction:: kerchunk.utils.rename_target
+
+.. autofunction:: kerchunk.utils.rename_target_files
+
+.. autofunction:: kerchunk.tiff.generate_coords
+
+.. autofunction:: kerchunk.utils.subchunk

@@ -8,11 +8,16 @@ import zarr
 from zarr.meta import encode_fill_value
 import numcodecs
 from .codecs import FillStringsCodec
+from .utils import _encode_for_JSON
 
 try:
     import h5py
-except ModuleNotFoundError:
-    raise ImportError("h5py is required for kerchunking HDF5/NetCDF4 files. Please install with `pip/conda install h5py`")
+except ModuleNotFoundError:  # pragma: no cover
+    raise ImportError(
+        "h5py is required for kerchunking HDF5/NetCDF4 files. Please install with "
+        "`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html "
+        "for more details."
+    )
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -53,11 +58,11 @@ class SingleHdf5ToZarr:
         What to do with VLEN string variables or columns of tabular variables
         leave: pass through the 16byte garbage IDs unaffected, but requires no codec
         null: set all the strings to None or empty; required that this library is available
-            at read time
+        at read time
         embed: include all the values in the output JSON (should not be used for large tables)
         encode: save the ID-to-value mapping in a codec, to produce the real values at read
-            time; requires this library to be available. Can be efficient storage where there
-            are few unique values.
+        time; requires this library to be available. Can be efficient storage where there
+        are few unique values.
     """
 
     def __init__(
@@ -65,12 +70,12 @@ class SingleHdf5ToZarr:
         h5f: "BinaryIO | str",
         url: str = None,
         spec=1,
-        inline_threshold=100,
+        inline_threshold=500,
         storage_options=None,
         error="warn",
         vlen_encode="embed",
     ):
-        
+
         # Open HDF5 file in read mode...
         lggr.debug(f"HDF5 file: {h5f}")
         if isinstance(h5f, str):
@@ -84,7 +89,7 @@ class SingleHdf5ToZarr:
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self._h5f = h5py.File(h5f, mode="r")
+        self._h5f = h5py.File(self.input_file, mode="r")
 
         self.store = {}
         self._zroot = zarr.group(store=self.store, overwrite=True)
@@ -114,15 +119,12 @@ class SingleHdf5ToZarr:
         if self.spec < 1:
             return self.store
         else:
-            for k, v in self.store.copy().items():
-                if isinstance(v, list):
-                    self.store[k][0] = "{{u}}"
-                else:
-                    try:
-                        self.store[k] = v.decode() if isinstance(v, bytes) else v
-                    except UnicodeDecodeError:
-                        self.store[k] = "base64:" + base64.b64encode(v).decode()
-            return {"version": 1, "templates": {"u": self._uri}, "refs": self.store}
+            store = _encode_for_JSON(self.store)
+            return {"version": 1, "refs": store}
+
+    def _unref(self, ref):
+        name = h5py.h5r.get_name(ref, self._h5f.id)
+        return self._h5f[name]
 
     def _do_inline(self, threshold):
         """Replace short chunks with the value of that chunk
@@ -130,6 +132,7 @@ class SingleHdf5ToZarr:
         The chunk may need encoding with base64 if not ascii, so actual
         length may be larger than threshold.
         """
+        # TODO: use version in utils
         for k, v in self.store.copy().items():
             if isinstance(v, list) and v[2] < threshold:
                 self.input_file.seek(v[1])
@@ -223,7 +226,27 @@ class SingleHdf5ToZarr:
                     fill = h5obj.fillvalue or " "  # cannot be None
                 elif h5obj.dtype.kind == "O":
                     if self.vlen == "embed":
-                        kwargs["data"] = [_.decode() for _ in h5obj[:]]
+                        if np.isscalar(h5obj):
+                            out = str(h5obj)
+                        elif h5obj.ndim == 0:
+                            out = np.array(h5obj).tolist().decode()
+                        else:
+                            out = h5obj[:]
+                            out2 = out.ravel()
+                            for i, val in enumerate(out2):
+                                if isinstance(val, bytes):
+                                    out2[i] = val.decode()
+                                elif isinstance(val, str):
+                                    out2[i] = val
+                                elif isinstance(val, h5py.h5r.Reference):
+                                    # TODO: recursively recreate references
+                                    out2[i] = None
+                                else:
+                                    out2[i] = [
+                                        v.decode() if isinstance(v, bytes) else v
+                                        for v in val
+                                    ]
+                        kwargs["data"] = out
                         kwargs["object_codec"] = numcodecs.JSON()
                         fill = None
                     elif self.vlen == "null":
