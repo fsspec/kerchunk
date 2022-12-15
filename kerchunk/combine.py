@@ -146,32 +146,30 @@ class MultiZarrToZarr:
         """filesystem instances being analysed, one per input dataset"""
         import collections.abc
 
-        if self._fss is None:
-            logger.debug("setup filesystems")
-            if self._indicts is not None:
-                fo_list = self._indicts
-                self._paths = self.path
-            elif isinstance(self.path[0], collections.abc.Mapping):
-                fo_list = self.path
-                self._paths = [None] * len(fo_list)
-            else:
-                self._paths = []
-                for of in fsspec.open_files(self.path, **self.target_options):
-                    self._paths.append(of.full_name)
-                fs = fsspec.core.url_to_fs(self.path[0], **self.target_options)[0]
-                fo_list = fs.cat(self.path)
-                fo_list = list(fo_list.values())
+        logger.debug("setup filesystems")
+        if self._indicts is not None:
+            fo_list = self._indicts
+            self._paths = self.path
+        elif isinstance(self.path[0], collections.abc.Mapping):
+            fo_list = self.path
+            self._paths = [None] * len(fo_list)
+        else:
+            self._paths = []
+            for of in fsspec.open_files(self.path, **self.target_options):
+                self._paths.append(of.full_name)
+            fs = fsspec.core.url_to_fs(self.path[0], **self.target_options)[0]
+            fo_list = fs.cat(self.path)
+            fo_list = list(fo_list.values())
 
-            self._fss = [
-                fsspec.filesystem(
-                    "reference",
-                    fo=fo,
-                    remote_protocol=self.remote_protocol,
-                    remote_options=self.remote_options,
-                )
-                for fo in fo_list
-            ]
-        return self._fss
+        yield from (
+            fsspec.filesystem(
+                "reference",
+                fo=fo,
+                remote_protocol=self.remote_protocol,
+                remote_options=self.remote_options,
+            )
+            for fo in fo_list
+        )
 
     def _get_value(self, index, z, var, fn=None):
         """derive coordinate value(s) for given input dataset
@@ -271,7 +269,7 @@ class MultiZarrToZarr:
         """
         self.out.clear()
         group = zarr.open(self.out)
-        m = self.fss[0].get_mapper("")
+        m = iter(self.fss).__next__().get_mapper("")
         z = zarr.open(m)
         for k, v in self.coos.items():
             if k == "var":
@@ -385,10 +383,14 @@ class MultiZarrToZarr:
                 zarray = ujson.loads(m[f"{v}/.zarray"])
                 if v not in chunk_sizes:
                     chunk_sizes[v] = zarray["chunks"]
-                else:
-                    assert (
-                        chunk_sizes[v] == zarray["chunks"]
-                    ), "Found chunk size mismatch"
+                elif chunk_sizes[v] != zarray["chunks"]:
+                    raise ValueError(
+                        f"""Chunk size mismatch found
+                        Prefix '{v}', iteration {i}, (path {self._paths[i]}
+                        Chunk size inferred so far: {chunk_sizes[v]}
+                        Chunk size in this input: {zarray["chunks"]}
+                        """
+                    )
                 chunks = chunk_sizes[v]
                 zattrs = ujson.loads(m.get(f"{v}/.zattrs", "{}"))
                 coords = zattrs.get("_ARRAY_DIMENSIONS", [])
