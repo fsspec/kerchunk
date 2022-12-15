@@ -15,7 +15,7 @@ Contributing to kerchunk
     kerchunk is actively in development and breaking changes may be introduced at any point.
     In its current state, it is possible for experienced users to build kerchunk indices of datasets,
     which work today and will continue to work. End users of these reference sets will not be exposed
-    to changes in kerchunk's code and usually don't even need to install kerchunk. 
+    to changes in kerchunk's code and usually don't even need to install kerchunk.
 
 
 Bug reports and feature requests
