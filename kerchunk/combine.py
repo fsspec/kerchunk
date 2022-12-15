@@ -167,6 +167,7 @@ class MultiZarrToZarr:
                 fo=fo,
                 remote_protocol=self.remote_protocol,
                 remote_options=self.remote_options,
+                skip_instance_cache=True,
             )
             for fo in fo_list
         )
