@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contributing to kerchunk &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Advanced Topics" href="advanced.html" />
+    <link rel="prev" title="API Reference" href="reference.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> kerchunk<img src="_static/kerchunk.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                0+unknown
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing to kerchunk</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#bug-reports-and-feature-requests">Bug reports and feature requests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#contributing-code">Contributing code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#creating-a-fork">Creating a Fork</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#creating-a-development-environment">Creating a development environment</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#creating-a-python-environment">Creating a Python Environment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#setting-up-pre-commit">Setting up pre-commit</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#creating-a-branch">Creating a branch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-the-test-suite">Running the test suite</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#contributing-documentation">Contributing documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#contributing-changes">Contributing changes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">kerchunk</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Contributing to kerchunk</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/contributing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="contributing-to-kerchunk">
+<span id="contributing"></span><h1>Contributing to kerchunk<a class="headerlink" href="#contributing-to-kerchunk" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Large parts of this document are based on the
+<a class="reference external" href="http://docs.xarray.dev/en/stable/contributing.html">Xarray Contributing Guide</a>
+, the <a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/contributing.html">Pandas Contributing Guide</a>
+and the <a class="reference external" href="https://xbatcher.readthedocs.io/en/latest/contributing.html">xbatcher Contributing Guide</a>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>kerchunk is actively in development and breaking changes may be introduced at any point.
+In its current state, it is possible for experienced users to build kerchunk indices of datasets,
+which work today and will continue to work. End users of these reference sets will not be exposed
+to changes in kerchunk’s code and usually don’t even need to install kerchunk.</p>
+</div>
+<div class="section" id="bug-reports-and-feature-requests">
+<h2>Bug reports and feature requests<a class="headerlink" href="#bug-reports-and-feature-requests" title="Permalink to this headline">¶</a></h2>
+<p>Bug reports or feature requests to the kerchunk project can be submitted by opening up an <a class="reference external" href="https://github.com/fsspec/kerchunk/issues">Issue in the repository</a>.</p>
+</div>
+<div class="section" id="contributing-code">
+<h2>Contributing code<a class="headerlink" href="#contributing-code" title="Permalink to this headline">¶</a></h2>
+<p>This project uses git for version control and github for issue tracking. If you need instructions on how to setup git, they can be found on <a class="reference external" href="https://help.github.com/set-up-git-redirect">GitHub</a>.</p>
+<div class="section" id="creating-a-fork">
+<span id="contributing-forking"></span><h3>Creating a Fork<a class="headerlink" href="#creating-a-fork" title="Permalink to this headline">¶</a></h3>
+<p>Once you have your git credentials setup, the next step is to create a fork of the project to work off of.
+To fork the repo, navigate to the <a class="reference external" href="https://github.com/fsspec/kerchunk">kerchunk repository on github</a> and click the <em>Fork</em> button in the top right of the page.
+This will create a fork of the kerchunk project in your own repository.</p>
+<p>Next, you will want to clone this forked version of the repository onto the machine you are working on.
+In your terminal/command prompt run:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:&lt;yourusername&gt;/kerchunk.git
+<span class="nb">cd</span> kerchunk
+git remote add upstream git@github.com:fsspec/kerchunk.git
+</pre></div>
+</div>
+<p>This will create a directory from your fork of the repository on your local machine and connect it to the main repository.</p>
+</div>
+<div class="section" id="creating-a-development-environment">
+<span id="contributing-dev-env"></span><h3>Creating a development environment<a class="headerlink" href="#creating-a-development-environment" title="Permalink to this headline">¶</a></h3>
+<p>To test your code changes, you will need to build <em>kerchunk</em> from source, which
+requires a Python environment.</p>
+<div class="section" id="creating-a-python-environment">
+<span id="contributiong-dev-python"></span><h4>Creating a Python Environment<a class="headerlink" href="#creating-a-python-environment" title="Permalink to this headline">¶</a></h4>
+<p>To ensure that the python environment that you are using is the same one that everyone else is using,
+it is necessary to create a virtual environment.
+This will create an isolated development environment where you can install the kerchunk python dependencies.</p>
+<ul class="simple">
+<li><p>Install either <a class="reference external" href="https://www.anaconda.com/download/">Anaconda</a> or <a class="reference external" href="https://conda.io/miniconda.html">miniconda</a></p></li>
+<li><p>Make sure your conda is up to date (<code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">update</span> <span class="pre">conda</span></code>)</p></li>
+<li><p>Make sure that you have <a class="reference internal" href="#contributing-forking"><span class="std std-ref">cloned the repository</span></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cd</span></code> to the <em>kerchunk</em> source directory</p></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If your conda build solving times are taking a long time, you can try <a class="reference external" href="https://mamba.readthedocs.io/en/latest/installation.html#installation">mamba</a>,
+which is a mirror of conda written in c++`.</p>
+</div>
+<p>First we’ll create and activate the build environment:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda env create --name kerchunk --file ci/environment-py3&lt;*&gt;.yml
+conda activate kerchunk
+</pre></div>
+</div>
+<p>Now that you have the correct dependencies installed in your environment,
+you should be able to install your development version of kerchunk locally.
+In the projects home directory run:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip install -e .
+</pre></div>
+</div>
+<p>To test that the installation was successful run:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ python  <span class="c1"># start an interpreter</span>
+&gt;&gt;&gt; import kerchunk
+&gt;&gt;&gt; kerchunk.__version__
+</pre></div>
+</div>
+<p>To view your environments</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda info --envs
+</pre></div>
+</div>
+<p>To return to your base environment</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda deactivate
+</pre></div>
+</div>
+<p>See the full conda docs <a class="reference external" href="http://conda.pydata.org/docs">here</a>.</p>
+</div>
+<div class="section" id="setting-up-pre-commit">
+<h4>Setting up pre-commit<a class="headerlink" href="#setting-up-pre-commit" title="Permalink to this headline">¶</a></h4>
+<p>We use <a class="reference external" href="https://pre-commit.com/">pre-commit</a> to manage code linting and style.
+To set up pre-commit after activating your conda environment, run:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pre-commit install
+</pre></div>
+</div>
+<p>Now pre-commit will run whenever you create a git commit in the repository.
+You may need to edit files that pre-commit has issues with and re-add them to the commit.</p>
+</div>
+</div>
+<div class="section" id="creating-a-branch">
+<h3>Creating a branch<a class="headerlink" href="#creating-a-branch" title="Permalink to this headline">¶</a></h3>
+<p>You want your <code class="docutils literal notranslate"><span class="pre">main</span></code> branch to reflect only production-ready code, so create a
+feature branch before making your changes. For example</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git branch shiny-new-feature
+git checkout shiny-new-feature
+</pre></div>
+</div>
+<p>The above can be simplified to</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git checkout -b shiny-new-feature
+</pre></div>
+</div>
+<p>This changes your working directory to the shiny-new-feature branch.  Keep any
+changes in this branch specific to one bug or feature so it is clear
+what the branch brings to <em>kerchunk</em>. You can have many “shiny-new-features”
+and switch in between them using the <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span></code> command.</p>
+<p>To update this branch, you need to retrieve the changes from the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git fetch upstream
+git merge upstream/main
+</pre></div>
+</div>
+<p>This will combine your commits with the latest <em>kerchunk</em> git <code class="docutils literal notranslate"><span class="pre">main</span></code>.  If this
+leads to merge conflicts, you must resolve these before submitting your pull
+request.  If you have uncommitted changes, you will need to <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">stash</span></code> them
+prior to updating.  This will effectively store your changes, which can be
+reapplied after updating.</p>
+</div>
+<div class="section" id="running-the-test-suite">
+<h3>Running the test suite<a class="headerlink" href="#running-the-test-suite" title="Permalink to this headline">¶</a></h3>
+<p><em>kerchunk</em> uses the <a class="reference external" href="https://docs.pytest.org/en/latest/contents.html">pytest</a>
+framework for testing. You can run the test suite using:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pytest kerchunk
+</pre></div>
+</div>
+<p>Ideally any new feature added should have test coverage.</p>
+</div>
+</div>
+<div class="section" id="contributing-documentation">
+<h2>Contributing documentation<a class="headerlink" href="#contributing-documentation" title="Permalink to this headline">¶</a></h2>
+<p>Documentation improvements are appreciated. The documentation is contained within the <code class="docutils literal notranslate"><span class="pre">docs</span></code> directory of the project.
+It is written in <code class="docutils literal notranslate"><span class="pre">ReStructured</span> <span class="pre">Text</span> <span class="pre">(.rst)</span></code>, which is similar to markdown, but features more functionality.
+These ReStructured text files are built into <code class="docutils literal notranslate"><span class="pre">html</span></code> using the python <cite>sphinx (https://www.sphinx-doc.org/en/master/)_</cite> package.</p>
+<p>You can create a virtual environment by running:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda env create --file ci/docs.yml
+conda activate kerchunk-docs
+</pre></div>
+</div>
+<p>Once you make changes to the docs, you can build them with:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> docs
+make html
+</pre></div>
+</div>
+</div>
+<div class="section" id="contributing-changes">
+<h2>Contributing changes<a class="headerlink" href="#contributing-changes" title="Permalink to this headline">¶</a></h2>
+<p>Once you feel good about your changes you can see them by typing:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git status
+</pre></div>
+</div>
+<p>If you have created a new file, it is not being tracked by git. Add it by typing:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git add path/to/file-to-be-added.py
+</pre></div>
+</div>
+<p>Now you can commit your changes in your local repository.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git commit -m <span class="s2">&quot;&lt;commit message&gt;&quot;</span>
+</pre></div>
+</div>
+<p>When you want your changes to appear publicly on your GitHub page, push your
+commits to a branch off your fork.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git push origin shiny-new-feature
+</pre></div>
+</div>
+<p>Here <code class="docutils literal notranslate"><span class="pre">origin</span></code> is the default name given to your remote repository on GitHub.
+You can see the remote repositories.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git remote -v
+</pre></div>
+</div>
+<p>If you navigate to your branch on GitHub, you should see a banner to submit a pull
+request to the <em>kerchunk</em> repository.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reference.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="advanced.html" class="btn btn-neutral float-right" title="Advanced Topics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Martin Durant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
