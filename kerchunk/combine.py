@@ -160,7 +160,7 @@ class MultiZarrToZarr:
                 self._paths.append(of.full_name)
             fs = fsspec.core.url_to_fs(self.path[0], **self.target_options)[0]
             fo_list = fs.cat(self.path)
-            fo_list = list(fo_list.values())
+            fo_list = (fo_list.cat_file(f) for f in self.path)
 
         yield from (
             fsspec.filesystem(
