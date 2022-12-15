@@ -1,4 +1,5 @@
 import collections.abc
+import gc
 import logging
 import re
 from typing import List
@@ -252,6 +253,7 @@ class MultiZarrToZarr:
                     coos[var].update(value)
                 else:
                     coos[var].add(value)
+            del z, fs
 
         self.coos = _reorganise(coos)
         for c, v in self.coos.items():
@@ -262,6 +264,7 @@ class MultiZarrToZarr:
                 )
         logger.debug("Created coordinates map")
         self.done.add(1)
+        gc.collect()
         return coos
 
     def store_coords(self):
@@ -329,6 +332,7 @@ class MultiZarrToZarr:
                 self.out[fn] = ujson.dumps(ujson.loads(m[fn]))
         logger.debug("Written global metadata")
         self.done.add(2)
+        gc.collect()
 
     def second_pass(self):
         """map every input chunk to the output"""
@@ -467,6 +471,9 @@ class MultiZarrToZarr:
                 bits = fs.cat(list(to_download.values()))
                 for key, fn in to_download.items():
                     self.out[key] = bits[fn]
+                del bits
+            del z, m, fs
+            gc.collect()
         self.done.add(3)
 
     def translate(self, filename=None, storage_options=None):
