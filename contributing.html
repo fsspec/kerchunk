@@ -230,8 +230,9 @@ framework for testing. You can run the test suite using:</p>
 It is written in <code class="docutils literal notranslate"><span class="pre">ReStructured</span> <span class="pre">Text</span> <span class="pre">(.rst)</span></code>, which is similar to markdown, but features more functionality.
 These ReStructured text files are built into <code class="docutils literal notranslate"><span class="pre">html</span></code> using the python <cite>sphinx (https://www.sphinx-doc.org/en/master/)_</cite> package.</p>
 <p>You can create a virtual environment by running:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda env create --file ci/docs.yml
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda create --name kerchunk-docs <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.8
 conda activate kerchunk-docs
+python -m pip install -r docs/requirements.txt
 </pre></div>
 </div>
 <p>Once you make changes to the docs, you can build them with:</p>
