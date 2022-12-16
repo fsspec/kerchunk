@@ -193,8 +193,9 @@ You can create a virtual environment by running:
 
 .. code-block:: sh
 
-    conda env create --file ci/docs.yml
+    conda create --name kerchunk-docs python=3.8
     conda activate kerchunk-docs
+    python -m pip install -r docs/requirements.txt
 
 Once you make changes to the docs, you can build them with:
 
