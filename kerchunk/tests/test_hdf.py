@@ -290,27 +290,26 @@ def test_compact():
 
 @pytest.mark.parametrize("zlib", [True, False], ids=["zlib", "no_zlib"])
 @pytest.mark.parametrize("shuffle", [True, False], ids=["shuffle", "no_shuffle"])
-@pytest.mark.parametrize("fletcher32", [True, False], ids=["fletcher32", "no_fletcher32"])
+@pytest.mark.parametrize(
+    "fletcher32", [True, False], ids=["fletcher32", "no_fletcher32"]
+)
 def test_encoding_options(zlib, shuffle, fletcher32, tmp_path):
     fname = tmp_path / "test.nc"
-    
+
     shape = (2, 10)
     chunksizes = (1, 10)
 
     encoding = {
-        'zlib': zlib,
-        'shuffle': shuffle,
-        'complevel': 2,
-        'fletcher32': fletcher32,
-        'contiguous': False,
-        'chunksizes': chunksizes
+        "zlib": zlib,
+        "shuffle": shuffle,
+        "complevel": 2,
+        "fletcher32": fletcher32,
+        "contiguous": False,
+        "chunksizes": chunksizes,
     }
 
     da = xr.DataArray(
-        data=np.random.rand(*shape),
-        dims=['y', 'x'],
-        name="foo",
-        attrs={"bar": "baz"}
+        data=np.random.rand(*shape), dims=["y", "x"], name="foo", attrs={"bar": "baz"}
     )
     da.encoding = encoding
     ds = da.to_dataset()
