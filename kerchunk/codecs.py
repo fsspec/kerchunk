@@ -66,6 +66,19 @@ class FillStringsCodec(Codec):
 numcodecs.register_codec(FillStringsCodec, "fill_hdf_strings")
 
 
+class FletcherDummyFilter(numcodecs.abc.Codec):
+    codec_id = "fletcher_null"
+
+    def decode(self, buff, out=None):
+        return buff[:-4]
+
+    def encode(self, buf):
+        pass
+
+
+numcodecs.register_codec(FletcherDummyFilter, "fletcher_null")
+
+
 class GRIBCodec(numcodecs.abc.Codec):
     """
     Read GRIB stream of bytes as a message using eccodes

@@ -7,7 +7,7 @@ import numpy as np
 import zarr
 from zarr.meta import encode_fill_value
 import numcodecs
-from .codecs import FillStringsCodec
+from .codecs import FillStringsCodec, FletcherDummyFilter
 from .utils import _encode_for_JSON
 
 try:
@@ -376,6 +376,8 @@ class SingleHdf5ToZarr:
                         )
 
                 # Create a Zarr array equivalent to this HDF5 dataset...
+                if h5obj.fletcher32:
+                    filters.append(FletcherDummyFilter())
                 za = self._zroot.create_dataset(
                     h5obj.name,
                     shape=h5obj.shape,
@@ -399,9 +401,6 @@ class SingleHdf5ToZarr:
                 # Store chunk location metadata...
                 if cinfo:
                     for k, v in cinfo.items():
-                        if h5obj.fletcher32:
-                            logging.info("Discarding fletcher32 checksum")
-                            v["size"] -= 4
                         self.store[za._chunk_key(k)] = [
                             self._uri,
                             v["offset"],
