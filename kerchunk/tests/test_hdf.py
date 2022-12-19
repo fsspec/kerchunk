@@ -286,3 +286,40 @@ def test_compact():
     m = fsspec.get_mapper("reference://", fo=out)
     g = zarr.open(m)
     assert np.allclose(g.ancillary_data.atlas_sdp_gps_epoch[:], 1.19880002e09)
+
+
+@pytest.mark.parametrize("zlib", [True, False], ids=["zlib", "no_zlib"])
+@pytest.mark.parametrize("shuffle", [True, False], ids=["shuffle", "no_shuffle"])
+@pytest.mark.parametrize("fletcher32", [True, False], ids=["fletcher32", "no_fletcher32"])
+def test_encoding_options(zlib, shuffle, fletcher32, tmp_path):
+    fname = tmp_path / "test.nc"
+    
+    shape = (2, 10)
+    chunksizes = (1, 10)
+
+    encoding = {
+        'zlib': zlib,
+        'shuffle': shuffle,
+        'complevel': 2,
+        'fletcher32': fletcher32,
+        'contiguous': False,
+        'chunksizes': chunksizes
+    }
+
+    da = xr.DataArray(
+        data=np.random.rand(*shape),
+        dims=['y', 'x'],
+        name="foo",
+        attrs={"bar": "baz"}
+    )
+    da.encoding = encoding
+    ds = da.to_dataset()
+    ds.to_netcdf(fname, engine="netcdf4", mode="w")
+
+    with fsspec.open(fname) as fp:
+        h5chunks = kerchunk.hdf.SingleHdf5ToZarr(fp, fname, inline_threshold=0, spec=0)
+        refs = h5chunks.translate()
+
+    store = fsspec.get_mapper("reference://", fo=refs)
+    ds2 = xr.open_dataset(store, engine="zarr", chunks={})
+    xr.testing.assert_identical(ds, ds2)
