@@ -385,10 +385,13 @@ class MultiZarrToZarr:
                 zarray = ujson.loads(m[f"{v}/.zarray"])
                 if v not in chunk_sizes:
                     chunk_sizes[v] = zarray["chunks"]
-                else:
-                    assert (
-                        chunk_sizes[v] == zarray["chunks"]
-                    ), "Found chunk size mismatch"
+                elif chunk_sizes[v] != zarray["chunks"]:
+                    raise ValueError(
+                        f"""Found chunk size mismatch:
+                        at prefix {v} in iteration {i} (file {self._paths[i]})
+                        new chunk: {chunk_sizes[v]}
+                        chunks so far: {zarray["chunks"]}"""
+                    )
                 chunks = chunk_sizes[v]
                 zattrs = ujson.loads(m.get(f"{v}/.zattrs", "{}"))
                 coords = zattrs.get("_ARRAY_DIMENSIONS", [])
