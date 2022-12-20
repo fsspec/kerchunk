@@ -462,10 +462,13 @@
                 <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zarray&quot;</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chunk_sizes</span><span class="p">:</span>
                     <span class="n">chunk_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">assert</span> <span class="p">(</span>
-                        <span class="n">chunk_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">==</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
-                    <span class="p">),</span> <span class="s2">&quot;Found chunk size mismatch&quot;</span>
+                <span class="k">elif</span> <span class="n">chunk_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">!=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Found chunk size mismatch:</span>
+<span class="s2">                        at prefix </span><span class="si">{v}</span><span class="s2"> in iteration </span><span class="si">{i}</span><span class="s2"> (file </span><span class="si">{self._paths[i]}</span><span class="s2">)</span>
+<span class="s2">                        new chunk: </span><span class="si">{chunk_sizes[v]}</span><span class="s2"></span>
+<span class="s2">                        chunks so far: </span><span class="si">{zarray[&quot;chunks&quot;]}</span><span class="s2">&quot;&quot;&quot;</span>
+                    <span class="p">)</span>
                 <span class="n">chunks</span> <span class="o">=</span> <span class="n">chunk_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
                 <span class="n">zattrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zattrs&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">))</span>
                 <span class="n">coords</span> <span class="o">=</span> <span class="n">zattrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">,</span> <span class="p">[])</span>
