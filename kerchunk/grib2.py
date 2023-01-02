@@ -166,9 +166,7 @@ def scan_grib(
             varName = m["cfVarName"]
             if varName in ("undef", "unknown"):
                 varName = m["shortName"]
-            _store_array(
-                store, z, vals, varName, inline_threshold, offset, size, attrs
-            )
+            _store_array(store, z, vals, varName, inline_threshold, offset, size, attrs)
             if "typeOfLevel" in m and "level" in m:
                 name = m["typeOfLevel"]
                 data = np.array([m["level"]])
