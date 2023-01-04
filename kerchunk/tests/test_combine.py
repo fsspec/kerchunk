@@ -579,3 +579,26 @@ def test_bad_coo_warning(refs):
     )
     with pytest.warns(match="contains less than expected"):
         mzz.first_pass()
+
+
+def test_chunk_error(refs):
+    refs2 = refs["single1"].copy()
+    refs2.pop(".zmetadata")
+    fs = fsspec.filesystem("reference", fo=refs2, remote_protocol="memory")
+    refs2[
+        "data/.zarray"
+    ] = b"""
+    {
+    "chunks": [2, 3, 3],
+    "zarr_format": 2,
+    "shape": [1, 10, 10]
+    }
+    """
+    mzz = MultiZarrToZarr(
+        [refs["single1"], refs2],
+        remote_protocol="memory",
+        concat_dims=["time"],
+    )
+    with pytest.raises(ValueError) as e:
+        mzz.translate()
+    assert "chunk size mismatch" in str(e.value)
