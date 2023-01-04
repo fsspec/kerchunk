@@ -1,5 +1,6 @@
 import base64
 import copy
+import itertools
 
 import ujson
 
@@ -334,3 +335,44 @@ def dereference_archives(references, remote_options=None):
         else:
             v[1] += detail["offset"]
     return mods
+
+
+def _max_prefix(*strings):
+    # https://stackoverflow.com/a/6719272/3821154
+    def all_same(x):
+        return all(x[0] == y for y in x)
+
+    char_tuples = zip(*strings)
+    prefix_tuples = itertools.takewhile(all_same, char_tuples)
+    return "".join(x[0] for x in prefix_tuples)
+
+
+def templateize(strings, min_length=10, template_name="u"):
+    """Make prefix template for a set of strings
+
+    Useful for condensing strings by extracting out a common prefix.
+    If the common prefix is shorted than ``min_length``, the original
+    strings are returned and the output templates are empty.
+
+    Parameters
+    ----------
+    strings: List[str]
+        inputs
+    min_length: int
+        Only perform transformm if the common prefix is at least this long.
+    template_name: str
+        The placeholder string, should be short.
+
+    Returns
+    -------
+    templates: Dict[str, str], strings: List[str]
+    Such that [s.format(**templates) for s in strings] recreates original strings list
+    """
+    prefix = _max_prefix(*strings)
+    lpref = len(prefix)
+    if lpref >= min_length:
+        template = {template_name: prefix}
+        strings = [("{%s}" % template_name) + s[lpref:] for s in strings]
+    else:
+        template = {}
+    return template, strings

@@ -681,5 +681,5 @@ class JustLoad:
         self.storage_options = storage_options or {}
 
     def translate(self):
-        with fsspec.open(self.url, moe="rt", **self.storage_options) as f:
+        with fsspec.open(self.url, mode="rt", **self.storage_options) as f:
             return ujson.load(f)

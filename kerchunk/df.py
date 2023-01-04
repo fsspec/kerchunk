@@ -1,7 +1,7 @@
 import pandas as pd
-import numpy as np
-import fastparquet
 import fsspec
+
+from kerchunk.utils import templateize
 
 # example from preffs's README'
 df = pd.DataFrame(
@@ -13,30 +13,11 @@ df = pd.DataFrame(
         "raw": [None, None, b"data"],
     }
 )
-fastparquet.write(
-    "preffs.parq",
-    df,
-    object_encoding={"raw": "bytes", "key": "utf8", "path": "utf8"},
-    stats=["key"],
-    has_nulls=["path", "raw"],
-    compression="zstd",
-)
-
-out = {
-    "raw": np.empty(3, dtype=object),
-    "path": np.empty(3, dtype=object),
-    "key": np.empty(3, dtype=object),
-    "offset": np.empty(3, dtype="int64"),
-    "size": np.empty(3, dtype="int64"),
-}
-pf = fastparquet.ParquetFile("preffs.parq")
-with open("preffs.parq", "rb") as f:
-    fastparquet.core.read_row_group_arrays(
-        f, pf.row_groups[0], list(out), [], pf.schema, [], assign=out
-    )
 
 
-def refs_to_dataframe(refs, url, storage_options=None, partition=False):
+def refs_to_dataframe(
+    refs, url, storage_options=None, partition=False, template_length=10
+):
     # normalise refs (e.g., for templates)
     fs = fsspec.filesystem("reference", fo=refs)
     refs = fs.references
@@ -59,6 +40,10 @@ def refs_to_dataframe(refs, url, storage_options=None, partition=False):
             ],
         }
     )
+    # recoup memory
+    fs.clear_instance_cache()
+    del fs, refs
+
     if partition is False:
         df.to_parquet(
             url,
@@ -82,3 +67,24 @@ def refs_to_dataframe(refs, url, storage_options=None, partition=False):
             compression="zstd",
             engine="fastparquet",
         )
+        gb = df[~ismeta].groupby(df.key.map(lambda s: s.split("/", 1)[0]))
+        for prefix, subdf in gb:
+            subdf["key"] = subdf.key.str.slice(len(prefix) + 1, None)
+            templates = None
+            if template_length:
+                haspath = ~subdf["path"].isna()
+                templates, urls = templateize(
+                    subdf["path"][haspath], min_length=template_length
+                )
+                subdf.path[haspath] = urls = urls
+            subdf.to_parquet(
+                f"{url}/{prefix}.parq",
+                storage_options=storage_options,
+                index=False,
+                object_encoding={"raw": "bytes", "key": "utf8", "path": "utf8"},
+                stats=["key"],
+                has_nulls=["path", "raw"],
+                compression="zstd",
+                engine="fastparquet",
+                custom_metadata=templates or None,
+            )
