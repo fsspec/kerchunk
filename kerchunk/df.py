@@ -16,7 +16,12 @@ df = pd.DataFrame(
 
 
 def refs_to_dataframe(
-    refs, url, storage_options=None, partition=False, template_length=10
+    refs,
+    url,
+    storage_options=None,
+    partition=False,
+    template_length=10,
+    dict_fraction=0.1,
 ):
     # normalise refs (e.g., for templates)
     fs = fsspec.filesystem("reference", fo=refs)
@@ -71,12 +76,14 @@ def refs_to_dataframe(
         for prefix, subdf in gb:
             subdf["key"] = subdf.key.str.slice(len(prefix) + 1, None)
             templates = None
-            if template_length:
-                haspath = ~subdf["path"].isna()
+            haspath = ~subdf["path"].isna()
+            if subdf["path"][haspath].nunique() / haspath.sum() > dict_fraction:
+                subdf["path"] = subdf["path"].astype("dictionary")
+            elif template_length:
                 templates, urls = templateize(
                     subdf["path"][haspath], min_length=template_length
                 )
-                subdf.path[haspath] = urls = urls
+                subdf.path[haspath] = urls
             subdf.to_parquet(
                 f"{url}/{prefix}.parq",
                 storage_options=storage_options,
