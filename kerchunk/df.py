@@ -81,7 +81,7 @@ def refs_to_dataframe(
                 dict_fraction
                 and subdf["path"][haspath].nunique() / haspath.sum() > dict_fraction
             ):
-                subdf["path"] = subdf["path"].astype("categorical")
+                subdf["path"] = subdf["path"].astype("category")
             elif template_length:
                 templates, urls = templateize(
                     subdf["path"][haspath], min_length=template_length
