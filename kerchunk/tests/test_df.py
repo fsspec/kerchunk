@@ -16,7 +16,9 @@ def test_1():
         ".zgroup": b"i exist",
     }
     m = fsspec.filesystem("memory")
-    refs_to_dataframe(refs, "memory://outdir", partition=True, template_length=1)
+    refs_to_dataframe(
+        refs, "memory://outdir", partition=True, template_length=1, dict_fraction=0
+    )
     with fsspec.open("memory:///outdir/metadata.parq") as f:
         pf0 = fastparquet.ParquetFile(f)
         df0 = pf0.to_pandas()
@@ -46,4 +48,4 @@ def test_1():
         "raw": {0: None, 1: None, 2: None, 3: None, 4: None, 5: None, 6: b"data"},
     }
     assert pf1.key_value_metadata["u"] == "memory://url"
-    assert "u" not in pf1.key_value_metadata
+    assert "u" not in pf0.key_value_metadata

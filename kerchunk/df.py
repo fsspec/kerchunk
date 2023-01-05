@@ -77,13 +77,16 @@ def refs_to_dataframe(
             subdf["key"] = subdf.key.str.slice(len(prefix) + 1, None)
             templates = None
             haspath = ~subdf["path"].isna()
-            if subdf["path"][haspath].nunique() / haspath.sum() > dict_fraction:
-                subdf["path"] = subdf["path"].astype("dictionary")
+            if (
+                dict_fraction
+                and subdf["path"][haspath].nunique() / haspath.sum() > dict_fraction
+            ):
+                subdf["path"] = subdf["path"].astype("categorical")
             elif template_length:
                 templates, urls = templateize(
                     subdf["path"][haspath], min_length=template_length
                 )
-                subdf.path[haspath] = urls
+                subdf.loc[haspath, "path"] = urls
             subdf.to_parquet(
                 f"{url}/{prefix}.parq",
                 storage_options=storage_options,
