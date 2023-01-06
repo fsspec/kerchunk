@@ -50,6 +50,20 @@ def refs_to_dataframe(
     del fs, refs
 
     if partition is False:
+        templates = None
+        haspath = ~df["path"].isna()
+        nhaspath = haspath.sum()
+        if template_length:
+            templates, urls = templateize(
+                df["path"][haspath], min_length=template_length
+            )
+            df.loc[haspath, "path"] = urls
+        if (
+            dict_fraction
+            and nhaspath
+            and (df["path"][haspath].nunique() / haspath.sum()) < dict_fraction
+        ):
+            df["path"] = df["path"].astype("category")
         df.to_parquet(
             url,
             storage_options=storage_options,
@@ -59,6 +73,7 @@ def refs_to_dataframe(
             has_nulls=["path", "raw"],
             compression="zstd",
             engine="fastparquet",
+            custom_metadata=templates or None,
         )
     else:
         ismeta = df.key.str.contains(".z")
