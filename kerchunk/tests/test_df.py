@@ -17,7 +17,12 @@ def test_1():
     }
     m = fsspec.filesystem("memory")
     refs_to_dataframe(
-        refs, "memory://outdir", partition=True, template_length=1, dict_fraction=0
+        refs,
+        "memory://outdir",
+        partition=True,
+        template_length=1,
+        dict_fraction=0,
+        min_refs=0,
     )
     with fsspec.open("memory:///outdir/metadata.parq") as f:
         pf0 = fastparquet.ParquetFile(f)

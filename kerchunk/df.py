@@ -22,6 +22,7 @@ def refs_to_dataframe(
     partition=False,
     template_length=10,
     dict_fraction=0.1,
+    min_refs=100,
 ):
     # normalise refs (e.g., for templates)
     fs = fsspec.filesystem("reference", fo=refs)
@@ -77,18 +78,15 @@ def refs_to_dataframe(
         )
     else:
         ismeta = df.key.str.contains(".z")
-        df[ismeta].to_parquet(
-            f"{url}/metadata.parq",
-            storage_options=storage_options,
-            index=False,
-            object_encoding={"raw": "bytes", "key": "utf8", "path": "utf8"},
-            stats=["key"],
-            has_nulls=["path", "raw"],
-            compression="zstd",
-            engine="fastparquet",
-        )
+        extra_inds = []
         gb = df[~ismeta].groupby(df.key.map(lambda s: s.split("/", 1)[0]))
+        prefs = {"metadata"}
         for prefix, subdf in gb:
+            if len(subdf) < min_refs:
+                ind = ismeta[~ismeta].iloc[gb.indices[prefix]].index
+                extra_inds.extend(ind.tolist())
+                prefs.add(prefix)
+                continue
             subdf["key"] = subdf.key.str.slice(len(prefix) + 1, None)
             templates = None
             haspath = ~subdf["path"].isna()
@@ -116,3 +114,15 @@ def refs_to_dataframe(
                 engine="fastparquet",
                 custom_metadata=templates or None,
             )
+        ismeta[extra_inds] = True
+        df[ismeta].to_parquet(
+            f"{url}/metadata.parq",
+            storage_options=storage_options,
+            index=False,
+            object_encoding={"raw": "bytes", "key": "utf8", "path": "utf8"},
+            stats=["key"],
+            has_nulls=["path", "raw"],
+            compression="zstd",
+            engine="fastparquet",
+            custom_metadata={"prefs": str(prefs)},
+        )
