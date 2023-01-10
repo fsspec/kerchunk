@@ -1,3 +1,5 @@
+import base64
+
 import pandas as pd
 import fsspec
 
@@ -13,6 +15,14 @@ df = pd.DataFrame(
         "raw": [None, None, b"data"],
     }
 )
+
+
+def _proc_raw(r):
+    if not isinstance(r, bytes):
+        r = r.encode()
+    if r.startswith(b"base64:"):
+        return base64.b64decode(r[7:])
+    return r
 
 
 def refs_to_dataframe(
@@ -39,10 +49,7 @@ def refs_to_dataframe(
                 r[2] if isinstance(r, list) and len(r) > 1 else 0 for r in refs.values()
             ],
             "raw": [
-                (r if isinstance(r, bytes) else r.encode())
-                if not isinstance(r, list)
-                else None
-                for r in refs.values()
+                _proc_raw(r) if not isinstance(r, list) else None for r in refs.values()
             ],
         }
     )
