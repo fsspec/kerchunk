@@ -1,4 +1,6 @@
-import fastparquet
+import pytest
+
+fastparquet = pytest.importorskip("fastparquet")
 import fsspec
 
 from kerchunk.df import refs_to_dataframe
