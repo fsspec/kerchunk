@@ -195,7 +195,7 @@ fs.pipe(
 def refs():
     return {
         path.replace(".zarr", "").lstrip("/"): single_zarr(f"memory://{path}")
-        for path in fs.ls("")
+        for path in fs.ls("", detail=False)
     }
 
 
