@@ -77,6 +77,7 @@
   <h1>Source code for kerchunk.utils</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">base64</span>
 <span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
 
 <span class="kn">import</span> <span class="nn">ujson</span>
 
@@ -411,6 +412,47 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">detail</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">mods</span></div>
+
+
+<span class="k">def</span> <span class="nf">_max_prefix</span><span class="p">(</span><span class="o">*</span><span class="n">strings</span><span class="p">):</span>
+    <span class="c1"># https://stackoverflow.com/a/6719272/3821154</span>
+    <span class="k">def</span> <span class="nf">all_same</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">y</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="n">char_tuples</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">strings</span><span class="p">)</span>
+    <span class="n">prefix_tuples</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">takewhile</span><span class="p">(</span><span class="n">all_same</span><span class="p">,</span> <span class="n">char_tuples</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">prefix_tuples</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">templateize</span><span class="p">(</span><span class="n">strings</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">template_name</span><span class="o">=</span><span class="s2">&quot;u&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make prefix template for a set of strings</span>
+
+<span class="sd">    Useful for condensing strings by extracting out a common prefix.</span>
+<span class="sd">    If the common prefix is shorted than ``min_length``, the original</span>
+<span class="sd">    strings are returned and the output templates are empty.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    strings: List[str]</span>
+<span class="sd">        inputs</span>
+<span class="sd">    min_length: int</span>
+<span class="sd">        Only perform transformm if the common prefix is at least this long.</span>
+<span class="sd">    template_name: str</span>
+<span class="sd">        The placeholder string, should be short.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    templates: Dict[str, str], strings: List[str]</span>
+<span class="sd">    Such that [s.format(**templates) for s in strings] recreates original strings list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">_max_prefix</span><span class="p">(</span><span class="o">*</span><span class="n">strings</span><span class="p">)</span>
+    <span class="n">lpref</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lpref</span> <span class="o">&gt;=</span> <span class="n">min_length</span><span class="p">:</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="p">{</span><span class="n">template_name</span><span class="p">:</span> <span class="n">prefix</span><span class="p">}</span>
+        <span class="n">strings</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;{</span><span class="si">%s</span><span class="s2">}&quot;</span> <span class="o">%</span> <span class="n">template_name</span><span class="p">)</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="n">lpref</span><span class="p">:]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">strings</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">return</span> <span class="n">template</span><span class="p">,</span> <span class="n">strings</span>
 </pre></div>
 
            </div>
