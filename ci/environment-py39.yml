@@ -21,6 +21,7 @@ dependencies:
   - s3fs
   - python-blosc
   - flake8
+  - fastparquet
   - black
   - pip
   - tifffile
