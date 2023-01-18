@@ -195,7 +195,7 @@ class MultiZarrToZarr:
         elif isinstance(selector, list):
             o = selector[index]
         elif isinstance(selector, re.Pattern):
-            o = re.search(selector,fn)[0]
+            o = selector.search(fn)[0]
         elif not isinstance(selector, str):
             # constant, should be int or float
             o = selector
