@@ -41,6 +41,8 @@ def refs_to_dataframe(
     df = pd.DataFrame(
         {
             "key": list(refs),
+            # TODO: could get unique values using set() here and make categorical
+            #  columns with pd.Categorical.from_codes if it meets criterion
             "path": [r[0] if isinstance(r, list) else None for r in refs.values()],
             "offset": [
                 r[1] if isinstance(r, list) and len(r) > 1 else 0 for r in refs.values()
