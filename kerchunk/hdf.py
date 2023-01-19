@@ -204,11 +204,11 @@ class SingleHdf5ToZarr:
                     #
                     if h5obj.scaleoffset:
                         raise RuntimeError(
-                            f"{h5obj.name} uses HDF5 scaleoffset filter - not supported by reference-maker"
+                            f"{h5obj.name} uses HDF5 scaleoffset filter - not supported by kerchunk"
                         )
                     if h5obj.compression in ("szip", "lzf"):
                         raise RuntimeError(
-                            f"{h5obj.name} uses szip or lzf compression - not supported by reference-maker"
+                            f"{h5obj.name} uses szip or lzf compression - not supported by kerchunk"
                         )
                     if h5obj.compression == "gzip":
                         compression = numcodecs.Zlib(level=h5obj.compression_opts)
