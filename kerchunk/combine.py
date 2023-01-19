@@ -153,7 +153,9 @@ class MultiZarrToZarr:
                 self._paths = self.path
             elif isinstance(self.path[0], collections.abc.Mapping):
                 fo_list = self.path
-                self._paths = [None] * len(fo_list)
+                self._paths = []
+                for path in self.path:
+                    self._paths.append(path.get("templates", {}).get("u", None))
             else:
                 self._paths = []
                 for of in fsspec.open_files(self.path, **self.target_options):
@@ -193,7 +195,7 @@ class MultiZarrToZarr:
         elif isinstance(selector, list):
             o = selector[index]
         elif isinstance(selector, re.Pattern):
-            o = selector.match(fn).groups()[0]  # may raise
+            o = selector.search(fn).groups()[0]
         elif not isinstance(selector, str):
             # constant, should be int or float
             o = selector
