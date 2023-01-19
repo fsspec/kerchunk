@@ -281,11 +281,11 @@
                     <span class="c1">#</span>
                     <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">scaleoffset</span><span class="p">:</span>
                         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.name}</span><span class="s2"> uses HDF5 scaleoffset filter - not supported by reference-maker&quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.name}</span><span class="s2"> uses HDF5 scaleoffset filter - not supported by kerchunk&quot;</span>
                         <span class="p">)</span>
                     <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;szip&quot;</span><span class="p">,</span> <span class="s2">&quot;lzf&quot;</span><span class="p">):</span>
                         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.name}</span><span class="s2"> uses szip or lzf compression - not supported by reference-maker&quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{h5obj.name}</span><span class="s2"> uses szip or lzf compression - not supported by kerchunk&quot;</span>
                         <span class="p">)</span>
                     <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="s2">&quot;gzip&quot;</span><span class="p">:</span>
                         <span class="n">compression</span> <span class="o">=</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">Zlib</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">compression_opts</span><span class="p">)</span>
