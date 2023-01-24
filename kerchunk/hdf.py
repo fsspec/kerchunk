@@ -274,7 +274,7 @@ class SingleHdf5ToZarr:
                             fill = " "
                         else:
                             raise NotImplementedError
-                    elif _is_netcdf_datetime(h5obj):
+                    elif _is_netcdf_datetime(h5obj) or _is_netcdf_variable(h5obj):
                         fill = None
                     else:
                         fill = h5obj.fillvalue
@@ -552,3 +552,7 @@ def _is_netcdf_datetime(dataset: h5py.Dataset):
     # This is the same heuristic used by xarray
     # https://github.com/pydata/xarray/blob/f8bae5974ee2c3f67346298da12621af4cae8cf8/xarray/coding/times.py#L670
     return units and "since" in units
+
+
+def _is_netcdf_variable(dataset: h5py.Dataset):
+    return any("_Netcdf4" in _ for _ in dataset.attrs)
