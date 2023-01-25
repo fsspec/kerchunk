@@ -351,7 +351,7 @@
                             <span class="n">fill</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
                         <span class="k">else</span><span class="p">:</span>
                             <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-                    <span class="k">elif</span> <span class="n">_is_netcdf_datetime</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
+                    <span class="k">elif</span> <span class="n">_is_netcdf_datetime</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_is_netcdf_variable</span><span class="p">(</span><span class="n">h5obj</span><span class="p">):</span>
                         <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">fill</span> <span class="o">=</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fillvalue</span>
@@ -629,6 +629,10 @@
     <span class="c1"># This is the same heuristic used by xarray</span>
     <span class="c1"># https://github.com/pydata/xarray/blob/f8bae5974ee2c3f67346298da12621af4cae8cf8/xarray/coding/times.py#L670</span>
     <span class="k">return</span> <span class="n">units</span> <span class="ow">and</span> <span class="s2">&quot;since&quot;</span> <span class="ow">in</span> <span class="n">units</span>
+
+
+<span class="k">def</span> <span class="nf">_is_netcdf_variable</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="s2">&quot;_Netcdf4&quot;</span> <span class="ow">in</span> <span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
 </pre></div>
 
            </div>
