@@ -100,3 +100,6 @@ can be used directly or in combining.
 .. warning::
 
    For ZIP archives, only uncompressed members can be accessed this way
+
+Parquet Storage
+---------------

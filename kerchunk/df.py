@@ -34,6 +34,38 @@ def refs_to_dataframe(
     dict_fraction=0.1,
     min_refs=100,
 ):
+    """Transform JSON/dict references to parquet storage
+
+    This function should produce much smaller on-disk size for any large reference set,
+    and much better memory footprint when loaded wih fsspec's DFReferenceFileSystem.
+
+    Parameters
+    ----------
+    refs: str | dict
+        Location of a JSON file containing references or a reference set already loaded
+        into memory. It will get processed by the standard referenceFS, to normalise
+        any templates, etc., it might contain.
+    url: str
+        Location for the output, together with protocol. If partition=True, this must
+        be a writable directory.
+    storage_options: dict | None
+        Passed to fsspec when for writing the parquet.
+    partition: bool
+        If True, split out the references into "metadata" and separate files for each of
+        the variables within the output directory.
+    template_length: int
+        Controls replacing a common prefix amongst reference URLs. If non-zero (in which
+        case no templating is done), finds and replaces the common prefix to URLs within
+        an output file (see :func:`kerchunk.utils.templateize`). If the URLs are
+        dict encoded, this step is not attempted.
+    dict_fraction: float
+        Use categorical/dict encoding if the number of unique URLs / total number of URLs
+        is is smaller than this number.
+    min_refs: int
+        If any variables have fewer entries than this number, they will be included in
+        "metadata" - this is typically the coordinates that you want loaded immediately
+        upon opening a dataset anyway. Ignored if partition is False.
+    """
     # normalise refs (e.g., for templates)
     fs = fsspec.filesystem("reference", fo=refs)
     refs = fs.references
@@ -63,17 +95,17 @@ def refs_to_dataframe(
         templates = None
         haspath = ~df["path"].isna()
         nhaspath = haspath.sum()
-        if template_length:
-            templates, urls = templateize(
-                df["path"][haspath], min_length=template_length
-            )
-            df.loc[haspath, "path"] = urls
         if (
             dict_fraction
             and nhaspath
             and (df["path"][haspath].nunique() / haspath.sum()) < dict_fraction
         ):
             df["path"] = df["path"].astype("category")
+        elif template_length:
+            templates, urls = templateize(
+                df["path"][haspath], min_length=template_length
+            )
+            df.loc[haspath, "path"] = urls
         df.to_parquet(
             url,
             storage_options=storage_options,
@@ -100,17 +132,17 @@ def refs_to_dataframe(
             templates = None
             haspath = ~subdf["path"].isna()
             nhaspath = haspath.sum()
-            if template_length:
-                templates, urls = templateize(
-                    subdf["path"][haspath], min_length=template_length
-                )
-                subdf.loc[haspath, "path"] = urls
             if (
                 dict_fraction
                 and nhaspath
                 and (subdf["path"][haspath].nunique() / haspath.sum()) < dict_fraction
             ):
                 subdf["path"] = subdf["path"].astype("category")
+            elif template_length:
+                templates, urls = templateize(
+                    subdf["path"][haspath], min_length=template_length
+                )
+                subdf.loc[haspath, "path"] = urls
 
             subdf.to_parquet(
                 f"{url}/{prefix}.parq",
