@@ -644,7 +644,13 @@ def auto_dask(
     inline = mzz_kwargs.pop("inline_threshold", None)
     # TODO: if single files produce list of reference sets (e.g., grib2)
     batch_task = dask.delayed(
-        lambda u, x: MultiZarrToZarr(u, indicts=x, **mzz_kwargs).translate()
+        lambda u, x: MultiZarrToZarr(
+            u,
+            indicts=x,
+            remote_protocol=remote_protocol,
+            remote_options=remote_options,
+            **mzz_kwargs,
+        ).translate()
     )
 
     # sort out kwargs
@@ -659,7 +665,9 @@ def auto_dask(
         if field in mzz_kwargs:
             kwargs[field] = mzz_kwargs[field]
     final_task = dask.delayed(
-        lambda x: MultiZarrToZarr(x, **kwargs).translate(filename, output_options)
+        lambda x: MultiZarrToZarr(
+            x, remote_options=remote_options, remote_protocol=remote_protocol, **kwargs
+        ).translate(filename, output_options)
     )
 
     # make delayed calls
