@@ -255,14 +255,13 @@ Can be useful to coerce the final type of coordinate through the ``coo_dtypes``.
           subst = re.search(r"\d{12}", fn)[0]
           return datetime.datetime.strptime(subst, '%Y%m%d%H%M')
 
-      mzz = MultiZarrToZarr(
-          sorted(glob.iglob(r'*.json')),
+      mzz = MultiZarrToZarr(sorted(glob.iglob(r'*.json')),
           remote_protocol='file',
           coo_map={'time': fn_to_time},
           coo_dtypes={'time': np.dtype('M8[s]')},
           concat_dims=['time'],
           identical_dims=['lat', 'lon'],
-    )
+      )
 
 .. parsed-literal::
 
@@ -291,7 +290,8 @@ Similarly we can map each file to a new variable using the special ``var`` key i
         remote_options={'anon':True},
         coo_map = {"var":ex},
         concat_dims=['time0'],
-        identical_dims = ['lat', 'lon'])
+        identical_dims = ['lat', 'lon']
+    )
 
     d = mzz.translate()
 
