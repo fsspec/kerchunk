@@ -245,10 +245,11 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
 Here the ``new_dimension`` values have been populated by the compiled ``regex`` function ``ex`` which takes the file urls as input.
 
 If there is the necessity to extract the time information from the file name it's necessary to define a specific function that, through the use of the ``regex``, convert it to a valid ``datetime.datetime``.
-The defined function has to be defined with the signature ``(index, fs, var, fn) -> value``
-Assuming that file names are defined as ``cgl_TOC_YYYYmmddHHMM_X21Y05_S3A_v1.1.0.json`` where YYYYmmddHHMM is defining an hypothetical date
-Can be useful to coerce the final type of coordinate through the ``coo_dtypes``.
+The defined function has to be defined with the signature ``(index, fs, var, fn) -> value`` will return a datetime.date dType that can be coerce into a final type of coordinate through the ``coo_dtypes``.
+Here below we assume hypotetical file names defined as ``cgl_TOC_YYYYmmddHHMM_X21Y05_S3A_v1.1.0.json``
+
 .. code::
+
       def fn_to_time(index, fs, var, fn):
           import re
           import datetime
