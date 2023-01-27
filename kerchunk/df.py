@@ -79,9 +79,13 @@ def refs_to_dataframe(
             "offset": [
                 r[1] if isinstance(r, list) and len(r) > 1 else 0 for r in refs.values()
             ],
-            "size": [
-                r[2] if isinstance(r, list) and len(r) > 1 else 0 for r in refs.values()
-            ],
+            "size": pd.Series(
+                [
+                    r[2] if isinstance(r, list) and len(r) > 1 else 0
+                    for r in refs.values()
+                ],
+                dtype="int32",
+            ),
             "raw": [
                 _proc_raw(r) if not isinstance(r, list) else None for r in refs.values()
             ],
