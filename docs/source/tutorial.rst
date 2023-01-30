@@ -244,6 +244,43 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
 
 Here the ``new_dimension`` values have been populated by the compiled ``regex`` function ``ex`` which takes the file urls as input.
 
+If there is the necessity to extract the time information from the file name it's necessary to define a specific function that, through the use of the ``regex``, convert it to a valid ``datetime.datetime``.
+The defined function has to be defined with the signature ``(index, fs, var, fn) -> value`` will return a datetime.date dType that can be coerce into a final type of coordinate through the ``coo_dtypes``.
+Here below we assume hypotetical file names defined as ``cgl_TOC_YYYYmmddHHMM_X21Y05_S3A_v1.1.0.json``
+
+.. code::
+
+      def fn_to_time(index, fs, var, fn):
+          import re
+          import datetime
+          subst = re.search(r"\d{12}", fn)[0]
+          return datetime.datetime.strptime(subst, '%Y%m%d%H%M')
+
+      mzz = MultiZarrToZarr(sorted(glob.iglob(r'*.json')),
+          remote_protocol='file',
+          coo_map={'time': fn_to_time},
+          coo_dtypes={'time': np.dtype('M8[s]')},
+          concat_dims=['time'],
+          identical_dims=['lat', 'lon'],
+      )
+
+.. parsed-literal::
+
+    <xarray.Dataset>
+    Dimensions:              (time: 4, lat: 3360, lon: 3360)
+    Coordinates:
+      * lat                  (lat) float64 35.0 35.0 34.99 ... 25.01 25.01 25.0
+      * lon                  (lon) float64 30.0 30.0 30.01 ... 39.99 39.99 40.0
+      * time                 (time) datetime64[s] 2022-10-11T07:01:00 ... 2022-10...
+    Data variables: (12/53)
+        AC_process_flag      (time, lat, lon) float32 dask.array<chunksize=(1, 168, 168), meta=np.ndarray>
+        Oa02_toc             (time, lat, lon) float32 dask.array<chunksize=(1, 168, 168), meta=np.ndarray>
+        ...                   ...
+        VZA_olci             (time, lat, lon) float32 dask.array<chunksize=(1, 168, 168), meta=np.ndarray>
+    Attributes: (12/17)
+        Conventions:          CF-1.6
+        archive_facility:     vito
+        copyright:            Copernicus Service information 2022
 
 Similarly we can map each file to a new variable using the special ``var`` key in coo_map. Here we use the same ``regex`` function but instead map these as new variables.
 
