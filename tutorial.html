@@ -287,9 +287,11 @@
 </pre></div>
 </div>
 <p>Here the <code class="docutils literal notranslate"><span class="pre">new_dimension</span></code> values have been populated by the compiled <code class="docutils literal notranslate"><span class="pre">regex</span></code> function <code class="docutils literal notranslate"><span class="pre">ex</span></code> which takes the file urls as input.</p>
-<p>If there is the necessity to extract the time information from the file name it’s necessary to define a specific function that, through the use of the <code class="docutils literal notranslate"><span class="pre">regex</span></code>, convert it to a valid <code class="docutils literal notranslate"><span class="pre">datetime.datetime</span></code>.
-The defined function has to be defined with the signature <code class="docutils literal notranslate"><span class="pre">(index,</span> <span class="pre">fs,</span> <span class="pre">var,</span> <span class="pre">fn)</span> <span class="pre">-&gt;</span> <span class="pre">value</span></code> will return a datetime.date dType that can be coerce into a final type of coordinate through the <code class="docutils literal notranslate"><span class="pre">coo_dtypes</span></code>.
-Here below we assume hypotetical file names defined as <code class="docutils literal notranslate"><span class="pre">cgl_TOC_YYYYmmddHHMM_X21Y05_S3A_v1.1.0.json</span></code></p>
+<dl class="simple">
+<dt>To extract time information from file names, a custom function can be defined of the form <code class="docutils literal notranslate"><span class="pre">(index,</span> <span class="pre">fs,</span> <span class="pre">var,</span> <span class="pre">fn)</span> <span class="pre">-&gt;</span> <span class="pre">value</span></code> to generate a valid <code class="docutils literal notranslate"><span class="pre">datetime.datetime</span></code> data type, typically using regular expressions.  These datetime objects are then used to generate time coordinates through the</dt><dd><p><code class="docutils literal notranslate"><span class="pre">coo_dtypes</span></code> argument in the <code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr</span></code> function.</p>
+</dd>
+</dl>
+<p>Here’s an example for file names following the pattern <code class="docutils literal notranslate"><span class="pre">cgl_TOC_YYYYmmddHHMM_X21Y05_S3A_v1.1.0.json</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">fn_to_time</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="kn">import</span> <span class="nn">re</span>
     <span class="kn">import</span> <span class="nn">datetime</span>
