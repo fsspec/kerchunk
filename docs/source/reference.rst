@@ -79,6 +79,7 @@ Utilities
     kerchunk.utils.consolidate
     kerchunk.utils.do_inline
     kerchunk.utils.inline_array
+    kerchunk.df.refs_to_dataframe
 
 .. autofunction:: kerchunk.utils.rename_target
 
@@ -95,3 +96,5 @@ Utilities
 .. autofunction:: kerchunk.utils.do_inline
 
 .. autofunction:: kerchunk.utils.inline_array
+
+.. autofunction:: kerchunk.df.refs_to_dataframe
