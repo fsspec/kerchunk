@@ -244,8 +244,8 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
 
 Here the ``new_dimension`` values have been populated by the compiled ``regex`` function ``ex`` which takes the file urls as input.
 
-To extract time information from file names, a custom function can be defined of the form ``(index, fs, var, fn) -> value`` to generate a valid ``datetime.datetime`` data type, typically using regular expressions.  These datetime objects are then used to generate time coordinates through the 
- ``coo_dtypes`` argument in the ``MultiZarrToZarr`` function. 
+To extract time information from file names, a custom function can be defined of the form ``(index, fs, var, fn) -> value`` to generate a valid ``datetime.datetime`` data type, typically using regular expressions.  These datetime objects are then used to generate time coordinates through the
+ ``coo_dtypes`` argument in the ``MultiZarrToZarr`` function.
 
 Here's an example for file names following the pattern ``cgl_TOC_YYYYmmddHHMM_X21Y05_S3A_v1.1.0.json``:
 
