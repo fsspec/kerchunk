@@ -721,7 +721,13 @@
     <span class="n">inline</span> <span class="o">=</span> <span class="n">mzz_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;inline_threshold&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="c1"># TODO: if single files produce list of reference sets (e.g., grib2)</span>
     <span class="n">batch_task</span> <span class="o">=</span> <span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">indicts</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">mzz_kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+        <span class="k">lambda</span> <span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span>
+            <span class="n">u</span><span class="p">,</span>
+            <span class="n">indicts</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">remote_protocol</span><span class="o">=</span><span class="n">remote_protocol</span><span class="p">,</span>
+            <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">mzz_kwargs</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
     <span class="p">)</span>
 
     <span class="c1"># sort out kwargs</span>
@@ -736,7 +742,9 @@
         <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">mzz_kwargs</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">mzz_kwargs</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
     <span class="n">final_task</span> <span class="o">=</span> <span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">output_options</span><span class="p">)</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="n">remote_protocol</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">output_options</span><span class="p">)</span>
     <span class="p">)</span>
 
     <span class="c1"># make delayed calls</span>
