@@ -8,10 +8,11 @@ import zarr
 from zarr.meta import encode_fill_value
 import numcodecs
 from .codecs import FillStringsCodec
+from .utils import _encode_for_JSON
 
 try:
     import h5py
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: no cover
     raise ImportError(
         "h5py is required for kerchunking HDF5/NetCDF4 files. Please install with "
         "`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html "
@@ -90,7 +91,7 @@ class SingleHdf5ToZarr:
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self._h5f = h5py.File(h5f, mode="r")
+        self._h5f = h5py.File(self.input_file, mode="r")
 
         self.store = {}
         self._zroot = zarr.group(
@@ -122,15 +123,8 @@ class SingleHdf5ToZarr:
         if self.spec < 1:
             return self.store
         else:
-            for k, v in self.store.copy().items():
-                if isinstance(v, list):
-                    self.store[k][0] = "{{u}}"
-                else:
-                    try:
-                        self.store[k] = v.decode() if isinstance(v, bytes) else v
-                    except UnicodeDecodeError:
-                        self.store[k] = "base64:" + base64.b64encode(v).decode()
-            return {"version": 1, "templates": {"u": self._uri}, "refs": self.store}
+            store = _encode_for_JSON(self.store)
+            return {"version": 1, "refs": store}
 
     def _unref(self, ref):
         name = h5py.h5r.get_name(ref, self._h5f.id)
@@ -201,186 +195,189 @@ class SingleHdf5ToZarr:
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
         try:  # method must not raise exception
+            kwargs = {}
             if isinstance(h5obj, h5py.Dataset):
                 lggr.debug(f"HDF5 dataset: {h5obj.name}")
                 if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
-                    RuntimeError(
-                        f"Compact HDF5 datasets not yet supported: <{h5obj.name} "
-                        f"{h5obj.shape} {h5obj.dtype} {h5obj.nbytes} bytes>"
-                    )
-                    return
+                    # Only do if h5obj.nbytes < self.inline??
+                    kwargs["data"] = h5obj[:]
 
-                #
-                # check for unsupported HDF encoding/filters
-                #
-                if h5obj.scaleoffset:
-                    raise RuntimeError(
-                        f"{h5obj.name} uses HDF5 scaleoffset filter - not supported by reference-maker"
-                    )
-                if h5obj.compression in ("szip", "lzf"):
-                    raise RuntimeError(
-                        f"{h5obj.name} uses szip or lzf compression - not supported by reference-maker"
-                    )
-                if h5obj.compression == "gzip":
-                    compression = numcodecs.Zlib(level=h5obj.compression_opts)
                 else:
-                    compression = None
-                kwargs = {}
+                    #
+                    # check for unsupported HDF encoding/filters
+                    #
+                    if h5obj.scaleoffset:
+                        raise RuntimeError(
+                            f"{h5obj.name} uses HDF5 scaleoffset filter - not supported by kerchunk"
+                        )
+                    if h5obj.compression in ("szip", "lzf"):
+                        raise RuntimeError(
+                            f"{h5obj.name} uses szip or lzf compression - not supported by kerchunk"
+                        )
+                    if h5obj.compression == "gzip":
+                        compression = numcodecs.Zlib(level=h5obj.compression_opts)
+                    else:
+                        compression = None
                 filters = []
                 dt = None
                 # Get storage info of this HDF5 dataset...
                 cinfo = self._storage_info(h5obj)
 
-                # encodings
-                if h5obj.dtype.kind in "US":
-                    fill = h5obj.fillvalue or " "  # cannot be None
-                elif h5obj.dtype.kind == "O":
-                    if self.vlen == "embed":
-                        if np.isscalar(h5obj):
-                            out = str(h5obj)
-                        elif h5obj.ndim == 0:
-                            out = np.array(h5obj).tolist().decode()
-                        else:
-                            out = h5obj[:]
-                            out2 = out.ravel()
-                            for i, val in enumerate(out2):
-                                if isinstance(val, bytes):
-                                    out2[i] = val.decode()
-                                elif isinstance(val, str):
-                                    out2[i] = val
-                                elif isinstance(val, h5py.h5r.Reference):
-                                    # TODO: recursively recreate references
-                                    out2[i] = None
-                                else:
-                                    out2[i] = [
-                                        v.decode() if isinstance(v, bytes) else v
-                                        for v in val
-                                    ]
-                        kwargs["data"] = out
-                        kwargs["object_codec"] = numcodecs.JSON()
-                        fill = None
-                    elif self.vlen == "null":
-                        dt = "O"
-                        kwargs["object_codec"] = FillStringsCodec(dtype="S16")
-                        fill = " "
-                    elif self.vlen == "leave":
-                        dt = "S16"
-                        fill = " "
-                    elif self.vlen == "encode":
-                        assert len(cinfo) == 1
-                        v = list(cinfo.values())[0]
-                        data = _read_block(self.input_file, v["offset"], v["size"])
-                        indexes = np.frombuffer(data, dtype="S16")
-                        labels = h5obj[:]
-                        mapping = {
-                            index.decode(): label.decode()
-                            for index, label in zip(indexes, labels)
-                        }
-                        kwargs["object_codec"] = FillStringsCodec(
-                            dtype="S16", id_map=mapping
-                        )
-                        fill = " "
-                    else:
-                        raise NotImplementedError
-                elif _is_netcdf_datetime(h5obj):
+                if "data" in kwargs:
                     fill = None
+                    compression = None
                 else:
-                    fill = h5obj.fillvalue
-                if h5obj.dtype.kind == "V":
-                    fill = None
-                    if self.vlen == "encode":
-                        assert len(cinfo) == 1
-                        v = list(cinfo.values())[0]
-                        dt = [
-                            (
-                                v,
-                                (
-                                    "S16"
-                                    if h5obj.dtype[v].kind == "O"
-                                    else str(h5obj.dtype[v])
-                                ),
+                    # encodings
+                    if h5obj.dtype.kind in "US":
+                        fill = h5obj.fillvalue or " "  # cannot be None
+                    elif h5obj.dtype.kind == "O":
+                        if self.vlen == "embed":
+                            if np.isscalar(h5obj):
+                                out = str(h5obj)
+                            elif h5obj.ndim == 0:
+                                out = np.array(h5obj).tolist().decode()
+                            else:
+                                out = h5obj[:]
+                                out2 = out.ravel()
+                                for i, val in enumerate(out2):
+                                    if isinstance(val, bytes):
+                                        out2[i] = val.decode()
+                                    elif isinstance(val, str):
+                                        out2[i] = val
+                                    elif isinstance(val, h5py.h5r.Reference):
+                                        # TODO: recursively recreate references
+                                        out2[i] = None
+                                    else:
+                                        out2[i] = [
+                                            v.decode() if isinstance(v, bytes) else v
+                                            for v in val
+                                        ]
+                            kwargs["data"] = out
+                            kwargs["object_codec"] = numcodecs.JSON()
+                            fill = None
+                        elif self.vlen == "null":
+                            dt = "O"
+                            kwargs["object_codec"] = FillStringsCodec(dtype="S16")
+                            fill = " "
+                        elif self.vlen == "leave":
+                            dt = "S16"
+                            fill = " "
+                        elif self.vlen == "encode":
+                            assert len(cinfo) == 1
+                            v = list(cinfo.values())[0]
+                            data = _read_block(self.input_file, v["offset"], v["size"])
+                            indexes = np.frombuffer(data, dtype="S16")
+                            labels = h5obj[:]
+                            mapping = {
+                                index.decode(): label.decode()
+                                for index, label in zip(indexes, labels)
+                            }
+                            kwargs["object_codec"] = FillStringsCodec(
+                                dtype="S16", id_map=mapping
                             )
-                            for v in h5obj.dtype.names
-                        ]
-                        data = _read_block(self.input_file, v["offset"], v["size"])
-                        labels = h5obj[:]
-                        arr = np.frombuffer(data, dtype=dt)
-                        mapping = {}
-                        for field in labels.dtype.names:
-                            if labels[field].dtype == "O":
-                                mapping.update(
-                                    {
-                                        index.decode(): label.decode()
-                                        for index, label in zip(
-                                            arr[field], labels[field]
-                                        )
-                                    }
-                                )
-                        kwargs["object_codec"] = FillStringsCodec(
-                            dtype=str(dt), id_map=mapping
-                        )
-                        dt = [
-                            (
-                                v,
-                                (
-                                    "O"
-                                    if h5obj.dtype[v].kind == "O"
-                                    else str(h5obj.dtype[v])
-                                ),
-                            )
-                            for v in h5obj.dtype.names
-                        ]
-                    elif self.vlen == "null":
-                        dt = [
-                            (
-                                v,
-                                (
-                                    "S16"
-                                    if h5obj.dtype[v].kind == "O"
-                                    else str(h5obj.dtype[v])
-                                ),
-                            )
-                            for v in h5obj.dtype.names
-                        ]
-                        kwargs["object_codec"] = FillStringsCodec(dtype=str(dt))
-                        dt = [
-                            (
-                                v,
-                                (
-                                    "O"
-                                    if h5obj.dtype[v].kind == "O"
-                                    else str(h5obj.dtype[v])
-                                ),
-                            )
-                            for v in h5obj.dtype.names
-                        ]
-                    elif self.vlen == "leave":
-                        dt = [
-                            (
-                                v,
-                                (
-                                    "S16"
-                                    if h5obj.dtype[v].kind == "O"
-                                    else h5obj.dtype[v]
-                                ),
-                            )
-                            for v in h5obj.dtype.names
-                        ]
+                            fill = " "
+                        else:
+                            raise NotImplementedError
+                    elif _is_netcdf_datetime(h5obj) or _is_netcdf_variable(h5obj):
+                        fill = None
                     else:
-                        # embed fails due to https://github.com/zarr-developers/numcodecs/issues/333
-                        raise NotImplementedError
+                        fill = h5obj.fillvalue
+                    if h5obj.dtype.kind == "V":
+                        fill = None
+                        if self.vlen == "encode":
+                            assert len(cinfo) == 1
+                            v = list(cinfo.values())[0]
+                            dt = [
+                                (
+                                    v,
+                                    (
+                                        "S16"
+                                        if h5obj.dtype[v].kind == "O"
+                                        else str(h5obj.dtype[v])
+                                    ),
+                                )
+                                for v in h5obj.dtype.names
+                            ]
+                            data = _read_block(self.input_file, v["offset"], v["size"])
+                            labels = h5obj[:]
+                            arr = np.frombuffer(data, dtype=dt)
+                            mapping = {}
+                            for field in labels.dtype.names:
+                                if labels[field].dtype == "O":
+                                    mapping.update(
+                                        {
+                                            index.decode(): label.decode()
+                                            for index, label in zip(
+                                                arr[field], labels[field]
+                                            )
+                                        }
+                                    )
+                            kwargs["object_codec"] = FillStringsCodec(
+                                dtype=str(dt), id_map=mapping
+                            )
+                            dt = [
+                                (
+                                    v,
+                                    (
+                                        "O"
+                                        if h5obj.dtype[v].kind == "O"
+                                        else str(h5obj.dtype[v])
+                                    ),
+                                )
+                                for v in h5obj.dtype.names
+                            ]
+                        elif self.vlen == "null":
+                            dt = [
+                                (
+                                    v,
+                                    (
+                                        "S16"
+                                        if h5obj.dtype[v].kind == "O"
+                                        else str(h5obj.dtype[v])
+                                    ),
+                                )
+                                for v in h5obj.dtype.names
+                            ]
+                            kwargs["object_codec"] = FillStringsCodec(dtype=str(dt))
+                            dt = [
+                                (
+                                    v,
+                                    (
+                                        "O"
+                                        if h5obj.dtype[v].kind == "O"
+                                        else str(h5obj.dtype[v])
+                                    ),
+                                )
+                                for v in h5obj.dtype.names
+                            ]
+                        elif self.vlen == "leave":
+                            dt = [
+                                (
+                                    v,
+                                    (
+                                        "S16"
+                                        if h5obj.dtype[v].kind == "O"
+                                        else h5obj.dtype[v]
+                                    ),
+                                )
+                                for v in h5obj.dtype.names
+                            ]
+                        else:
+                            # embed fails due to https://github.com/zarr-developers/numcodecs/issues/333
+                            raise NotImplementedError
+                    # Add filter for shuffle
+                    if h5obj.shuffle and h5obj.dtype.kind != "O":
+                        # cannot use shuffle if we materialised objects
+                        filters.append(
+                            numcodecs.Shuffle(elementsize=h5obj.dtype.itemsize)
+                        )
 
-                # Add filter for shuffle
-                if h5obj.shuffle and h5obj.dtype.kind != "O":
-                    # cannot use shuffle if we materialised objects
-                    filters.append(numcodecs.Shuffle(elementsize=h5obj.dtype.itemsize))
-
-                if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
-                    return
-                if h5obj.attrs.get("_FillValue") is not None:
-                    fill = encode_fill_value(
-                        h5obj.attrs.get("_FillValue"), dt or h5obj.dtype
-                    )
+                    if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
+                        return
+                    if h5obj.attrs.get("_FillValue") is not None:
+                        fill = encode_fill_value(
+                            h5obj.attrs.get("_FillValue"), dt or h5obj.dtype
+                        )
 
                 # Create a Zarr array equivalent to this HDF5 dataset...
                 za = self._zroot.create_dataset(
@@ -396,12 +393,12 @@ class SingleHdf5ToZarr:
                 )
                 lggr.debug(f"Created Zarr array: {za}")
                 self._transfer_attrs(h5obj, za)
-                if "data" in kwargs:
-                    return  # embedded bytes, no chunks to copy
-
                 adims = self._get_array_dims(h5obj)
                 za.attrs["_ARRAY_DIMENSIONS"] = adims
                 lggr.debug(f"_ARRAY_DIMENSIONS = {adims}")
+
+                if "data" in kwargs:
+                    return  # embedded bytes, no chunks to copy
 
                 # Store chunk location metadata...
                 if cinfo:
@@ -559,3 +556,7 @@ def _is_netcdf_datetime(dataset: h5py.Dataset):
     # This is the same heuristic used by xarray
     # https://github.com/pydata/xarray/blob/f8bae5974ee2c3f67346298da12621af4cae8cf8/xarray/coding/times.py#L670
     return units and "since" in units
+
+
+def _is_netcdf_variable(dataset: h5py.Dataset):
+    return any("_Netcdf4" in _ for _ in dataset.attrs)

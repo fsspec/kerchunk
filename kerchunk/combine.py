@@ -1,6 +1,7 @@
 import collections.abc
 import logging
 import re
+from typing import List
 import warnings
 
 import fsspec
@@ -32,7 +33,11 @@ class MultiZarrToZarr:
     Combine multiple kerchunk'd datasets into a single logical aggregate dataset
 
     :param path: str, list(str) or list(dict)
-        Local paths, each containing a references JSON; or a list of references dicts
+        Local paths, each containing a references JSON; or a list of references dicts.
+        You may pass a list of reference dicts only, but then they will not have assicuated
+        filenames; if you need filenames for producing coordinates, pass the list
+        of filenames with path=, and the references with indicts=
+    :param indicts: list(dict)
     :param concat_dims: str or list(str)
         Names of the dimensions to expand with
     :param coo_map: dict(str, selector)
@@ -89,6 +94,7 @@ class MultiZarrToZarr:
     def __init__(
         self,
         path,
+        indicts=None,
         coo_map=None,
         concat_dims=None,
         coo_dtypes=None,
@@ -102,6 +108,7 @@ class MultiZarrToZarr:
     ):
         self._fss = None
         self._paths = None
+        self._indicts = indicts
         self.ds = None
         self.path = path
         if concat_dims is None:
@@ -141,16 +148,21 @@ class MultiZarrToZarr:
 
         if self._fss is None:
             logger.debug("setup filesystems")
-            if isinstance(self.path[0], collections.abc.Mapping):
+            if self._indicts is not None:
+                fo_list = self._indicts
+                self._paths = self.path
+            elif isinstance(self.path[0], collections.abc.Mapping):
                 fo_list = self.path
-                self._paths = [None] * len(fo_list)
+                self._paths = []
+                for path in self.path:
+                    self._paths.append(path.get("templates", {}).get("u", None))
             else:
                 self._paths = []
                 for of in fsspec.open_files(self.path, **self.target_options):
                     self._paths.append(of.full_name)
                 fs = fsspec.core.url_to_fs(self.path[0], **self.target_options)[0]
                 fo_list = fs.cat(self.path)
-                fo_list = list(fo_list.values())
+                fo_list = [ujson.loads(v) for v in fo_list.values()]
 
             self._fss = [
                 fsspec.filesystem(
@@ -183,7 +195,7 @@ class MultiZarrToZarr:
         elif isinstance(selector, list):
             o = selector[index]
         elif isinstance(selector, re.Pattern):
-            o = selector.match(fn).groups()[0]  # may raise
+            o = selector.search(fn).groups()[0]
         elif not isinstance(selector, str):
             # constant, should be int or float
             o = selector
@@ -292,6 +304,8 @@ class MultiZarrToZarr:
                         for _ in v
                     ]
                 ).ravel()
+            if "fill_value" not in kw and data.dtype.kind == "i":
+                kw["fill_value"] = None
             arr = group.create_dataset(
                 name=k,
                 data=data,
@@ -373,10 +387,13 @@ class MultiZarrToZarr:
                 zarray = ujson.loads(m[f"{v}/.zarray"])
                 if v not in chunk_sizes:
                     chunk_sizes[v] = zarray["chunks"]
-                else:
-                    assert (
-                        chunk_sizes[v] == zarray["chunks"]
-                    ), "Found chunk size mismatch"
+                elif chunk_sizes[v] != zarray["chunks"]:
+                    raise ValueError(
+                        f"""Found chunk size mismatch:
+                        at prefix {v} in iteration {i} (file {self._paths[i]})
+                        new chunk: {chunk_sizes[v]}
+                        chunks so far: {zarray["chunks"]}"""
+                    )
                 chunks = chunk_sizes[v]
                 zattrs = ujson.loads(m.get(f"{v}/.zattrs", "{}"))
                 coords = zattrs.get("_ARRAY_DIMENSIONS", [])
@@ -578,3 +595,101 @@ def concatenate_arrays(
             out[key2] = fs.references[key]
 
     return consolidate(out)
+
+
+def auto_dask(
+    urls: List[str],
+    single_driver: str,
+    single_kwargs: dict,
+    mzz_kwargs: dict,
+    n_batches: int,
+    remote_protocol=None,
+    remote_options=None,
+    filename=None,
+    output_options=None,
+):
+    """Batched tree combine using dask.
+
+    If you wish to run on a distributed cluster (recommended), create
+    a client before calling this function.
+
+    Parameters
+    ----------
+    urls: list[str]
+        input dataset URLs
+    single_driver: class
+        class with ``translate()`` method
+    single_kwargs: to pass to single-input driver
+    mzz_kwargs: passed to ``MultiZarrToZarr`` for each batch
+    n_batches: int
+        Number of MZZ instances in the first combine stage. Maybe set equal
+        to the number of dask workers, or a multple thereof.
+    remote_protocol: str | None
+    remote_options: dict
+        To fsspec for opening the remote files
+    filename: str | None
+        Ouput filename, if writing
+    output_options
+        If ``filename`` is not None, open it with these options
+
+    Returns
+    -------
+    reference set
+    """
+    import dask
+
+    # make delayed functions
+    single_task = dask.delayed(lambda x: single_driver(x, **single_kwargs).translate())
+    post = mzz_kwargs.pop("postprocess", None)
+    inline = mzz_kwargs.pop("inline_threshold", None)
+    # TODO: if single files produce list of reference sets (e.g., grib2)
+    batch_task = dask.delayed(
+        lambda u, x: MultiZarrToZarr(
+            u,
+            indicts=x,
+            remote_protocol=remote_protocol,
+            remote_options=remote_options,
+            **mzz_kwargs,
+        ).translate()
+    )
+
+    # sort out kwargs
+    dims = mzz_kwargs.get("concat_dims", [])
+    dims += [k for k in mzz_kwargs.get("coo_map", []) if k not in dims]
+    kwargs = {"concat_dims": dims}
+    if post:
+        kwargs["postprocess"] = post
+    if inline:
+        kwargs["inline_threshold"] = inline
+    for field in ["remote_protocol", "remote_options", "coo_dtypes", "identical_dims"]:
+        if field in mzz_kwargs:
+            kwargs[field] = mzz_kwargs[field]
+    final_task = dask.delayed(
+        lambda x: MultiZarrToZarr(
+            x, remote_options=remote_options, remote_protocol=remote_protocol, **kwargs
+        ).translate(filename, output_options)
+    )
+
+    # make delayed calls
+    tasks = [single_task(u) for u in urls]
+    tasks_per_batch = len(tasks) // n_batches
+    tasks2 = []
+    for batch in range(tasks_per_batch + 1):
+        in_tasks = tasks[batch * tasks_per_batch : (batch + 1) * tasks_per_batch]
+        u = urls[batch * tasks_per_batch : (batch + 1) * tasks_per_batch]
+        if in_tasks:
+            # skip if on last iteration and no remaining tasks
+            tasks2.append(batch_task(u, in_tasks))
+    return dask.compute(final_task(tasks2))[0]
+
+
+class JustLoad:
+    """For auto_dask, in the case that single file references already exist"""
+
+    def __init__(self, url, storage_options=None):
+        self.url = url
+        self.storage_options = storage_options or {}
+
+    def translate(self):
+        with fsspec.open(self.url, mode="rt", **self.storage_options) as f:
+            return ujson.load(f)

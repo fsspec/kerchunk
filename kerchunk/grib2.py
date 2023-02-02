@@ -3,18 +3,19 @@ import logging
 
 try:
     import cfgrib
-except ModuleNotFoundError as err:
+except ModuleNotFoundError as err:  # pragma: no cover
     if err.name == "cfgrib":
         raise ImportError(
-            "cfgrib is needed to kerchunk GRIB2 files. Please install it with `conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib for more details."
+            "cfgrib is needed to kerchunk GRIB2 files. Please install it with "
+            "`conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib "
+            "for more details."
         )
 
-import eccodes
 import fsspec
 import zarr
 import numpy as np
 
-from kerchunk.utils import class_factory
+from kerchunk.utils import class_factory, _encode_for_JSON
 from kerchunk.codecs import GRIBCodec
 
 logger = logging.getLogger("grib2-to-zarr")
@@ -124,6 +125,8 @@ def scan_grib(
 
     list(dict): references dicts in Version 1 format, one per message in the file
     """
+    import eccodes
+
     storage_options = storage_options or {}
     logger.debug(f"Open {url}")
 
@@ -161,9 +164,12 @@ def scan_grib(
                 + cfgrib.dataset.EXTRA_DATA_ATTRIBUTES_KEYS
                 if k in m
             }
-            _store_array(
-                store, z, vals, m["shortName"], inline_threshold, offset, size, attrs
-            )
+            # try to use cfVarName if available,
+            # otherwise use the grib shortName
+            varName = m["cfVarName"]
+            if varName in ("undef", "unknown"):
+                varName = m["shortName"]
+            _store_array(store, z, vals, varName, inline_threshold, offset, size, attrs)
             if "typeOfLevel" in m and "level" in m:
                 name = m["typeOfLevel"]
                 data = np.array([m["level"]])
@@ -177,11 +183,11 @@ def scan_grib(
                     store, z, data, name, inline_threshold, offset, size, attrs
                 )
             dims = (
-                ["x", "y"]
+                ["y", "x"]
                 if m["gridType"] in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
-                else ["longitude", "latitude"]
+                else ["latitude", "longitude"]
             )
-            z[m["shortName"]].attrs["_ARRAY_DIMENSIONS"] = dims
+            z[varName].attrs["_ARRAY_DIMENSIONS"] = dims
 
             for coord in cfgrib.dataset.COORD_ATTRS:
                 coord2 = {"latitude": "latitudes", "longitude": "longitudes"}.get(
@@ -191,29 +197,41 @@ def scan_grib(
                     x = m[coord2]
                 else:
                     continue
+                inline_extra = 0
                 if isinstance(x, np.ndarray) and x.size == vals.size:
-                    x = x.reshape(vals.shape)
                     if (
                         m["gridType"]
                         in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
                     ):
-                        dims = ["x", "y"]
+                        dims = ["y", "x"]
+                        x = x.reshape(vals.shape)
                     else:
                         dims = [coord]
+                        if coord == "latitude":
+                            x = x.reshape(vals.shape)[:, 0].copy()
+                        elif coord == "longitude":
+                            x = x.reshape(vals.shape)[0].copy()
+                        inline_extra = x.nbytes + 1
                 else:
                     x = np.array([x])
                     dims = [coord]
                 attrs = cfgrib.dataset.COORD_ATTRS[coord]
-                _store_array(store, z, x, coord, inline_threshold, offset, size, attrs)
+                _store_array(
+                    store,
+                    z,
+                    x,
+                    coord,
+                    inline_threshold + inline_extra,
+                    offset,
+                    size,
+                    attrs,
+                )
                 z[coord].attrs["_ARRAY_DIMENSIONS"] = dims
 
             out.append(
                 {
                     "version": 1,
-                    "refs": {
-                        k: v.decode() if isinstance(v, bytes) else v
-                        for k, v in store.items()
-                    },
+                    "refs": _encode_for_JSON(store),
                     "templates": {"u": url},
                 }
             )
@@ -224,7 +242,9 @@ def scan_grib(
 GribToZarr = class_factory(scan_grib)
 
 
-def example_combine(filter={"typeOfLevel": "heightAboveGround", "level": 2}):
+def example_combine(
+    filter={"typeOfLevel": "heightAboveGround", "level": 2}
+):  # pragma: no cover
     """Create combined dataset of weather measurements at 2m height
 
     Ten consecutive timepoints from ten 120MB files on s3.

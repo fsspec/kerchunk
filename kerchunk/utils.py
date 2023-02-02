@@ -1,8 +1,11 @@
 import base64
+import copy
+import itertools
 
 import ujson
 
 import fsspec
+import zarr
 
 
 def class_factory(func):
@@ -112,7 +115,25 @@ def rename_target_files(
         ujson.dump(new, f)
 
 
-def _do_inline(store, threshold, remote_options=None):
+def _encode_for_JSON(store):
+    """Make store JSON encodable"""
+    for k, v in store.copy().items():
+        if isinstance(v, list):
+            continue
+        else:
+            try:
+                # minify JSON
+                v = ujson.dumps(ujson.loads(v))
+            except (ValueError, TypeError):
+                pass
+            try:
+                store[k] = v.decode() if isinstance(v, bytes) else v
+            except UnicodeDecodeError:
+                store[k] = "base64:" + base64.b64encode(v).decode()
+    return store
+
+
+def do_inline(store, threshold, remote_options=None):
     """Replace short chunks with the value of that chunk
 
     The chunk may need encoding with base64 if not ascii, so actual
@@ -127,11 +148,231 @@ def _do_inline(store, threshold, remote_options=None):
     ]
     values = fs.cat(get_keys)
     for k, v in values.items():
-        if isinstance(v, list) and v[2] < threshold:
-            try:
-                # easiest way to test if data is ascii
-                v.decode("ascii")
-            except UnicodeDecodeError:
-                v = b"base64:" + base64.b64encode(v)
-            out[k] = v
+        try:
+            # easiest way to test if data is ascii
+            v.decode("ascii")
+        except UnicodeDecodeError:
+            v = b"base64:" + base64.b64encode(v)
+        out[k] = v
     return out
+
+
+def _inline_array(group, threshold, names, prefix=""):
+    for name, thing in group.items():
+        if prefix:
+            prefix1 = f"{prefix}.{name}"
+        else:
+            prefix1 = name
+        if isinstance(thing, zarr.Group):
+            _inline_array(thing, threshold=threshold, prefix=prefix1, names=names)
+        else:
+            cond1 = threshold and thing.nbytes < threshold and thing.nchunks > 1
+            cond2 = prefix1 in names
+            if cond1 or cond2:
+                group.create_dataset(
+                    name=name,
+                    dtype=thing.dtype,
+                    shape=thing.shape,
+                    data=thing[:],
+                    chunks=thing.shape,
+                    compression=None,
+                    overwrite=True,
+                )
+
+
+def inline_array(store, threshold=1000, names=None, remote_options=None):
+    """Inline whole arrays by threshold or name, repace with a single metadata chunk
+
+    Inlining whole arrays results in fewer keys. If the constituent keys were
+    already inlined, this also results in a smaller file overall. No action is taken
+    for arrays that are already of one chunk (they should be in
+
+    Parameters
+    ----------
+    store: dict/JSON file
+        reference set
+    threshold: int
+        Size in bytes below which to inline. Set to 0 to prevent inlining by size
+    names: list[str] | None
+        It the array name (as a dotted full path) appears in this list, it will
+        be inlined irrespective of the threshold size. Useful for coordinates.
+    remote_options: dict | None
+        Needed to fetch data, if the required keys are not already individually inlined
+        in the data.
+
+    Returns
+    -------
+    amended references set (simple style)
+    """
+    fs = fsspec.filesystem(
+        "reference", fo=store, **(remote_options or {}), skip_instance_cache=True
+    )
+    g = zarr.open_group(fs.get_mapper(), mode="r+")
+    _inline_array(g, threshold, names=names or [])
+    return fs.references
+
+
+def subchunk(store, variable, factor):
+    """
+    Split uncompressed chunks into integer subchunks on the largest axis
+
+    Parameters
+    ----------
+    store: dict
+        reference set
+    variable: str
+        the named zarr variable (give as /-separated path if deep)
+    factor: int
+        the number of chunks each input chunk turns into. Must be an exact divisor
+        of the original largest dimension length.
+
+    Returns
+    -------
+    modified store
+    """
+    fs = fsspec.filesystem("reference", fo=store)
+    meta_file = f"{variable}/.zarray"
+    meta = ujson.loads(fs.cat(meta_file))
+    if meta["compressor"] is not None:
+        raise ValueError("Can only subchunk an uncompressed array")
+    chunks_orig = meta["chunks"]
+    if chunks_orig[0] % factor == 0:
+        chunk_new = [chunks_orig[0] // factor] + chunks_orig[1:]
+    else:
+        raise ValueError("Must subchunk by exact integer factor")
+
+    meta["chunks"] = chunk_new
+    store[meta_file] = ujson.dumps(meta)
+
+    for k, v in store.copy().items():
+        if k.startswith(f"{variable}/"):
+            kpart = k[len(variable) + 1 :]
+            if kpart.startswith(".z"):
+                continue
+            sep = "." if "." in k else "/"
+            chunk_index = [int(_) for _ in kpart.split(sep)]
+            if len(v) > 1:
+                url, offset, size = v
+            else:
+                (url,) = v
+                offset = 0
+                size = fs.size(k)
+            for subpart in range(factor):
+                new_index = [chunk_index[0] * factor + subpart] + chunk_index[1:]
+                newpart = sep.join(str(_) for _ in new_index)
+                newv = [url, offset + subpart * size // factor, size // factor]
+                store[f"{variable}/{newpart}"] = newv
+    return store
+
+
+def dereference_archives(references, remote_options=None):
+    """Directly point to uncompressed byte ranges in ZIP/TAR archives
+
+    If a set of references have been made for files contained within ZIP or
+    (uncompressed) TAR archives, the "zip://..." and "tar://..." URLs should
+    be converted to byte ranges in the overall file.
+
+    Parameters
+    ----------
+    references: dict
+        a simple reference set
+    remote_options: dict or None
+        For opening the archives
+    """
+    import zipfile
+    import tarfile
+
+    if "version" in references and references["version"] == 1:
+        references = references["refs"]
+
+    target_files = [l[0] for l in references.values() if isinstance(l, list)]
+    target_files = {
+        (t.split("::", 1)[1], t[:3])
+        for t in target_files
+        if t.startswith(("tar://", "zip://"))
+    }
+
+    # find all member file offsets in all archives
+    offsets = {}
+    for target, tar_or_zip in target_files:
+        with fsspec.open(target, **(remote_options or {})) as tf:
+            if tar_or_zip == "tar":
+                tar = tarfile.TarFile(fileobj=tf)
+                offsets[target] = {
+                    ti.name: {"offset": ti.offset_data, "size": ti.size, "comp": False}
+                    for ti in tar.getmembers()
+                    if ti.isfile()
+                }
+            elif tar_or_zip == "zip":
+                zf = zipfile.ZipFile(file=tf)
+                offsets[target] = {}
+                for zipinfo in zf.filelist:
+                    if zipinfo.is_dir():
+                        continue
+                    offsets[target][zipinfo.filename] = {
+                        "offset": zipinfo.header_offset + len(zipinfo.FileHeader()),
+                        "size": zipinfo.compress_size,
+                        "comp": zipinfo.compress_type != zipfile.ZIP_STORED,
+                    }
+
+    # modify references
+    mods = copy.deepcopy(references)
+    for k, v in mods.items():
+        if not isinstance(v, list):
+            continue
+        target = v[0].split("::", 1)[1]
+        infile = v[0].split("::", 1)[0][6:]  # strip "zip://" or "tar://"
+        if target not in offsets:
+            continue
+        detail = offsets[target][infile]
+        if detail["comp"]:
+            # leave compressed member file alone
+            continue
+        v[0] = target
+        if len(v) == 1:
+            v.append(detail["offset"])
+            v.append(detail["size"])
+        else:
+            v[1] += detail["offset"]
+    return mods
+
+
+def _max_prefix(*strings):
+    # https://stackoverflow.com/a/6719272/3821154
+    def all_same(x):
+        return all(x[0] == y for y in x)
+
+    char_tuples = zip(*strings)
+    prefix_tuples = itertools.takewhile(all_same, char_tuples)
+    return "".join(x[0] for x in prefix_tuples)
+
+
+def templateize(strings, min_length=10, template_name="u"):
+    """Make prefix template for a set of strings
+
+    Useful for condensing strings by extracting out a common prefix.
+    If the common prefix is shorted than ``min_length``, the original
+    strings are returned and the output templates are empty.
+
+    Parameters
+    ----------
+    strings: List[str]
+        inputs
+    min_length: int
+        Only perform transformm if the common prefix is at least this long.
+    template_name: str
+        The placeholder string, should be short.
+
+    Returns
+    -------
+    templates: Dict[str, str], strings: List[str]
+    Such that [s.format(**templates) for s in strings] recreates original strings list
+    """
+    prefix = _max_prefix(*strings)
+    lpref = len(prefix)
+    if lpref >= min_length:
+        template = {template_name: prefix}
+        strings = [("{%s}" % template_name) + s[lpref:] for s in strings]
+    else:
+        template = {}
+    return template, strings

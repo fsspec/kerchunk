@@ -18,13 +18,11 @@ bdata = xr.Dataset({"data": data}, attrs={"attr0": 3}).to_netcdf(
     format="NETCDF3_CLASSIC"
 )
 
-m = fsspec.filesystem("memory")
-m.pipe("data.nc3", bdata)
-
 
 @pytest.mark.parametrize("zarr_version", [2, 3])
-def test_one(zarr_version):
-    h = netCDF3.netcdf_recording_file("memory://data.nc3", zarr_version=zarr_version)
+def test_one(m, zarr_version):
+    m.pipe("data.nc3", bdata)
+    h = netCDF3.netcdf_recording_file("memory://data.nc3")
     out = h.translate()
     ds = xr.open_dataset(
         "reference://",

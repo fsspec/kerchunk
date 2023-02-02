@@ -42,7 +42,7 @@ Version 0, is compatible with the "refs" entry, but here we add features. It wil
 this new enhanced spec into Version 0 format.
 
 
-.. code-block:: json
+.. code-block::
 
     {
       "version": (required, must be equal to) 1,

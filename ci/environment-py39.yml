@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - python=3.9
+  - dask
   - zarr
   - xarray
   - h5netcdf
@@ -20,9 +21,11 @@ dependencies:
   - s3fs
   - python-blosc
   - flake8
+  - fastparquet
   - black
   - pip
   - tifffile
+  - rioxarray
   - netCDF4
   - pip:
       - git+https://github.com/fsspec/filesystem_spec

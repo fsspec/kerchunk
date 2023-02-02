@@ -6,7 +6,7 @@ setup(
     name="kerchunk",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    packages=["kerchunk", "fsspec_reference_maker"],
+    packages=["kerchunk"],
     url="https://github.com/fsspec/kerchunk",
     license="MIT",
     author="Martin Durant",
