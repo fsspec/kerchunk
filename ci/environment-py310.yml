@@ -26,5 +26,3 @@ dependencies:
   - netCDF4
   - pip:
       - git+https://github.com/fsspec/filesystem_spec
-      - git+https://github.com/zarr-developers/zarr-python@main
-      - git+https://github.com/grlee77/xarray.git@zarr-v3
