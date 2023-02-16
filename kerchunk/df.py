@@ -1,9 +1,165 @@
 import base64
-
+import numpy as np
+import ujson
+import os
 import pandas as pd
 import fsspec
 
 from kerchunk.utils import templateize
+
+
+def get_variables(keys):
+    """Get list of variable names from references.
+
+    Parameters
+    ----------
+    keys : list of str
+        kerchunk references keys
+
+    Returns
+    -------
+    fields : list of str
+        List of variable names.
+    """
+    fields = []
+    for k in keys:
+        if "/" in k:
+            name, chunk = k.split("/")
+            if name not in fields:
+                fields.append(name)
+            else:
+                continue
+        else:
+            fields.append(k)
+    return fields
+
+
+def normalize_json(json_obj):
+    """Normalize json representation as bytes
+
+    Parameters
+    ----------
+    json_obj : str, bytes, dict, list
+        JSON data for parquet file to be written.
+    """
+    if not isinstance(json_obj, str):
+        json_obj = ujson.dumps(json_obj)
+    if not isinstance(json_obj, bytes):
+        json_obj = json_obj.encode()
+    return json_obj
+
+
+def write_json(fname, json_obj):
+    """Write references into a parquet file.
+
+    Parameters
+    ----------
+    fname : str
+        Output filename.
+    json_obj : str, bytes, dict, list
+        JSON data for parquet file to be written.
+    """
+    json_obj = normalize_json(json_obj)
+    with open(fname, "wb") as f:
+        f.write(json_obj)
+
+
+def make_parquet_store(
+    store_name, refs, row_group_size=1000, engine="fastparquet", **kwargs
+):
+    """Write references as a store of parquet files with multiple row groups.
+    The directory structure should mimic a normal zarr store but instead of standard chunk
+    keys, references are saved as parquet dataframes with multiple row groups.
+
+    Parameters
+    ----------
+    store_name : str
+        Name of parquet store.
+    refs : dict
+        Kerchunk references
+    row_group_size : int, optional
+        Number of references to store in each reference file (default 1000)
+    engine : {'fastparquet', 'pyarrow'}
+        Library to use for writing parquet files.
+    **kwargs : dict, optional
+        Keyword arguments passed to parquet engine of choice.
+    """
+    if not os.path.exists(store_name):
+        os.makedirs(store_name)
+    if "refs" in refs:
+        refs = refs["refs"]
+    write_json(
+        os.path.join(store_name, ".row_group_size"), dict(row_group_size=row_group_size)
+    )
+    fields = get_variables(refs)
+    for field in fields:
+        data = []
+        field_path = os.path.join(store_name, field)
+        if field.startswith("."):
+            # zarr metadata keys (.zgroup, .zmetadata, etc)
+            write_json(field_path, refs[field])
+        else:
+            if not os.path.exists(field_path):
+                os.makedirs(field_path)
+            # Read the variable zarray metadata to determine number of chunks
+            zarray = ujson.loads(refs[f"{field}/.zarray"])
+            chunk_sizes = np.array(zarray["shape"]) / np.array(zarray["chunks"])
+            chunk_numbers = [np.arange(n) for n in chunk_sizes]
+            if chunk_sizes.size != 0:
+                nums = np.asarray(pd.MultiIndex.from_product(chunk_numbers).codes).T
+            else:
+                nums = np.array([0])
+            nchunks = nums.shape[0]
+            nmissing = 0
+            for metakey in [".zarray", ".zattrs"]:
+                key = f"{field}/{metakey}"
+                write_json(os.path.join(field_path, metakey), refs[key])
+            for i in range(nchunks):
+                chunk_id = ".".join(nums[i].astype(str))
+                key = f"{field}/{chunk_id}"
+                # Make note if expected number of chunks differs from actual
+                # number found in references
+                if key not in refs:
+                    nmissing += 1
+                    data.append(None)
+                else:
+                    data.append(normalize_json(refs[key]))
+            if nmissing:
+                print(
+                    f"Warning: Chunks missing for field {field}. "
+                    f"Expected: {nchunks}, Found: {nchunks - nmissing}"
+                )
+            # Need to pad extra rows so total number divides row_group_size evenly
+            extra_rows = row_group_size - nchunks % row_group_size
+            for i in range(extra_rows):
+                data.append(None)
+            # The convention for parquet files is
+            # <store_name>/<field_name>/refs.parq
+            out_path = os.path.join(field_path, "refs.parq")
+            if engine == "pyarrow":
+                import pyarrow as pa
+                import pyarrow.parquet as pq
+
+                table = pa.Table.from_arrays([data], names=["data"])
+                pq.write_table(
+                    table,
+                    out_path,
+                    row_group_size=row_group_size,
+                    write_statistics=False,
+                    **kwargs,
+                )
+            else:
+                import fastparquet
+
+                df = pd.DataFrame(dict(data=data))
+                fastparquet.write(
+                    out_path,
+                    df,
+                    row_group_offsets=row_group_size,
+                    stats=False,
+                    **kwargs,
+                )
+
 
 # example from preffs's README'
 df = pd.DataFrame(
