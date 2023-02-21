@@ -160,7 +160,7 @@ def make_parquet_store(
             # The convention for parquet files is
             # <store_name>/<field_name>/refs.parq
             out_path = os.path.join(field_path, "refs.parq")
-            df = pd.DataFrame(dict(paths=paths, offset=offsets, size=sizes, raw=raws))
+            df = pd.DataFrame(dict(path=paths, offset=offsets, size=sizes, raw=raws))
             # Engine specific kwarg conventions. Set stats to false since
             # those are currently unneeded.
             if engine == "pyarrow":
