@@ -25,14 +25,19 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> kerchunk<img src="_static/kerchunk.png" class="logo" alt="Logo"/>
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            kerchunk
+              <img src="_static/kerchunk.png" class="logo" alt="Logo"/>
           </a>
               <div class="version">
                 0+unknown
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -76,7 +81,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Tutorial</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/tutorial.rst.txt" rel="nofollow"> View page source</a>
@@ -119,7 +124,7 @@
 <span class="c1"># default_fill_cache=False avoids caching data in between file chunks to lowers memory usage.</span>
 
 <span class="k">def</span> <span class="nf">gen_json</span><span class="p">(</span><span class="n">file_url</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="o">**</span><span class="n">so</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">file_url</span><span class="p">,</span> <span class="o">**</span><span class="n">so</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
         <span class="n">h5chunks</span> <span class="o">=</span> <span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">file_url</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
         <span class="c1"># inline threshold adjusts the Size below which binary blocks are included directly in the output</span>
         <span class="c1"># a higher inline threshold can result in a larger json file but faster loading time</span>
