@@ -50,7 +50,7 @@ def normalize_json(json_obj):
 
 
 def write_json(fname, json_obj):
-    """Write references into a parquet file.
+    """Write individual references into a json file.
 
     Parameters
     ----------
@@ -65,7 +65,12 @@ def write_json(fname, json_obj):
 
 
 def make_parquet_store(
-    store_name, refs, row_group_size=1000, engine="fastparquet", **kwargs
+    store_name,
+    refs,
+    row_group_size=1000,
+    compression="zstd",
+    engine="fastparquet",
+    **kwargs,
 ):
     """Write references as a store of parquet files with multiple row groups.
     The directory structure should mimic a normal zarr store but instead of standard chunk
@@ -79,10 +84,12 @@ def make_parquet_store(
         Kerchunk references
     row_group_size : int, optional
         Number of references to store in each reference file (default 1000)
+    compression : str, optional
+        Compression information to pass to parquet engine, default is zstd.
     engine : {'fastparquet', 'pyarrow'}
         Library to use for writing parquet files.
     **kwargs : dict, optional
-        Keyword arguments passed to parquet engine of choice.
+        Additional keyword arguments passed to parquet engine of choice.
     """
     if not os.path.exists(store_name):
         os.makedirs(store_name)
@@ -93,7 +100,8 @@ def make_parquet_store(
     )
     fields = get_variables(refs)
     for field in fields:
-        data = []
+        # Initialize dataframe columns
+        paths, offsets, sizes, raws = [], [], [], []
         field_path = os.path.join(store_name, field)
         if field.startswith("."):
             # zarr metadata keys (.zgroup, .zmetadata, etc)
@@ -121,9 +129,22 @@ def make_parquet_store(
                 # number found in references
                 if key not in refs:
                     nmissing += 1
-                    data.append(None)
+                    paths.append(None)
+                    offsets.append(0)
+                    sizes.append(0)
+                    raws.append(None)
                 else:
-                    data.append(normalize_json(refs[key]))
+                    data = refs[key]
+                    if isinstance(data, list):
+                        paths.append(data[0])
+                        offsets.append(data[1])
+                        sizes.append(data[2])
+                        raws.append(None)
+                    else:
+                        paths.append(None)
+                        offsets.append(0)
+                        sizes.append(0)
+                        raws.append(data)
             if nmissing:
                 print(
                     f"Warning: Chunks missing for field {field}. "
@@ -132,33 +153,21 @@ def make_parquet_store(
             # Need to pad extra rows so total number divides row_group_size evenly
             extra_rows = row_group_size - nchunks % row_group_size
             for i in range(extra_rows):
-                data.append(None)
+                paths.append(None)
+                offsets.append(0)
+                sizes.append(0)
+                raws.append(None)
             # The convention for parquet files is
             # <store_name>/<field_name>/refs.parq
             out_path = os.path.join(field_path, "refs.parq")
+            df = pd.DataFrame(dict(paths=paths, offset=offsets, size=sizes, raw=raws))
+            # Engine specific kwarg conventions. Set stats to false since
+            # those are currently unneeded.
             if engine == "pyarrow":
-                import pyarrow as pa
-                import pyarrow.parquet as pq
-
-                table = pa.Table.from_arrays([data], names=["data"])
-                pq.write_table(
-                    table,
-                    out_path,
-                    row_group_size=row_group_size,
-                    write_statistics=False,
-                    **kwargs,
-                )
+                kwargs.update(write_statistics=False)
             else:
-                import fastparquet
-
-                df = pd.DataFrame(dict(data=data))
-                fastparquet.write(
-                    out_path,
-                    df,
-                    row_group_offsets=row_group_size,
-                    stats=False,
-                    **kwargs,
-                )
+                kwargs.update(row_group_offsets=row_group_size, stats=False)
+            df.to_parquet(out_path, engine=engine, compression=compression, **kwargs)
 
 
 # example from preffs's README'
