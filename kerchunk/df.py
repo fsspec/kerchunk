@@ -153,9 +153,7 @@ def refs_to_dataframe(
             for metakey in [".zarray", ".zattrs"]:
                 key = f"{field}/{metakey}"
                 _write_json(os.path.join(field_path, metakey), refs[key])
-            for i, ind in enumerate(
-                np.ndindex(tuple(np.ceil(chunk_sizes).astype(int)))
-            ):
+            for i, ind in enumerate(np.ndindex(tuple(chunk_sizes.astype(int)))):
                 chunk_id = ".".join([str(ix) for ix in ind])
                 key = f"{field}/{chunk_id}"
                 # Make note if expected number of chunks differs from actual
