@@ -8,6 +8,26 @@ import fsspec
 from kerchunk.utils import templateize
 
 
+# example from preffs's README'
+df = pd.DataFrame(
+    {
+        "key": ["a/b", "a/b", "b"],
+        "path": ["a.dat", "b.dat", None],
+        "offset": [123, 12, 0],
+        "size": [12, 17, 0],
+        "raw": [None, None, b"data"],
+    }
+)
+
+
+def _proc_raw(r):
+    if not isinstance(r, bytes):
+        r = r.encode()
+    if r.startswith(b"base64:"):
+        return base64.b64decode(r[7:])
+    return r
+
+
 def get_variables(keys):
     """Get list of variable names from references.
 
@@ -34,7 +54,7 @@ def get_variables(keys):
     return fields
 
 
-def normalize_json(json_obj):
+def _normalize_json(json_obj):
     """Normalize json representation as bytes
 
     Parameters
@@ -42,15 +62,15 @@ def normalize_json(json_obj):
     json_obj : str, bytes, dict, list
         JSON data for parquet file to be written.
     """
-    if not isinstance(json_obj, str):
+    if not isinstance(json_obj, str) and not isinstance(json_obj, bytes):
         json_obj = ujson.dumps(json_obj)
     if not isinstance(json_obj, bytes):
         json_obj = json_obj.encode()
     return json_obj
 
 
-def write_json(fname, json_obj):
-    """Write individual references into a json file.
+def _write_json(fname, json_obj):
+    """Write references into a parquet file.
 
     Parameters
     ----------
@@ -59,14 +79,15 @@ def write_json(fname, json_obj):
     json_obj : str, bytes, dict, list
         JSON data for parquet file to be written.
     """
-    json_obj = normalize_json(json_obj)
+    json_obj = _normalize_json(json_obj)
     with open(fname, "wb") as f:
         f.write(json_obj)
 
 
-def make_parquet_store(
-    store_name,
+def refs_to_dataframe(
     refs,
+    url,
+    storage_options=None,
     row_group_size=1000,
     compression="zstd",
     engine="fastparquet",
@@ -78,119 +99,113 @@ def make_parquet_store(
 
     Parameters
     ----------
-    store_name : str
-        Name of parquet store.
-    refs : dict
-        Kerchunk references
-    row_group_size : int, optional
+    refs: str | dict
+        Location of a JSON file containing references or a reference set already loaded
+        into memory. It will get processed by the standard referenceFS, to normalise
+        any templates, etc., it might contain.
+    url: str
+        Location for the output, together with protocol. This must be a writable
+        directory.
+    storage_options: dict | None
+        Passed to fsspec when for writing the parquet.
+    row_group_size : int
         Number of references to store in each reference file (default 1000)
-    compression : str, optional
+    compression : str
         Compression information to pass to parquet engine, default is zstd.
     engine : {'fastparquet', 'pyarrow'}
         Library to use for writing parquet files.
-    **kwargs : dict, optional
+    **kwargs : dict
         Additional keyword arguments passed to parquet engine of choice.
     """
-    if not os.path.exists(store_name):
-        os.makedirs(store_name)
+    if not os.path.exists(url):
+        os.makedirs(url)
     if "refs" in refs:
         refs = refs["refs"]
-    write_json(
-        os.path.join(store_name, ".row_group_size"), dict(row_group_size=row_group_size)
+    _write_json(
+        os.path.join(url, ".row_group_size"), dict(row_group_size=row_group_size)
     )
     fields = get_variables(refs)
     for field in fields:
-        # Initialize dataframe columns
-        paths, offsets, sizes, raws = [], [], [], []
-        field_path = os.path.join(store_name, field)
+        field_path = os.path.join(url, field)
         if field.startswith("."):
             # zarr metadata keys (.zgroup, .zmetadata, etc)
-            write_json(field_path, refs[field])
+            _write_json(field_path, refs[field])
         else:
             if not os.path.exists(field_path):
                 os.makedirs(field_path)
             # Read the variable zarray metadata to determine number of chunks
             zarray = ujson.loads(refs[f"{field}/.zarray"])
-            chunk_sizes = np.array(zarray["shape"]) / np.array(zarray["chunks"])
-            chunk_numbers = [np.arange(n) for n in chunk_sizes]
-            if chunk_sizes.size != 0:
-                nums = np.asarray(pd.MultiIndex.from_product(chunk_numbers).codes).T
-            else:
-                nums = np.array([0])
-            nchunks = nums.shape[0]
+            chunk_sizes = np.ceil(
+                np.array(zarray["shape"]) / np.array(zarray["chunks"])
+            )
+            if chunk_sizes.size == 0:
+                chunk_sizes = np.array([0])
+            nchunks = int(np.product(chunk_sizes))
+            extra_rows = row_group_size - nchunks % row_group_size
+            output_size = nchunks + extra_rows
+            # Initialize dataframe columns. Don't know why but int64 gives better
+            # compression ratio than int32
+            paths = np.full(output_size, np.nan, dtype="O")
+            offsets = np.zeros(output_size, dtype="int64")
+            sizes = np.zeros(output_size, dtype="int64")
+            raws = np.full(output_size, np.nan, dtype="O")
             nmissing = 0
             for metakey in [".zarray", ".zattrs"]:
                 key = f"{field}/{metakey}"
-                write_json(os.path.join(field_path, metakey), refs[key])
-            for i in range(nchunks):
-                chunk_id = ".".join(nums[i].astype(str))
+                _write_json(os.path.join(field_path, metakey), refs[key])
+            for i, ind in enumerate(
+                np.ndindex(tuple(np.ceil(chunk_sizes).astype(int)))
+            ):
+                chunk_id = ".".join([str(ix) for ix in ind])
                 key = f"{field}/{chunk_id}"
                 # Make note if expected number of chunks differs from actual
                 # number found in references
-                if key not in refs:
-                    nmissing += 1
-                    paths.append(None)
-                    offsets.append(0)
-                    sizes.append(0)
-                    raws.append(None)
-                else:
+                if key in refs:
                     data = refs[key]
                     if isinstance(data, list):
-                        paths.append(data[0])
-                        offsets.append(data[1])
-                        sizes.append(data[2])
-                        raws.append(None)
+                        paths[i] = data[0]
+                        offsets[i] = data[1]
+                        sizes[i] = data[2]
                     else:
-                        paths.append(None)
-                        offsets.append(0)
-                        sizes.append(0)
-                        raws.append(data)
+                        raws[i] = _proc_raw(data)
+                else:
+                    nmissing += 1
+
             if nmissing:
                 print(
                     f"Warning: Chunks missing for field {field}. "
                     f"Expected: {nchunks}, Found: {nchunks - nmissing}"
                 )
-            # Need to pad extra rows so total number divides row_group_size evenly
-            extra_rows = row_group_size - nchunks % row_group_size
-            for i in range(extra_rows):
-                paths.append(None)
-                offsets.append(0)
-                sizes.append(0)
-                raws.append(None)
             # The convention for parquet files is
-            # <store_name>/<field_name>/refs.parq
+            # <url>/<field_name>/refs.parq
             out_path = os.path.join(field_path, "refs.parq")
-            df = pd.DataFrame(dict(path=paths, offset=offsets, size=sizes, raw=raws))
+            df = pd.DataFrame(
+                dict(path=paths, offset=offsets, size=sizes, raw=raws), copy=False
+            )
             # Engine specific kwarg conventions. Set stats to false since
             # those are currently unneeded.
             if engine == "pyarrow":
-                kwargs.update(write_statistics=False)
+                # TODO: perhaps set some other defaults to pyarrow engine for
+                # optimization?
+                kwargs.update(write_statistics=False, row_group_size=row_group_size)
             else:
-                kwargs.update(row_group_offsets=row_group_size, stats=False)
-            df.to_parquet(out_path, engine=engine, compression=compression, **kwargs)
+                kwargs.update(
+                    row_group_offsets=row_group_size,
+                    object_encoding=dict(raw="bytes", path="utf8"),
+                    has_nulls=["path", "raw"],
+                    stats=False,
+                )
+            df.to_parquet(
+                out_path,
+                engine=engine,
+                storage_options=storage_options,
+                compression=compression,
+                index=False,
+                **kwargs,
+            )
 
 
-# example from preffs's README'
-df = pd.DataFrame(
-    {
-        "key": ["a/b", "a/b", "b"],
-        "path": ["a.dat", "b.dat", None],
-        "offset": [123, 12, 0],
-        "size": [12, 17, 0],
-        "raw": [None, None, b"data"],
-    }
-)
-
-
-def _proc_raw(r):
-    if not isinstance(r, bytes):
-        r = r.encode()
-    if r.startswith(b"base64:"):
-        return base64.b64decode(r[7:])
-    return r
-
-
-def refs_to_dataframe(
+def refs_to_dataframe_full(
     refs,
     url,
     storage_options=None,
