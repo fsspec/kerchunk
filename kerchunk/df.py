@@ -4,6 +4,7 @@ import ujson
 import os
 import pandas as pd
 import fsspec
+import zarr
 
 from kerchunk.utils import templateize
 
@@ -28,13 +29,15 @@ def _proc_raw(r):
     return r
 
 
-def get_variables(keys):
+def get_variables(refs, consolidated=True):
     """Get list of variable names from references.
 
     Parameters
     ----------
-    keys : list of str
+    refs : dict
         kerchunk references keys
+    consolidated : bool
+        Whether or not to add consolidated metadata key to references. (default True)
 
     Returns
     -------
@@ -42,7 +45,10 @@ def get_variables(keys):
         List of variable names.
     """
     fields = []
-    for k in keys:
+    meta = {}
+    for k in refs:
+        if ".z" in k and consolidated:
+            meta[k] = refs[k]
         if "/" in k:
             name, chunk = k.split("/")
             if name not in fields:
@@ -51,6 +57,10 @@ def get_variables(keys):
                 continue
         else:
             fields.append(k)
+    if consolidated and ".zmetadata" not in fields:
+        zarr.consolidate_metadata(meta)
+        refs[".zmetadata"] = meta[".zmetadata"]
+        fields.append(".zmetadata")
     return fields
 
 
@@ -87,6 +97,7 @@ def _write_json(fname, json_obj):
 def refs_to_dataframe(
     refs,
     url,
+    consolidated=True,
     storage_options=None,
     row_group_size=1000,
     compression="zstd",
@@ -106,6 +117,8 @@ def refs_to_dataframe(
     url: str
         Location for the output, together with protocol. This must be a writable
         directory.
+    consolidated : bool
+        Whether or not to add consolidated metadata key to references. (default True)
     storage_options: dict | None
         Passed to fsspec when for writing the parquet.
     row_group_size : int
@@ -124,7 +137,7 @@ def refs_to_dataframe(
     _write_json(
         os.path.join(url, ".row_group_size"), dict(row_group_size=row_group_size)
     )
-    fields = get_variables(refs)
+    fields = get_variables(refs, consolidated=consolidated)
     for field in fields:
         field_path = os.path.join(url, field)
         if field.startswith("."):
