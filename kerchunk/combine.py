@@ -436,7 +436,8 @@ class MultiZarrToZarr:
                     # other attributes copied as-is from first occurrence of this array
                     self.out[f"{var or v}/.zattrs"] = ujson.dumps(zattrs)
                 else:
-                    ch = zarray["chunks"]
+                    k = self.out[f"{var or v}/.zarray"]
+                    ch = ujson.loads(k)["chunks"]
 
                 for fn in fs.ls(v, detail=False):
                     # loop over the chunks and copy the references
