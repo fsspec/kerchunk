@@ -6,6 +6,7 @@ import ujson
 import pandas as pd
 import fsspec
 import zarr.convenience
+import zarr
 
 
 # example from preffs's README'
@@ -29,7 +30,7 @@ def _proc_raw(r):
     return r
 
 
-def get_variables(keys):
+def get_variables(refs, consolidated=True):
     """Get list of variable names from references.
 
     Finds the top-level prefixes in a reference set, corresponding to
@@ -37,8 +38,10 @@ def get_variables(keys):
 
     Parameters
     ----------
-    keys : list of str
+    refs : dict
         kerchunk references keys
+    consolidated : bool
+        Whether or not to add consolidated metadata key to references. (default True)
 
     Returns
     -------
@@ -46,7 +49,10 @@ def get_variables(keys):
         List of variable names.
     """
     fields = []
-    for k in keys:
+    meta = {}
+    for k in refs:
+        if ".z" in k and consolidated:
+            meta[k] = refs[k]
         if "/" in k:
             name, chunk = k.split("/")
             if name not in fields:
@@ -55,6 +61,10 @@ def get_variables(keys):
                 continue
         else:
             fields.append(k)
+    if consolidated and ".zmetadata" not in fields:
+        zarr.consolidate_metadata(meta)
+        refs[".zmetadata"] = meta[".zmetadata"]
+        fields.append(".zmetadata")
     return fields
 
 
@@ -91,6 +101,7 @@ def _write_json(fname, json_obj, storage_options):
 def refs_to_dataframe(
     refs,
     url,
+    consolidated=True,
     storage_options=None,
     # need to balance speed to read one RG versus latency in many reads and size of
     # parquet metadata. We should benchmark to remote storage to decide a good number
@@ -111,6 +122,8 @@ def refs_to_dataframe(
     url: str
         Location for the output, together with protocol. This must be a writable
         directory.
+    consolidated : bool
+        Whether or not to add consolidated metadata key to references. (default True)
     storage_options: dict | None
         Passed to fsspec when for writing the parquet.
     row_group_size : int
@@ -134,9 +147,7 @@ def refs_to_dataframe(
 
     fs, _ = fsspec.core.url_to_fs(url)
     fs.makedirs(url, exist_ok=True)
-    fields = get_variables(
-        refs
-    )  # actually, top-level prefixes (might be deeper for generic HDF)
+    fields = get_variables(refs, consolidated=consolidated)
     for field in fields:
         field_path = "/".join([url, field])
         if field.startswith("."):
