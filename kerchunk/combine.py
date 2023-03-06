@@ -571,26 +571,28 @@ def concatenate_arrays(
     else:
         path = "/".join(path.rstrip(".").rstrip("/").split(".")) + "/"
 
-    def _replace(l: list, i: int, v: int):
+    def _replace(l: list, i: int, v) -> list:
         l = l.copy()
         l[i] = v
         return l
 
     n_files = len(files)
 
-    axis_chunks_seen = 0
+    chunks_offset = 0
     for i, fn in enumerate(files):
         fs = fsspec.filesystem("reference", fo=fn, **(storage_options or {}))
-        zdata = ujson.load(fs.open(f"{path}.zarray"))
-        shape = zdata["shape"]
-        chunks = zdata["chunks"]
+        zarray = ujson.load(fs.open(f"{path}.zarray"))
+        shape = zarray["shape"]
+        chunks = zarray["chunks"]
         n_chunks, rem = divmod(shape[axis], chunks[axis])
         n_chunks += rem > 0
+
         if i == 0:
-            result_zdata = zdata
             base_shape = _replace(shape, axis, None)
-            result_shape = shape
             base_chunks = chunks
+            # result_* are modified in-place
+            result_zarray = zarray
+            result_shape = shape
             for name in [".zgroup", ".zattrs", f"{path}.zattrs"]:
                 if name in fs.references:
                     out[name] = fs.references[name]
@@ -612,7 +614,7 @@ def concatenate_arrays(
                 )
             if i < (n_files - 1) and rem != 0:
                 raise ValueError(
-                    f"Array at index {i} has irregular chunking at it's boundary. "
+                    f"Array at index {i} has irregular chunking at its boundary. "
                     "This is only allowed for the final array."
                 )
 
@@ -621,13 +623,13 @@ def concatenate_arrays(
             if key.startswith(f"{path}.z") or not key.startswith(path):
                 continue
             parts = key.lstrip(path).split(key_seperator)
-            parts[axis] = str(int(parts[axis]) + axis_chunks_seen)
+            parts[axis] = str(int(parts[axis]) + chunks_offset)
             key2 = path + key_seperator.join(parts)
             out[key2] = fs.references[key]
 
-        axis_chunks_seen += n_chunks
+        chunks_offset += n_chunks
 
-    out[f"{path}.zarray"] = ujson.dumps(result_zdata)
+    out[f"{path}.zarray"] = ujson.dumps(result_zarray)
 
     return consolidate(out)
 
