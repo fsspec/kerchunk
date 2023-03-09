@@ -59,7 +59,7 @@ def get_variables(refs, consolidated=True):
             fields.append(k)
     if consolidated and ".zmetadata" not in fields:
         zarr.consolidate_metadata(meta)
-        refs[".zmetadata"] = meta[".zmetadata"]
+        refs[".zmetadata"] = ujson.loads(meta[".zmetadata"])
         fields.append(".zmetadata")
     return fields
 
@@ -124,20 +124,21 @@ def refs_to_dataframe(
     **kwargs : dict
         Additional keyword arguments passed to parquet engine of choice.
     """
-    consolidated = True  # not even an argument, let's just use it
     if "refs" in refs:
         refs = refs["refs"]
-    # write into .zmetadata at top level, one fewer read on access
-    refs[".row_group_size"] = '{"row_group_size": %i}' % row_group_size
         
     fs, _ = fsspec.core.url_to_fs(url)
     fs.makedirs(url, exist_ok=True)
-    fields = get_variables(refs, consolidated=consolidated)
+    fields = get_variables(refs, consolidated=True)
+    # write into .zmetadata at top level, one fewer read on access
+    refs[".zmetadata"]['row_group_size'] = row_group_size
     for field in fields:
         field_path = "/".join([url, field])
         if field.startswith("."):
             # zarr metadata keys (.zgroup, .zmetadata, etc)
-            _write_json(field_path, refs[field], storage_options=storage_options)
+            # only need to save .zmetadata
+            if field == '.zmetadata':
+                _write_json(field_path, refs[field], storage_options=storage_options)
             continue
 
         fs.makedirs(field_path, exist_ok=True)
@@ -156,14 +157,6 @@ def refs_to_dataframe(
         raws = np.full(output_size, np.nan, dtype="O")
         nmissing = 0
 
-        for metakey in [".zarray", ".zattrs"]:
-            # skip when consolidated?
-            key = f"{field}/{metakey}"
-            _write_json(
-                "/".join([field_path, metakey]),
-                refs[key],
-                storage_options=storage_options,
-            )
         for i, ind in enumerate(np.ndindex(tuple(chunk_sizes.astype(int)))):
             chunk_id = ".".join([str(ix) for ix in ind])
             key = f"{field}/{chunk_id}"
@@ -178,7 +171,6 @@ def refs_to_dataframe(
                 else:
                     raws[i] = _proc_raw(data)
             else:
-                print(key)
                 nmissing += 1
 
         if nmissing:
