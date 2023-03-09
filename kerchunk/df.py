@@ -5,7 +5,6 @@ import numpy as np
 import ujson
 import pandas as pd
 import fsspec
-import zarr.convenience
 import zarr
 
 
@@ -32,17 +31,14 @@ def _proc_raw(r):
 
 def get_variables(refs, consolidated=True):
     """Get list of variable names from references.
-
     Finds the top-level prefixes in a reference set, corresponding to
     the directory listing of the root for zarr.
-
     Parameters
     ----------
     refs : dict
         kerchunk references keys
     consolidated : bool
         Whether or not to add consolidated metadata key to references. (default True)
-
     Returns
     -------
     fields : list of str
@@ -70,7 +66,6 @@ def get_variables(refs, consolidated=True):
 
 def _normalize_json(json_obj):
     """Normalize json representation as bytes
-
     Parameters
     ----------
     json_obj : str, bytes, dict, list
@@ -83,9 +78,8 @@ def _normalize_json(json_obj):
     return json_obj
 
 
-def _write_json(fname, json_obj, storage_options):
+def _write_json(fname, json_obj, storage_options=None):
     """Write references into a parquet file.
-
     Parameters
     ----------
     fname : str
@@ -93,6 +87,7 @@ def _write_json(fname, json_obj, storage_options):
     json_obj : str, bytes, dict, list
         JSON data for parquet file to be written.
     """
+    storage_options = {} if storage_options is None else storage_options
     json_obj = _normalize_json(json_obj)
     with fsspec.open(fname, "wb", **storage_options) as f:
         f.write(json_obj)
@@ -109,10 +104,8 @@ def refs_to_dataframe(
     **kwargs,
 ):
     """Write references as a store of parquet files with multiple row groups.
-
     The directory structure should mimic a normal zarr store but instead of standard chunk
     keys, references are saved as parquet dataframes with multiple row groups.
-
     Parameters
     ----------
     refs: str | dict
@@ -134,17 +127,9 @@ def refs_to_dataframe(
     consolidated = True  # not even an argument, let's just use it
     if "refs" in refs:
         refs = refs["refs"]
-    if consolidated:
-        # because all metadata are embedded
-        refs = zarr.convenience.consolidate_metadata(refs)
-
     # write into .zmetadata at top level, one fewer read on access
     refs[".row_group_size"] = '{"row_group_size": %i}' % row_group_size
-    # _write_json(
-    #    "/".join([url, ]), dict(row_group_size=row_group_size),
-    #    storage_options=storage_options
-    # )
-
+        
     fs, _ = fsspec.core.url_to_fs(url)
     fs.makedirs(url, exist_ok=True)
     fields = get_variables(refs, consolidated=consolidated)
@@ -193,6 +178,7 @@ def refs_to_dataframe(
                 else:
                     raws[i] = _proc_raw(data)
             else:
+                print(key)
                 nmissing += 1
 
         if nmissing:
@@ -208,11 +194,6 @@ def refs_to_dataframe(
         df = pd.DataFrame(
             dict(path=paths, offset=offsets, size=sizes, raw=raws), copy=False
         )
-
-        # value of 10 to be configurable
-        if df.paths.nunique() and ((~df.path.isna()).sum() / df.paths.nunique() > 10):
-            df["paths"] = df.astype("category")
-
         kwargs.update(
             row_group_offsets=row_group_size,
             object_encoding=dict(raw="bytes", path="utf8"),
