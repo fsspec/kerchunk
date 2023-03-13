@@ -213,7 +213,6 @@ def refs_to_dataframe(
                         has_nulls = ["path"] if npath != output_size else False
                     else:
                         df = pd.DataFrame(
-
                             dict(
                                 path=paths_maybe_cat,
                                 offset=offsets,
