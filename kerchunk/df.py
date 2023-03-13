@@ -18,6 +18,7 @@ df = pd.DataFrame(
         "raw": [None, None, b"data"],
     }
 )
+
 logger = logging.getLogger("kerchunk.df")
 
 
@@ -41,7 +42,7 @@ def get_variables(refs, consolidated=True):
         kerchunk references keys
     consolidated : bool
         Whether or not to add consolidated metadata key to references. (default True)
-        
+
     Returns
     -------
     fields : list of str
@@ -69,7 +70,7 @@ def get_variables(refs, consolidated=True):
 
 def _normalize_json(json_obj):
     """Normalize json representation as bytes
-    
+
     Parameters
     ----------
     json_obj : str, bytes, dict, list
@@ -84,7 +85,7 @@ def _normalize_json(json_obj):
 
 def _write_json(fname, json_obj, storage_options=None):
     """Write references into a parquet file.
-    
+
     Parameters
     ----------
     fname : str
