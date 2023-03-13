@@ -180,8 +180,9 @@ def refs_to_dataframe(
                 if isinstance(data, list):
                     npath += 1
                     paths[j] = data[0]
-                    offsets[j] = data[1]
-                    sizes[j] = data[2]
+                    if len(data) > 1:
+                        offsets[j] = data[1]
+                        sizes[j] = data[2]
                 else:
                     nraw += 1
                     raws[j] = _proc_raw(data)
