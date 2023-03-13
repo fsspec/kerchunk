@@ -43,7 +43,7 @@ The ``SingleHdf5ToZarr`` method takes both an ``h5f`` file and a ``url`` as inpu
     # default_fill_cache=False avoids caching data in between file chunks to lowers memory usage.
 
     def gen_json(file_url):
-        with fs.open(file, **so) as infile:
+        with fs.open(file_url, **so) as infile:
             h5chunks = SingleHdf5ToZarr(infile, file_url, inline_threshold=300)
             # inline threshold adjusts the Size below which binary blocks are included directly in the output
             # a higher inline threshold can result in a larger json file but faster loading time
