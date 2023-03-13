@@ -81,11 +81,14 @@
              
   <h1>Source code for kerchunk.df</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">logging</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">ujson</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">fsspec</span>
+<span class="kn">import</span> <span class="nn">zarr</span>
 
-<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">templateize</span>
 
 <span class="c1"># example from preffs&#39;s README&#39;</span>
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
@@ -97,6 +100,7 @@
         <span class="s2">&quot;raw&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;data&quot;</span><span class="p">],</span>
     <span class="p">}</span>
 <span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;kerchunk.df&quot;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_proc_raw</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
@@ -107,152 +111,229 @@
     <span class="k">return</span> <span class="n">r</span>
 
 
+<span class="k">def</span> <span class="nf">get_variables</span><span class="p">(</span><span class="n">refs</span><span class="p">,</span> <span class="n">consolidated</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get list of variable names from references.</span>
+
+<span class="sd">    Finds the top-level prefixes in a reference set, corresponding to</span>
+<span class="sd">    the directory listing of the root for zarr.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    refs : dict</span>
+<span class="sd">        kerchunk references keys</span>
+<span class="sd">    consolidated : bool</span>
+<span class="sd">        Whether or not to add consolidated metadata key to references. (default True)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    fields : list of str</span>
+<span class="sd">        List of variable names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;.z&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">and</span> <span class="n">consolidated</span><span class="p">:</span>
+            <span class="n">meta</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">:</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">chunk</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+                <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">consolidated</span> <span class="ow">and</span> <span class="s2">&quot;.zmetadata&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="n">zarr</span><span class="o">.</span><span class="n">consolidate_metadata</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span>
+        <span class="n">refs</span><span class="p">[</span><span class="s2">&quot;.zmetadata&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;.zmetadata&quot;</span><span class="p">])</span>
+        <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;.zmetadata&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fields</span>
+
+
+<span class="k">def</span> <span class="nf">_normalize_json</span><span class="p">(</span><span class="n">json_obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Normalize json representation as bytes</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    json_obj : str, bytes, dict, list</span>
+<span class="sd">        JSON data for parquet file to be written.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_obj</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_obj</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+        <span class="n">json_obj</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">json_obj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">json_obj</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+        <span class="n">json_obj</span> <span class="o">=</span> <span class="n">json_obj</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">json_obj</span>
+
+
+<span class="k">def</span> <span class="nf">_write_json</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">json_obj</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write references into a parquet file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fname : str</span>
+<span class="sd">        Output filename.</span>
+<span class="sd">    json_obj : str, bytes, dict, list</span>
+<span class="sd">        JSON data for parquet file to be written.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">storage_options</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">storage_options</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">storage_options</span>
+    <span class="n">json_obj</span> <span class="o">=</span> <span class="n">_normalize_json</span><span class="p">(</span><span class="n">json_obj</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json_obj</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="refs_to_dataframe"><a class="viewcode-back" href="../../reference.html#kerchunk.df.refs_to_dataframe">[docs]</a><span class="k">def</span> <span class="nf">refs_to_dataframe</span><span class="p">(</span>
     <span class="n">refs</span><span class="p">,</span>
     <span class="n">url</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">partition</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">template_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-    <span class="n">dict_fraction</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-    <span class="n">min_refs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">record_size</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">categorical_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Transform JSON/dict references to parquet storage</span>
+    <span class="sd">&quot;&quot;&quot;Write references as a parquet files store.</span>
 
-<span class="sd">    This function should produce much smaller on-disk size for any large reference set,</span>
-<span class="sd">    and much better memory footprint when loaded wih fsspec&#39;s DFReferenceFileSystem.</span>
+<span class="sd">    The directory structure should mimic a normal zarr store but instead of standard chunk</span>
+<span class="sd">    keys, references are saved as parquet dataframes.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    refs: str | dict</span>
 <span class="sd">        Location of a JSON file containing references or a reference set already loaded</span>
-<span class="sd">        into memory. It will get processed by the standard referenceFS, to normalise</span>
-<span class="sd">        any templates, etc., it might contain.</span>
+<span class="sd">        into memory.</span>
 <span class="sd">    url: str</span>
-<span class="sd">        Location for the output, together with protocol. If partition=True, this must</span>
-<span class="sd">        be a writable directory.</span>
+<span class="sd">        Location for the output, together with protocol. This must be a writable</span>
+<span class="sd">        directory.</span>
 <span class="sd">    storage_options: dict | None</span>
 <span class="sd">        Passed to fsspec when for writing the parquet.</span>
-<span class="sd">    partition: bool</span>
-<span class="sd">        If True, split out the references into &quot;metadata&quot; and separate files for each of</span>
-<span class="sd">        the variables within the output directory.</span>
-<span class="sd">    template_length: int</span>
-<span class="sd">        Controls replacing a common prefix amongst reference URLs. If non-zero (in which</span>
-<span class="sd">        case no templating is done), finds and replaces the common prefix to URLs within</span>
-<span class="sd">        an output file (see :func:`kerchunk.utils.templateize`). If the URLs are</span>
-<span class="sd">        dict encoded, this step is not attempted.</span>
-<span class="sd">    dict_fraction: float</span>
-<span class="sd">        Use categorical/dict encoding if the number of unique URLs / total number of URLs</span>
-<span class="sd">        is is smaller than this number.</span>
-<span class="sd">    min_refs: int</span>
-<span class="sd">        If any variables have fewer entries than this number, they will be included in</span>
-<span class="sd">        &quot;metadata&quot; - this is typically the coordinates that you want loaded immediately</span>
-<span class="sd">        upon opening a dataset anyway. Ignored if partition is False.</span>
+<span class="sd">    record_size : int</span>
+<span class="sd">        Number of references to store in each reference file (default 10000). Bigger values</span>
+<span class="sd">        mean fewer read requests but larger memory footprint.</span>
+<span class="sd">    categorical_threshold : int</span>
+<span class="sd">        Encode urls as pandas.Categorical to reduce memory footprint if the ratio</span>
+<span class="sd">        of the number of unique urls to total number of refs for each variable</span>
+<span class="sd">        is greater than or equal to this number. (default 10)</span>
+<span class="sd">    **kwargs : dict</span>
+<span class="sd">        Additional keyword arguments passed to fastparquet.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># normalise refs (e.g., for templates)</span>
-    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">refs</span><span class="p">)</span>
-    <span class="n">refs</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span>
+    <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
+        <span class="n">refs</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span>
 
-    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-        <span class="p">{</span>
-            <span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">refs</span><span class="p">),</span>
-            <span class="c1"># TODO: could get unique values using set() here and make categorical</span>
-            <span class="c1">#  columns with pd.Categorical.from_codes if it meets criterion</span>
-            <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span>
-            <span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="p">[</span>
-                <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-            <span class="p">],</span>
-            <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span>
-                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-                <span class="p">],</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="s2">&quot;raw&quot;</span><span class="p">:</span> <span class="p">[</span>
-                <span class="n">_proc_raw</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-            <span class="p">],</span>
-        <span class="p">}</span>
-    <span class="p">)</span>
-    <span class="c1"># recoup memory</span>
-    <span class="n">fs</span><span class="o">.</span><span class="n">clear_instance_cache</span><span class="p">()</span>
-    <span class="k">del</span> <span class="n">fs</span><span class="p">,</span> <span class="n">refs</span>
+    <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">url_to_fs</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="n">fs</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="n">get_variables</span><span class="p">(</span><span class="n">refs</span><span class="p">,</span> <span class="n">consolidated</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># write into .zmetadata at top level, one fewer read on access</span>
+    <span class="n">refs</span><span class="p">[</span><span class="s2">&quot;.zmetadata&quot;</span><span class="p">][</span><span class="s2">&quot;record_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record_size</span>
 
-    <span class="k">if</span> <span class="n">partition</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-        <span class="n">templates</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">haspath</span> <span class="o">=</span> <span class="o">~</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
-        <span class="n">nhaspath</span> <span class="o">=</span> <span class="n">haspath</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">dict_fraction</span>
-            <span class="ow">and</span> <span class="n">nhaspath</span>
-            <span class="ow">and</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">][</span><span class="n">haspath</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">/</span> <span class="n">haspath</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">&lt;</span> <span class="n">dict_fraction</span>
-        <span class="p">):</span>
-            <span class="n">df</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;category&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">template_length</span><span class="p">:</span>
-            <span class="n">templates</span><span class="p">,</span> <span class="n">urls</span> <span class="o">=</span> <span class="n">templateize</span><span class="p">(</span>
-                <span class="n">df</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">][</span><span class="n">haspath</span><span class="p">],</span> <span class="n">min_length</span><span class="o">=</span><span class="n">template_length</span>
-            <span class="p">)</span>
-            <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">haspath</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">urls</span>
-        <span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span>
-            <span class="n">url</span><span class="p">,</span>
-            <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">,</span>
-            <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">object_encoding</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;raw&quot;</span><span class="p">:</span> <span class="s2">&quot;bytes&quot;</span><span class="p">,</span> <span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;utf8&quot;</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;utf8&quot;</span><span class="p">},</span>
-            <span class="n">stats</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">],</span>
-            <span class="n">has_nulls</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;raw&quot;</span><span class="p">],</span>
-            <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">,</span>
-            <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;fastparquet&quot;</span><span class="p">,</span>
-            <span class="n">custom_metadata</span><span class="o">=</span><span class="n">templates</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">ismeta</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;.z&quot;</span><span class="p">)</span>
-        <span class="n">extra_inds</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">gb</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">ismeta</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
-        <span class="n">prefs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;metadata&quot;</span><span class="p">}</span>
-        <span class="k">for</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">subdf</span> <span class="ow">in</span> <span class="n">gb</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subdf</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_refs</span><span class="p">:</span>
-                <span class="n">ind</span> <span class="o">=</span> <span class="n">ismeta</span><span class="p">[</span><span class="o">~</span><span class="n">ismeta</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">gb</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">prefix</span><span class="p">]]</span><span class="o">.</span><span class="n">index</span>
-                <span class="n">extra_inds</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">ind</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
-                <span class="n">prefs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
-                <span class="k">continue</span>
-            <span class="n">subdf</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subdf</span><span class="o">.</span><span class="n">key</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="n">templates</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">haspath</span> <span class="o">=</span> <span class="o">~</span><span class="n">subdf</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
-            <span class="n">nhaspath</span> <span class="o">=</span> <span class="n">haspath</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-            <span class="k">if</span> <span class="p">(</span>
-                <span class="n">dict_fraction</span>
-                <span class="ow">and</span> <span class="n">nhaspath</span>
-                <span class="ow">and</span> <span class="p">(</span><span class="n">subdf</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">][</span><span class="n">haspath</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">/</span> <span class="n">haspath</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">&lt;</span> <span class="n">dict_fraction</span>
-            <span class="p">):</span>
-                <span class="n">subdf</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subdf</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;category&quot;</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">template_length</span><span class="p">:</span>
-                <span class="n">templates</span><span class="p">,</span> <span class="n">urls</span> <span class="o">=</span> <span class="n">templateize</span><span class="p">(</span>
-                    <span class="n">subdf</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">][</span><span class="n">haspath</span><span class="p">],</span> <span class="n">min_length</span><span class="o">=</span><span class="n">template_length</span>
+    <span class="c1"># Initialize arrays</span>
+    <span class="n">paths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">record_size</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;O&quot;</span><span class="p">)</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">record_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">)</span>
+    <span class="n">sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">record_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">)</span>
+    <span class="n">raws</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">record_size</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;O&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="n">field_path</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">url</span><span class="p">,</span> <span class="n">field</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+            <span class="c1"># zarr metadata keys (.zgroup, .zmetadata, etc)</span>
+            <span class="c1"># only need to save .zmetadata</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;.zmetadata&quot;</span><span class="p">:</span>
+                <span class="n">_write_json</span><span class="p">(</span><span class="n">field_path</span><span class="p">,</span> <span class="n">refs</span><span class="p">[</span><span class="n">field</span><span class="p">],</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">fs</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">field_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># Read the variable zarray metadata to determine number of chunks</span>
+        <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">refs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{field}</span><span class="s2">/.zarray&quot;</span><span class="p">])</span>
+        <span class="n">chunk_sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">chunk_sizes</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">chunk_sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">nchunks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">chunk_sizes</span><span class="p">))</span>
+        <span class="n">nrec</span> <span class="o">=</span> <span class="n">nchunks</span> <span class="o">//</span> <span class="n">record_size</span>
+        <span class="n">rem</span> <span class="o">=</span> <span class="n">nchunks</span> <span class="o">%</span> <span class="n">record_size</span>
+        <span class="n">nmissing</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">nraw</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">npath</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">irec</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndindex</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">chunk_sizes</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)))):</span>
+            <span class="n">chunk_id</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">])</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{field}</span><span class="s2">/</span><span class="si">{chunk_id}</span><span class="s2">&quot;</span>
+            <span class="c1"># Last parquet record can be smaller than record_size</span>
+            <span class="n">output_size</span> <span class="o">=</span> <span class="n">record_size</span> <span class="k">if</span> <span class="n">irec</span> <span class="o">&lt;</span> <span class="n">nrec</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">rem</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">i</span> <span class="o">%</span> <span class="n">record_size</span>
+            <span class="c1"># Make note if expected number of chunks differs from actual</span>
+            <span class="c1"># number found in references</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">npath</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">paths</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">offsets</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="n">sizes</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">nraw</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">raws</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">_proc_raw</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">nmissing</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="n">output_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># The convention for parquet files is</span>
+                <span class="c1"># &lt;url&gt;/&lt;field_name&gt;/refs.&lt;rec_num&gt;.parq</span>
+                <span class="n">out_path</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">field_path</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;refs.</span><span class="si">{irec}</span><span class="s2">.parq&quot;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">nraw</span> <span class="o">==</span> <span class="n">output_size</span><span class="p">:</span>
+                    <span class="c1"># All raw refs, so we can drop path/offset/size</span>
+                    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="n">raws</span><span class="p">),</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="n">object_encoding</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="s2">&quot;bytes&quot;</span><span class="p">)</span>
+                    <span class="n">has_nulls</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">paths_maybe_cat</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+                    <span class="n">nunique</span> <span class="o">=</span> <span class="n">paths_maybe_cat</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">nunique</span> <span class="ow">and</span> <span class="n">npath</span> <span class="o">/</span> <span class="n">nunique</span> <span class="o">&gt;=</span> <span class="n">categorical_threshold</span><span class="p">:</span>
+                        <span class="n">paths_maybe_cat</span> <span class="o">=</span> <span class="n">paths_maybe_cat</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;category&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">nraw</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># No raw refs</span>
+                        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                            <span class="nb">dict</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">paths_maybe_cat</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">sizes</span><span class="p">),</span>
+                            <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">object_encoding</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;utf8&quot;</span><span class="p">)</span>
+                        <span class="n">has_nulls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">npath</span> <span class="o">!=</span> <span class="n">output_size</span> <span class="k">else</span> <span class="kc">False</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                            <span class="nb">dict</span><span class="p">(</span>
+                                <span class="n">path</span><span class="o">=</span><span class="n">paths_maybe_cat</span><span class="p">,</span>
+                                <span class="n">offset</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
+                                <span class="n">size</span><span class="o">=</span><span class="n">sizes</span><span class="p">,</span>
+                                <span class="n">raw</span><span class="o">=</span><span class="n">raws</span><span class="p">,</span>
+                            <span class="p">),</span>
+                            <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">object_encoding</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="s2">&quot;bytes&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;utf8&quot;</span><span class="p">)</span>
+                        <span class="n">has_nulls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;raw&quot;</span><span class="p">]</span>
+
+                <span class="c1"># Subset df if selection is smaller than record size</span>
+                <span class="k">if</span> <span class="n">output_size</span> <span class="o">!=</span> <span class="n">record_size</span><span class="p">:</span>
+                    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">output_size</span><span class="p">]</span>
+
+                <span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span>
+                    <span class="n">out_path</span><span class="p">,</span>
+                    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;fastparquet&quot;</span><span class="p">,</span>
+                    <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">,</span>
+                    <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">,</span>
+                    <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">object_encoding</span><span class="o">=</span><span class="n">object_encoding</span><span class="p">,</span>
+                    <span class="n">has_nulls</span><span class="o">=</span><span class="n">has_nulls</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">subdf</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">haspath</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">urls</span>
+                <span class="c1"># Reinitialize arrays for next batch of refs to process.</span>
+                <span class="n">paths</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="n">offsets</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">sizes</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">raws</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="n">irec</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">nraw</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">npath</span> <span class="o">=</span> <span class="mi">0</span>
 
-            <span class="n">subdf</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{url}</span><span class="s2">/</span><span class="si">{prefix}</span><span class="s2">.parq&quot;</span><span class="p">,</span>
-                <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">,</span>
-                <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">object_encoding</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;raw&quot;</span><span class="p">:</span> <span class="s2">&quot;bytes&quot;</span><span class="p">,</span> <span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;utf8&quot;</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;utf8&quot;</span><span class="p">},</span>
-                <span class="n">stats</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">],</span>
-                <span class="n">has_nulls</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;raw&quot;</span><span class="p">],</span>
-                <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">,</span>
-                <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;fastparquet&quot;</span><span class="p">,</span>
-                <span class="n">custom_metadata</span><span class="o">=</span><span class="n">templates</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="n">ismeta</span><span class="p">[</span><span class="n">extra_inds</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="n">df</span><span class="p">[</span><span class="n">ismeta</span><span class="p">]</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{url}</span><span class="s2">/metadata.parq&quot;</span><span class="p">,</span>
-            <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">,</span>
-            <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">object_encoding</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;raw&quot;</span><span class="p">:</span> <span class="s2">&quot;bytes&quot;</span><span class="p">,</span> <span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;utf8&quot;</span><span class="p">,</span> <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;utf8&quot;</span><span class="p">},</span>
-            <span class="n">stats</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;key&quot;</span><span class="p">],</span>
-            <span class="n">has_nulls</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;raw&quot;</span><span class="p">],</span>
-            <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">,</span>
-            <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;fastparquet&quot;</span><span class="p">,</span>
-            <span class="n">custom_metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;prefs&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">prefs</span><span class="p">)},</span>
-        <span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">nmissing</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Warning: Chunks missing for field </span><span class="si">{field}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Expected: </span><span class="si">{nchunks}</span><span class="s2">, Found: {nchunks - nmissing}&quot;</span>
+            <span class="p">)</span></div>
 </pre></div>
 
            </div>
