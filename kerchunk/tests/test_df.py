@@ -1,7 +1,9 @@
+import pandas as pd
 import pytest
 
 fastparquet = pytest.importorskip("fastparquet")
 import fsspec
+import ujson
 
 from kerchunk.df import refs_to_dataframe
 
@@ -15,44 +17,33 @@ def test_1():
         "a/4": ["memory://url4.file"],
         "a/5": ["memory://url5.file"],
         "a/6": b"data",
-        ".zgroup": b"i exist",
+        "a/.zarray": b"""{"shape": [7], "chunks":[1], "filters": [], "compression": null}""",
+        ".zgroup": b'{"zarr_format": 2}',
     }
-    m = fsspec.filesystem("memory")
-    refs_to_dataframe(
-        refs,
-        "memory://outdir",
-        partition=True,
-        template_length=1,
-        dict_fraction=0,
-        min_refs=0,
-    )
-    with fsspec.open("memory:///outdir/metadata.parq") as f:
-        pf0 = fastparquet.ParquetFile(f)
-        df0 = pf0.to_pandas()
-    with fsspec.open("memory:///outdir/a.parq") as f:
-        pf1 = fastparquet.ParquetFile(f)
-        df1 = pf1.to_pandas()
+    refs_to_dataframe(refs, "memory://outdir", record_size=4)
+    with fsspec.open("memory:///outdir/.zmetadata") as f:
+        meta = ujson.load(f)
+        assert list(meta) == ["metadata", "zarr_consolidated_format", "record_size"]
+        assert meta["record_size"] == 4
+
+    df0 = pd.read_parquet("memory:///outdir/a/refs.0.parq")
+
+    # no raw
     assert df0.to_dict() == {
-        "key": {0: ".zgroup"},
-        "path": {0: None},
-        "offset": {0: 0},
-        "size": {0: 0},
-        "raw": {0: b"i exist"},
-    }
-    assert df1.to_dict() == {
-        "key": {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6"},
+        "offset": {0: 0, 1: 10, 2: 0},
         "path": {
-            0: "{u}1.file",
-            1: "{u}1.file",
-            2: "{u}2.file",
-            3: "{u}3.file",
-            4: "{u}4.file",
-            5: "{u}5.file",
-            6: None,
+            0: "memory://url1.file",
+            1: "memory://url1.file",
+            2: "memory://url2.file",
         },
-        "offset": {0: 0, 1: 10, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
-        "size": {0: 0, 1: 100, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0},
-        "raw": {0: None, 1: None, 2: None, 3: None, 4: None, 5: None, 6: b"data"},
+        "size": {0: 0, 1: 100, 2: 0},
     }
-    assert pf1.key_value_metadata["u"] == "memory://url"
-    assert "u" not in pf0.key_value_metadata
+
+    # with raw column
+    df1 = pd.read_parquet("memory:///outdir/a/refs.1.parq")
+    assert df1.to_dict() == {
+        "offset": {0: 0, 1: 0, 2: 0},
+        "path": {0: "memory://url4.file", 1: "memory://url5.file", 2: None},
+        "raw": {0: None, 1: None, 2: b"data"},
+        "size": {0: 0, 1: 0, 2: 0},
+    }
