@@ -31,14 +31,17 @@ def _proc_raw(r):
 
 def get_variables(refs, consolidated=True):
     """Get list of variable names from references.
+
     Finds the top-level prefixes in a reference set, corresponding to
     the directory listing of the root for zarr.
+
     Parameters
     ----------
     refs : dict
         kerchunk references keys
     consolidated : bool
         Whether or not to add consolidated metadata key to references. (default True)
+
     Returns
     -------
     fields : list of str
@@ -66,6 +69,7 @@ def get_variables(refs, consolidated=True):
 
 def _normalize_json(json_obj):
     """Normalize json representation as bytes
+
     Parameters
     ----------
     json_obj : str, bytes, dict, list
@@ -80,6 +84,7 @@ def _normalize_json(json_obj):
 
 def _write_json(fname, json_obj, storage_options=None):
     """Write references into a parquet file.
+
     Parameters
     ----------
     fname : str
@@ -101,22 +106,24 @@ def refs_to_dataframe(
     categorical_threshold=10,
     **kwargs,
 ):
-    """Write references as a store of parquet files with multiple row groups.
+    """Write references as a parquet files store.
+
     The directory structure should mimic a normal zarr store but instead of standard chunk
-    keys, references are saved as parquet dataframes with multiple row groups.
+    keys, references are saved as parquet dataframes.
+
     Parameters
     ----------
     refs: str | dict
         Location of a JSON file containing references or a reference set already loaded
-        into memory. It will get processed by the standard referenceFS, to normalise
-        any templates, etc., it might contain.
+        into memory.
     url: str
         Location for the output, together with protocol. This must be a writable
         directory.
     storage_options: dict | None
         Passed to fsspec when for writing the parquet.
     record_size : int
-        Number of references to store in each reference file (default 10000)
+        Number of references to store in each reference file (default 10000). Bigger values
+        mean fewer read requests but larger memory footprint.
     categorical_threshold : int
         Encode urls as pandas.Categorical to reduce memory footprint if the ratio
         of the number of unique urls to total number of refs for each variable
@@ -126,12 +133,12 @@ def refs_to_dataframe(
     """
     if "refs" in refs:
         refs = refs["refs"]
-        
+
     fs, _ = fsspec.core.url_to_fs(url)
     fs.makedirs(url, exist_ok=True)
     fields = get_variables(refs, consolidated=True)
     # write into .zmetadata at top level, one fewer read on access
-    refs[".zmetadata"]['record_size'] = record_size
+    refs[".zmetadata"]["record_size"] = record_size
 
     # Initialize arrays
     paths = np.full(record_size, np.nan, dtype="O")
@@ -143,7 +150,7 @@ def refs_to_dataframe(
         if field.startswith("."):
             # zarr metadata keys (.zgroup, .zmetadata, etc)
             # only need to save .zmetadata
-            if field == '.zmetadata':
+            if field == ".zmetadata":
                 _write_json(field_path, refs[field], storage_options=storage_options)
             continue
 
@@ -197,24 +204,28 @@ def refs_to_dataframe(
                     if nraw == 0:
                         # No raw refs
                         df = pd.DataFrame(
-                            dict(path=paths_maybe_cat, offset=offsets, size=sizes), 
-                            copy=False
+                            dict(path=paths_maybe_cat, offset=offsets, size=sizes),
+                            copy=False,
                         )
                         object_encoding = dict(path="utf8")
                         has_nulls = ["path"] if npath != output_size else False
                     else:
                         df = pd.DataFrame(
-                            dict(path=paths_maybe_cat, offset=offsets, size=sizes,
-                                 raw=raws), 
-                            copy=False
+                            dict(
+                                path=paths_maybe_cat,
+                                offset=offsets,
+                                size=sizes,
+                                raw=raws,
+                            ),
+                            copy=False,
                         )
                         object_encoding = dict(raw="bytes", path="utf8")
                         has_nulls = ["path", "raw"]
-                        
+
                 # Subset df if selection is smaller than record size
                 if output_size != record_size:
                     df = df.iloc[:output_size]
-                    
+
                 df.to_parquet(
                     out_path,
                     engine="fastparquet",
@@ -236,8 +247,6 @@ def refs_to_dataframe(
                 npath = 0
 
         if nmissing:
-            # comment: missing keys are fine, so long as they are not a large fraction.
-            #  Does referenceFS successfully give FileNotFound for them?
             logger.warning(
                 f"Warning: Chunks missing for field {field}. "
                 f"Expected: {nchunks}, Found: {nchunks - nmissing}"
