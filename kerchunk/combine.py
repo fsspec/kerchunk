@@ -435,6 +435,9 @@ class MultiZarrToZarr:
                     self.out[f"{var or v}/.zarray"] = ujson.dumps(zarray)
                     # other attributes copied as-is from first occurrence of this array
                     self.out[f"{var or v}/.zattrs"] = ujson.dumps(zattrs)
+                else:
+                    k = self.out[f"{var or v}/.zarray"]
+                    ch = ujson.loads(k)["chunks"]
 
                 for fn in fs.ls(v, detail=False):
                     # loop over the chunks and copy the references
@@ -672,9 +675,9 @@ def auto_dask(
 
     # make delayed calls
     tasks = [single_task(u) for u in urls]
-    tasks_per_batch = len(tasks) // n_batches
+    tasks_per_batch = -(-len(tasks) // n_batches)
     tasks2 = []
-    for batch in range(tasks_per_batch + 1):
+    for batch in range(n_batches):
         in_tasks = tasks[batch * tasks_per_batch : (batch + 1) * tasks_per_batch]
         u = urls[batch * tasks_per_batch : (batch + 1) * tasks_per_batch]
         if in_tasks:
