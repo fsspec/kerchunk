@@ -30,13 +30,14 @@ def test_1():
 
     # no raw
     assert df0.to_dict() == {
-        "offset": {0: 0, 1: 10, 2: 0},
+        "offset": {0: 0, 1: 10, 2: 0, 3: 0},
         "path": {
             0: "memory://url1.file",
             1: "memory://url1.file",
             2: "memory://url2.file",
+            3: "memory://url3.file",
         },
-        "size": {0: 0, 1: 100, 2: 0},
+        "size": {0: 0, 1: 100, 2: 0, 3: 0},
     }
 
     # with raw column
