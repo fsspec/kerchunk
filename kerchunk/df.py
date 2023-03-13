@@ -41,7 +41,6 @@ def get_variables(refs, consolidated=True):
         kerchunk references keys
     consolidated : bool
         Whether or not to add consolidated metadata key to references. (default True)
-
     Returns
     -------
     fields : list of str
@@ -69,7 +68,6 @@ def get_variables(refs, consolidated=True):
 
 def _normalize_json(json_obj):
     """Normalize json representation as bytes
-
     Parameters
     ----------
     json_obj : str, bytes, dict, list
@@ -84,7 +82,6 @@ def _normalize_json(json_obj):
 
 def _write_json(fname, json_obj, storage_options=None):
     """Write references into a parquet file.
-
     Parameters
     ----------
     fname : str
@@ -163,6 +160,8 @@ def refs_to_dataframe(
         nchunks = int(np.product(chunk_sizes))
         nrec = nchunks // record_size
         rem = nchunks % record_size
+        if rem != 0:
+            nrec += 1
         nmissing = 0
         nraw = 0
         npath = 0
@@ -172,6 +171,8 @@ def refs_to_dataframe(
             key = f"{field}/{chunk_id}"
             # Last parquet record can be smaller than record_size
             output_size = record_size if irec < nrec - 1 else rem
+            if output_size == 0:
+                continue
             j = i % record_size
             # Make note if expected number of chunks differs from actual
             # number found in references
@@ -212,6 +213,7 @@ def refs_to_dataframe(
                         has_nulls = ["path"] if npath != output_size else False
                     else:
                         df = pd.DataFrame(
+
                             dict(
                                 path=paths_maybe_cat,
                                 offset=offsets,
