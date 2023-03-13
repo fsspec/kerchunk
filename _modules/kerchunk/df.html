@@ -100,6 +100,7 @@
         <span class="s2">&quot;raw&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;data&quot;</span><span class="p">],</span>
     <span class="p">}</span>
 <span class="p">)</span>
+
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;kerchunk.df&quot;</span><span class="p">)</span>
 
 
@@ -245,6 +246,8 @@
         <span class="n">nchunks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">chunk_sizes</span><span class="p">))</span>
         <span class="n">nrec</span> <span class="o">=</span> <span class="n">nchunks</span> <span class="o">//</span> <span class="n">record_size</span>
         <span class="n">rem</span> <span class="o">=</span> <span class="n">nchunks</span> <span class="o">%</span> <span class="n">record_size</span>
+        <span class="k">if</span> <span class="n">rem</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">nrec</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">nmissing</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">nraw</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">npath</span> <span class="o">=</span> <span class="mi">0</span>
@@ -254,6 +257,8 @@
             <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{field}</span><span class="s2">/</span><span class="si">{chunk_id}</span><span class="s2">&quot;</span>
             <span class="c1"># Last parquet record can be smaller than record_size</span>
             <span class="n">output_size</span> <span class="o">=</span> <span class="n">record_size</span> <span class="k">if</span> <span class="n">irec</span> <span class="o">&lt;</span> <span class="n">nrec</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">rem</span>
+            <span class="k">if</span> <span class="n">output_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
             <span class="n">j</span> <span class="o">=</span> <span class="n">i</span> <span class="o">%</span> <span class="n">record_size</span>
             <span class="c1"># Make note if expected number of chunks differs from actual</span>
             <span class="c1"># number found in references</span>
