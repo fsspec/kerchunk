@@ -58,6 +58,7 @@ Combining
    kerchunk.combine.merge_vars
    kerchunk.combine.concatenate_arrays
    kerchunk.combine.auto_dask
+   kerchunk.combine.drop
 
 .. autoclass:: kerchunk.combine.MultiZarrToZarr
     :members: __init__, translate
@@ -67,6 +68,8 @@ Combining
 .. autofunction:: kerchunk.combine.concatenate_arrays
 
 .. autofunction:: kerchunk.combine.auto_dask
+
+.. autofunction:: kerchunk.combine.drop
 
 Utilities
 ---------
