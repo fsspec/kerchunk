@@ -3,3 +3,4 @@ numcodecs
 numpy
 ujson
 zarr
+click

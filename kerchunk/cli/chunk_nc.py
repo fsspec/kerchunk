@@ -78,13 +78,13 @@ def str_to_json(ctx, param, value):
     return value
 
 @click.command()
-@click.option("--name", help="Dataset name", default="mydataset")
+@click.option("--name", help="Dataset name", default="mydataset", show_default=True)
 @click.option("--input", "-i",
               help="Input file url, readable by fsspec", required=True,
               multiple=True)
 @click.option("--input-format", default="nc")
 @click.option("--input-fs-args", help="Arguments that will be passed to fsspec.open()",
-              type=click.UNPROCESSED, callback=str_to_json, default={'anon': True})
+              type=click.UNPROCESSED, callback=str_to_json, default={'anon': True}, show_default=True)
 @click.option("--json-dir", help="Where to store scan output as json", default=Path("json"))
 @click.option("--zarr-output", help="Output of fully merged kerchunk zarr file", default=Path("zarr"))
 @click.option("--force-scan",
@@ -92,6 +92,7 @@ def str_to_json(ctx, param, value):
               is_flag=True, default=False)
 @click.option('--verbose', '-v', is_flag=True)
 def cli(verbose: bool, **kwargs):
+    """ Cli for ker-chunking local or remote NetCDF files"""
     logging.basicConfig(level=logging.INFO)
     if verbose:
         # Show what's going on with fsspec

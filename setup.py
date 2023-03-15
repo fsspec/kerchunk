@@ -31,6 +31,9 @@ setup(
             "FITSVarBintable = kerchunk.codecs:VarArrCodec",
             "record_member = kerchunk.codecs.RecordArrayMember",
         ],
+        'console_scripts': [
+            'kerchunk-nc = kerchunk.cli.chunk_nc:cli',
+        ],
     },
     zip_safe=False,
 )
