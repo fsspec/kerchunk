@@ -5,6 +5,7 @@ from typing import List
 
 import click
 import fsspec
+from fsspec.core import url_to_fs
 
 from kerchunk.hdf import SingleHdf5ToZarr
 from kerchunk.combine import MultiZarrToZarr
@@ -16,7 +17,7 @@ class NetcdfChunker:
     dataset_name: str = "mydataset"
     input: List[str]
     input_format: str = "nc"
-    input_fs_args: dict = {"anon": True}
+    input_fs_args: dict = {}
     json_dir: Path = Path("json")
     zarr_output: Path = Path("zarr")
     force_scan: bool = False
@@ -33,12 +34,22 @@ class NetcdfChunker:
         return fp
 
     def run(self):
+        self.get_uri_list()
         self.scan_them_all()
         self.consolidate()
 
+    def get_uri_list(self) -> List[str]:
+        _uri_list = []
+        for fs_glob in self.input:
+            fs, _ = url_to_fs(fs_glob)
+            for input_uri in fs.glob(fs_glob):
+                _uri_list.append(input_uri)
+        _uri_list = list(set(_uri_list))
+        return sorted(_uri_list)
+
     def scan_them_all(self):
         # Scan all input file
-        for fp in self.input:
+        for fp in self.get_uri_list():
             fp_json = self.json_dataset_dir / Path(fp).parent.as_posix() / Path(fp).with_suffix(".json").name
             fp_json.parent.mkdir(parents=True, exist_ok=True)
 
@@ -64,7 +75,7 @@ class NetcdfChunker:
         logger.info(f"Data loaded from {self.json_dataset_dir} : {len(fp_json_list)} found")
         mzz = MultiZarrToZarr(
             fp_json_list,
-            concat_dims=["time0"]
+            concat_dims=["analysis_time", "step"]
         )
 
         fp_zarr = self.zarr_output / f"{self.dataset_name}.zarr"
@@ -78,13 +89,13 @@ def str_to_json(ctx, param, value):
     return value
 
 @click.command()
-@click.option("--name", help="Dataset name", default="mydataset", show_default=True)
+@click.option("--dataset-name", help="Dataset name", default="mydataset", show_default=True)
 @click.option("--input", "-i",
               help="Input file url, readable by fsspec", required=True,
               multiple=True)
 @click.option("--input-format", default="nc")
 @click.option("--input-fs-args", help="Arguments that will be passed to fsspec.open()",
-              type=click.UNPROCESSED, callback=str_to_json, default={'anon': True}, show_default=True)
+              type=click.UNPROCESSED, callback=str_to_json, default={}, show_default=True)
 @click.option("--json-dir", help="Where to store scan output as json", default=Path("json"))
 @click.option("--zarr-output", help="Output of fully merged kerchunk zarr file", default=Path("zarr"))
 @click.option("--force-scan",
