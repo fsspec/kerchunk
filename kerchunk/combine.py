@@ -571,31 +571,65 @@ def concatenate_arrays(
     else:
         path = "/".join(path.rstrip(".").rstrip("/").split(".")) + "/"
 
+    def _replace(l: list, i: int, v) -> list:
+        l = l.copy()
+        l[i] = v
+        return l
+
+    n_files = len(files)
+
+    chunks_offset = 0
     for i, fn in enumerate(files):
         fs = fsspec.filesystem("reference", fo=fn, **(storage_options or {}))
-        zdata = ujson.load(fs.open(f"{path}.zarray"))
+        zarray = ujson.load(fs.open(f"{path}.zarray"))
+        shape = zarray["shape"]
+        chunks = zarray["chunks"]
+        n_chunks, rem = divmod(shape[axis], chunks[axis])
+        n_chunks += rem > 0
+
         if i == 0:
-            shape = zdata["shape"]
-            chunks = zdata["chunks"]
-            chunks_per_file = int(shape[axis] / chunks[axis])
-            shape[axis] *= len(files)
-            zdata["shape"] = shape
-            out[f"{path}.zarray"] = ujson.dumps(zdata)
+            base_shape = _replace(shape, axis, None)
+            base_chunks = chunks
+            # result_* are modified in-place
+            result_zarray = zarray
+            result_shape = shape
             for name in [".zgroup", ".zattrs", f"{path}.zattrs"]:
                 if name in fs.references:
                     out[name] = fs.references[name]
+        else:
+            result_shape[axis] += shape[axis]
+
+        # Safety checks
         if check_arrays:
-            if shape != zdata["shape"]:
-                raise ValueError(f"Incompatible array shapes at {fn}")
-            if chunks != zdata["chunks"]:
-                raise ValueError(f"Incompatible array chunks at {fn}")
+            if _replace(shape, axis, None) != base_shape:
+                expected_shape = (
+                    f"[{', '.join(map(str, _replace(base_shape, axis, '*')))}]"
+                )
+                raise ValueError(
+                    f"Incompatible array shape at index {i}. Expected {expected_shape}, got {shape}."
+                )
+            if chunks != base_chunks:
+                raise ValueError(
+                    f"Incompatible array chunks at index {i}. Expected {base_chunks}, got {chunks}."
+                )
+            if i < (n_files - 1) and rem != 0:
+                raise ValueError(
+                    f"Array at index {i} has irregular chunking at its boundary. "
+                    "This is only allowed for the final array."
+                )
+
+        # Referencing the offset chunks
         for key in fs.find(""):
             if key.startswith(f"{path}.z") or not key.startswith(path):
                 continue
             parts = key.lstrip(path).split(key_seperator)
-            parts[axis] = str(int(parts[axis]) + i * chunks_per_file)
+            parts[axis] = str(int(parts[axis]) + chunks_offset)
             key2 = path + key_seperator.join(parts)
             out[key2] = fs.references[key]
+
+        chunks_offset += n_chunks
+
+    out[f"{path}.zarray"] = ujson.dumps(result_zarray)
 
     return consolidate(out)
 
