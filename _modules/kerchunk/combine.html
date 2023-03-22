@@ -653,31 +653,65 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
 
+    <span class="k">def</span> <span class="nf">_replace</span><span class="p">(</span><span class="n">l</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">l</span>
+
+    <span class="n">n_files</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+
+    <span class="n">chunks_offset</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
         <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span>
-        <span class="n">zdata</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zarray&quot;</span><span class="p">))</span>
+        <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zarray&quot;</span><span class="p">))</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span>
+        <span class="n">chunks</span> <span class="o">=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
+        <span class="n">n_chunks</span><span class="p">,</span> <span class="n">rem</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">],</span> <span class="n">chunks</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span>
+        <span class="n">n_chunks</span> <span class="o">+=</span> <span class="n">rem</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
         <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">shape</span> <span class="o">=</span> <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span>
-            <span class="n">chunks</span> <span class="o">=</span> <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
-            <span class="n">chunks_per_file</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">/</span> <span class="n">chunks</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span>
-            <span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">*=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
-            <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape</span>
-            <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zarray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">zdata</span><span class="p">)</span>
+            <span class="n">base_shape</span> <span class="o">=</span> <span class="n">_replace</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">base_chunks</span> <span class="o">=</span> <span class="n">chunks</span>
+            <span class="c1"># result_* are modified in-place</span>
+            <span class="n">result_zarray</span> <span class="o">=</span> <span class="n">zarray</span>
+            <span class="n">result_shape</span> <span class="o">=</span> <span class="n">shape</span>
             <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.zgroup&quot;</span><span class="p">,</span> <span class="s2">&quot;.zattrs&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zattrs&quot;</span><span class="p">]:</span>
                 <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">:</span>
                     <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result_shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">+=</span> <span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span>
+
+        <span class="c1"># Safety checks</span>
         <span class="k">if</span> <span class="n">check_arrays</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">shape</span> <span class="o">!=</span> <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Incompatible array shapes at </span><span class="si">{fn}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">chunks</span> <span class="o">!=</span> <span class="n">zdata</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Incompatible array chunks at </span><span class="si">{fn}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">_replace</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="n">base_shape</span><span class="p">:</span>
+                <span class="n">expected_shape</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;[{&#39;, &#39;.join(map(str, _replace(base_shape, axis, &#39;*&#39;)))}]&quot;</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Incompatible array shape at index </span><span class="si">{i}</span><span class="s2">. Expected </span><span class="si">{expected_shape}</span><span class="s2">, got </span><span class="si">{shape}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">chunks</span> <span class="o">!=</span> <span class="n">base_chunks</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Incompatible array chunks at index </span><span class="si">{i}</span><span class="s2">. Expected </span><span class="si">{base_chunks}</span><span class="s2">, got </span><span class="si">{chunks}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">n_files</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rem</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Array at index </span><span class="si">{i}</span><span class="s2"> has irregular chunking at its boundary. &quot;</span>
+                    <span class="s2">&quot;This is only allowed for the final array.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Referencing the offset chunks</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.z&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
                 <span class="k">continue</span>
             <span class="n">parts</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">key_seperator</span><span class="p">)</span>
-            <span class="n">parts</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">chunks_per_file</span><span class="p">)</span>
+            <span class="n">parts</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span> <span class="o">+</span> <span class="n">chunks_offset</span><span class="p">)</span>
             <span class="n">key2</span> <span class="o">=</span> <span class="n">path</span> <span class="o">+</span> <span class="n">key_seperator</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
             <span class="n">out</span><span class="p">[</span><span class="n">key2</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="n">chunks_offset</span> <span class="o">+=</span> <span class="n">n_chunks</span>
+
+    <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zarray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result_zarray</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
 
