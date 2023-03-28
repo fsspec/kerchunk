@@ -100,8 +100,10 @@ def _write_json(fname, json_obj, storage_options=None):
 
 
 def refs_to_dataframe(
-    refs,
+    fo,
     url,
+    target_protocol=None,
+    target_options=None,
     storage_options=None,
     record_size=10_000,
     categorical_threshold=10,
@@ -114,12 +116,17 @@ def refs_to_dataframe(
 
     Parameters
     ----------
-    refs: str | dict
+    fo : str | dict
         Location of a JSON file containing references or a reference set already loaded
         into memory.
-    url: str
+    url : str
         Location for the output, together with protocol. This must be a writable
         directory.
+    target_protocol : str
+        Used for loading the reference file, if it is a path. If None, protocol
+        will be derived from the given path
+    target_options : dict
+        Extra FS options for loading the reference file ``fo``, if given as a path
     storage_options: dict | None
         Passed to fsspec when for writing the parquet.
     record_size : int
@@ -132,6 +139,18 @@ def refs_to_dataframe(
     **kwargs : dict
         Additional keyword arguments passed to fastparquet.
     """
+    # Taken from fsspec/implementations/reference.py
+    if isinstance(fo, str):
+        # JSON file
+        dic = dict(**(target_options or {}), protocol=target_protocol)
+        ref_fs, fo = fsspec.core.url_to_fs(fo, **dic)
+        with ref_fs.open(fo, "rb") as f:
+            logger.info("Read reference from URL %s", fo)
+            refs = ujson.load(f)
+    else:
+        # Mapping object
+        refs = fo
+
     if "refs" in refs:
         refs = refs["refs"]
 
