@@ -143,8 +143,7 @@ def refs_to_dataframe(
     if isinstance(fo, str):
         # JSON file
         dic = dict(**(target_options or {}), protocol=target_protocol)
-        ref_fs, fo = fsspec.core.url_to_fs(fo, **dic)
-        with ref_fs.open(fo, "rb") as f:
+        with fsspec.open(fo, "rb", **dic) as f:
             logger.info("Read reference from URL %s", fo)
             refs = ujson.load(f)
     else:
