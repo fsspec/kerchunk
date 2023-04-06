@@ -2,6 +2,7 @@ from functools import reduce
 from operator import mul
 
 import numpy as np
+import zarr
 from .utils import do_inline, _encode_for_JSON
 
 try:
@@ -69,6 +70,10 @@ class NetCDF3ToZarr(netcdf_file):
                 fp, *args, mmap=False, mode="r", maskandscale=False, **kwargs
             )
         self.filename = filename  # this becomes an attribute, so must ignore on write
+
+        self._zroot = zarr.group(
+            store=self.out, overwrite=True, zarr_version=self.zarr_version
+        )
 
     def _read_var_array(self):
         header = self.fp.read(4)
@@ -155,10 +160,7 @@ class NetCDF3ToZarr(netcdf_file):
         Parameters
         ----------
         """
-        import zarr
 
-        out = self.out
-        z = zarr.group(store=out, overwrite=True, zarr_version=self.zarr_version)
         for dim, var in self.variables.items():
             if dim in self.dimensions:
                 shape = self.dimensions[dim]
@@ -180,16 +182,25 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and var.data.dtype.kind == "i":
                     fill = int(fill)
-                arr = z.create_dataset(
+                arr = self._zroot.create_dataset(
                     name=dim,
                     shape=shape,
                     dtype=var.data.dtype,
                     fill_value=fill,
                     chunks=shape,
                     compression=None,
+                    overwrite=True,
                 )
-                part = ".".join(["0"] * len(shape)) or "0"
-                out[f"{dim}/{part}"] = [self.filename] + [
+
+                if self.zarr_version == 3:
+                    part = "/".join(["0"] * len(shape)) or "0"
+                    key = f"data/root/{dim}/c{part}"
+                else:
+                    part = ".".join(["0"] * len(shape)) or "0"
+
+                    key = f"{dim}/{part}"
+
+                self.out[key] = [self.filename] + [
                     int(self.chunks[dim][0]),
                     int(self.chunks[dim][1]),
                 ]
@@ -223,13 +234,14 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and base.kind == "i":
                     fill = int(fill)
-                arr = z.create_dataset(
+                arr = self._zroot.create_dataset(
                     name=name,
                     shape=shape,
                     dtype=base,
                     fill_value=fill,
                     chunks=(1,) + dtype.shape,
                     compression=None,
+                    overwrite=True,
                 )
                 arr.attrs.update(
                     {
@@ -244,18 +256,33 @@ class NetCDF3ToZarr(netcdf_file):
 
                 arr.attrs["_ARRAY_DIMENSIONS"] = list(var.dimensions)
 
-                suffix = (
-                    ("." + ".".join("0" for _ in dtype.shape)) if dtype.shape else ""
-                )
+                if self.zarr_version == 3:
+                    suffix = (
+                        ("/" + "/".join("0" for _ in dtype.shape))
+                        if dtype.shape
+                        else ""
+                    )
+                else:
+                    suffix = (
+                        ("." + ".".join("0" for _ in dtype.shape))
+                        if dtype.shape
+                        else ""
+                    )
                 for i in range(outer_shape):
-                    out[f"{name}/{i}{suffix}"] = [
+
+                    if self.zarr_version == 3:
+                        key = f"data/root/{name}/c{i}{suffix}"
+                    else:
+                        key = f"{name}/{i}{suffix}"
+
+                    self.out[key] = [
                         self.filename,
                         int(offset + i * dt.itemsize),
                         int(dtype.itemsize),
                     ]
 
                 offset += dtype.itemsize
-        z.attrs.update(
+        self._zroot.attrs.update(
             {
                 k: v.decode() if isinstance(v, bytes) else str(v)
                 for k, v in self._attributes.items()
@@ -264,10 +291,10 @@ class NetCDF3ToZarr(netcdf_file):
         )
 
         if self.threshold > 0:
-            out = do_inline(out, self.threshold)
-        out = _encode_for_JSON(out)
+            self.out = do_inline(self.out, self.threshold)
+        self.out = _encode_for_JSON(self.out)
 
-        return {"version": 1, "refs": out}
+        return {"version": 1, "refs": self.out}
 
 
 netcdf_recording_file = NetCDF3ToZarr
