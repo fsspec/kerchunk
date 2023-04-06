@@ -10,7 +10,8 @@ from kerchunk.zarr import ZarrToZarr
 dask = pytest.importorskip("dask")
 
 
-def test_simplest(m):
+@pytest.mark.parametrize("n_batches", [1, 2, 3])
+def test_simplest(m, n_batches):
     for i in range(4):
         m.pipe(
             {
@@ -25,9 +26,9 @@ def test_simplest(m):
         [f"memory:///data{i}" for i in range(4)],
         single_driver=ZarrToZarr,
         single_kwargs={"inline": 0},
-        n_batches=2,
+        n_batches=n_batches,
         mzz_kwargs={
-            "coo_map": {"count": re.compile(".*(\d)")},
+            "coo_map": {"count": re.compile(r".*(\d)")},
             "inline_threshold": 0,
             "coo_dtypes": {"count": "i4"},
         },
