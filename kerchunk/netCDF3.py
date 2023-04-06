@@ -71,10 +71,6 @@ class NetCDF3ToZarr(netcdf_file):
             )
         self.filename = filename  # this becomes an attribute, so must ignore on write
 
-        self._zroot = zarr.group(
-            store=self.out, overwrite=True, zarr_version=self.zarr_version
-        )
-
     def _read_var_array(self):
         header = self.fp.read(4)
         if header not in [ZERO, NC_VARIABLE]:
@@ -161,6 +157,10 @@ class NetCDF3ToZarr(netcdf_file):
         ----------
         """
 
+        zroot = zarr.group(
+            store=self.out, overwrite=True, zarr_version=self.zarr_version
+        )
+
         for dim, var in self.variables.items():
             if dim in self.dimensions:
                 shape = self.dimensions[dim]
@@ -182,7 +182,7 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and var.data.dtype.kind == "i":
                     fill = int(fill)
-                arr = self._zroot.create_dataset(
+                arr = zroot.create_dataset(
                     name=dim,
                     shape=shape,
                     dtype=var.data.dtype,
@@ -234,7 +234,7 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and base.kind == "i":
                     fill = int(fill)
-                arr = self._zroot.create_dataset(
+                arr = zroot.create_dataset(
                     name=name,
                     shape=shape,
                     dtype=base,
@@ -282,7 +282,7 @@ class NetCDF3ToZarr(netcdf_file):
                     ]
 
                 offset += dtype.itemsize
-        self._zroot.attrs.update(
+        zroot.attrs.update(
             {
                 k: v.decode() if isinstance(v, bytes) else str(v)
                 for k, v in self._attributes.items()
