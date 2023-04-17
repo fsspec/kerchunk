@@ -2,6 +2,7 @@ import ast
 import numcodecs
 from numcodecs.abc import Codec
 import numpy as np
+import threading
 
 
 class FillStringsCodec(Codec):
@@ -71,6 +72,8 @@ class GRIBCodec(numcodecs.abc.Codec):
     Read GRIB stream of bytes as a message using eccodes
     """
 
+    eclock = threading.RLock()
+
     codec_id = "grib"
 
     def __init__(self, var, dtype=None):
@@ -90,18 +93,21 @@ class GRIBCodec(numcodecs.abc.Codec):
         else:
             var = "values"
             dt = self.dtype or "float32"
-        mid = eccodes.codes_new_from_message(bytes(buf))
-        try:
-            data = eccodes.codes_get_array(mid, var)
-        finally:
-            eccodes.codes_release(mid)
+        with self.eclock:
+            mid = eccodes.codes_new_from_message(bytes(buf))
+            try:
+                data = eccodes.codes_get_array(mid, var)
+                if var == "values" and eccodes.codes_get_string(mid, "missingValue"):
+                    data[
+                        data == float(eccodes.codes_get_string(mid, "missingValue"))
+                    ] = np.nan
+                if out is not None:
+                    return numcodecs.compat.ndarray_copy(data, out)
+                else:
+                    return data.astype(dt)
 
-        if var == "values" and eccodes.codes_get_string(mid, "missingValue"):
-            data[data == float(eccodes.codes_get_string(mid, "missingValue"))] = np.nan
-        if out is not None:
-            return numcodecs.compat.ndarray_copy(data, out)
-        else:
-            return data.astype(dt)
+            finally:
+                eccodes.codes_release(mid)
 
 
 numcodecs.register_codec(GRIBCodec, "grib")
