@@ -84,6 +84,7 @@
 <span class="kn">import</span> <span class="nn">numcodecs</span>
 <span class="kn">from</span> <span class="nn">numcodecs.abc</span> <span class="kn">import</span> <span class="n">Codec</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">threading</span>
 
 
 <div class="viewcode-block" id="FillStringsCodec"><a class="viewcode-back" href="../../reference.html#kerchunk.codecs.FillStringsCodec">[docs]</a><span class="k">class</span> <span class="nc">FillStringsCodec</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
@@ -153,6 +154,8 @@
 <span class="sd">    Read GRIB stream of bytes as a message using eccodes</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">eclock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
+
     <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;grib&quot;</span>
 
 <div class="viewcode-block" id="GRIBCodec.__init__"><a class="viewcode-back" href="../../reference.html#kerchunk.codecs.GRIBCodec.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -172,18 +175,21 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">var</span> <span class="o">=</span> <span class="s2">&quot;values&quot;</span>
             <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="s2">&quot;float32&quot;</span>
-        <span class="n">mid</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_new_from_message</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">buf</span><span class="p">))</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_array</span><span class="p">(</span><span class="n">mid</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
-        <span class="k">finally</span><span class="p">:</span>
-            <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_release</span><span class="p">(</span><span class="n">mid</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">eclock</span><span class="p">:</span>
+            <span class="n">mid</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_new_from_message</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">buf</span><span class="p">))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_array</span><span class="p">(</span><span class="n">mid</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">var</span> <span class="o">==</span> <span class="s2">&quot;values&quot;</span> <span class="ow">and</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_string</span><span class="p">(</span><span class="n">mid</span><span class="p">,</span> <span class="s2">&quot;missingValue&quot;</span><span class="p">):</span>
+                    <span class="n">data</span><span class="p">[</span>
+                        <span class="n">data</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_string</span><span class="p">(</span><span class="n">mid</span><span class="p">,</span> <span class="s2">&quot;missingValue&quot;</span><span class="p">))</span>
+                    <span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">ndarray_copy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">var</span> <span class="o">==</span> <span class="s2">&quot;values&quot;</span> <span class="ow">and</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_string</span><span class="p">(</span><span class="n">mid</span><span class="p">,</span> <span class="s2">&quot;missingValue&quot;</span><span class="p">):</span>
-            <span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_string</span><span class="p">(</span><span class="n">mid</span><span class="p">,</span> <span class="s2">&quot;missingValue&quot;</span><span class="p">))]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">numcodecs</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">ndarray_copy</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span></div>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_release</span><span class="p">(</span><span class="n">mid</span><span class="p">)</span></div>
 
 
 <span class="n">numcodecs</span><span class="o">.</span><span class="n">register_codec</span><span class="p">(</span><span class="n">GRIBCodec</span><span class="p">,</span> <span class="s2">&quot;grib&quot;</span><span class="p">)</span>
