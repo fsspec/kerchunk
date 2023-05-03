@@ -525,8 +525,7 @@ class SingleHdf5ToZarr:
                 return tuple([a // b for a, b in zip(blob.chunk_offset, chunk_size)])
 
             def store_chunk_info(blob):
-                stinfo[get_key(blob)] = \
-                    {"offset": blob.byte_offset, "size": blob.size}
+                stinfo[get_key(blob)] = {"offset": blob.byte_offset, "size": blob.size}
 
             has_chunk_iter = callable(getattr(dsid, "chunk_iter", None))
 
