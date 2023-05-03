@@ -520,10 +520,21 @@ class SingleHdf5ToZarr:
             # Go over all the dataset chunks...
             stinfo = dict()
             chunk_size = dset.chunks
-            for index in range(num_chunks):
-                blob = dsid.get_chunk_info(index)
-                key = tuple([a // b for a, b in zip(blob.chunk_offset, chunk_size)])
-                stinfo[key] = {"offset": blob.byte_offset, "size": blob.size}
+
+            def get_key(blob):
+                return tuple([a // b for a, b in zip(blob.chunk_offset, chunk_size)])
+
+            def store_chunk_info(blob):
+                stinfo[get_key(blob)] = {"offset": blob.byte_offset, "size": blob.size}
+
+            has_chunk_iter = callable(getattr(dsid, "chunk_iter", None))
+
+            if has_chunk_iter:
+                dsid.chunk_iter(store_chunk_info)
+            else:
+                for index in range(num_chunks):
+                    store_chunk_info(dsid.get_chunk_info(index))
+
             return stinfo
 
 
