@@ -86,9 +86,10 @@ class MultiZarrToZarr:
     :param postprocess: callable
         Acts on the references dict before output.
         postprocess(dict)-> dict
-    :param validate_dataet: callable
-    :param validate_variable: callable
-    :param validate_chunk: callable
+    :param out: dict-like or None
+        This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
+        to write out parquet as the references get filled, or some other dictionary-like class
+        to customise how references get stored
     """
 
     def __init__(
@@ -105,6 +106,7 @@ class MultiZarrToZarr:
         inline_threshold=500,
         preprocess=None,
         postprocess=None,
+        out=None,
     ):
         self._fss = None
         self._paths = None
@@ -138,7 +140,7 @@ class MultiZarrToZarr:
             raise ValueError("Values being mapped cannot also be identical")
         self.preprocess = preprocess
         self.postprocess = postprocess
-        self.out = {}
+        self.out = out or {}
         self.done = set()
 
     @property
@@ -161,8 +163,13 @@ class MultiZarrToZarr:
                 for of in fsspec.open_files(self.path, **self.target_options):
                     self._paths.append(of.full_name)
                 fs = fsspec.core.url_to_fs(self.path[0], **self.target_options)[0]
-                fo_list = fs.cat(self.path)
-                fo_list = [ujson.loads(v) for v in fo_list.values()]
+                try:
+                    # JSON path
+                    fo_list = fs.cat(self.path)
+                    fo_list = [ujson.loads(v) for v in fo_list.values()]
+                except (IOError, TypeError, ValueError):
+                    # tries again sequentially in comprehension below
+                    fo_list = self.path
 
             self._fss = [
                 fsspec.filesystem(
@@ -365,22 +372,21 @@ class MultiZarrToZarr:
                     cv = tuple(sorted(set(cv)))[0]
                     cvalues[c] = cv
 
-            for v, _, attrs in fs.walk("", detail=False):
+            for v in fs.ls("", detail=False):
                 if v in self.coo_map or v in skip or v.startswith(".z"):
                     # already made coordinate variables and metadata
                     continue
-                if ".zgroup" in attrs:
-                    if v:
-                        # non-base groups need group metadata copied
-                        for fn in [".zgroup", ".zattrs"]:
-                            self.out[f"{v}/{fn}"] = m[f"{v}/{fn}"]
+                if fs.exists(f"{v}/.zgroup"):
+                    # non-base groups need group metadata copied
+                    for fn in [".zgroup", ".zattrs"]:
+                        self.out[f"{v}/{fn}"] = m[f"{v}/{fn}"]
                     continue
                 if v in self.identical_dims:
                     if f"{v}/.zarray" in self.out:
                         continue
-                    for k, val in fs.references.items():
+                    for k in fs.ls(v, detail=False):
                         if k.startswith(f"{v}/"):
-                            self.out[k] = val
+                            self.out[k] = fs.references[k]
                     continue
                 logger.debug("Second pass: %s, %s", i, v)
 

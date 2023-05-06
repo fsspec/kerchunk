@@ -293,12 +293,86 @@ def test_single(refs):
         engine="zarr",
         decode_cf=False,
     )
-    m = fsspec.get_mapper("reference://", fo=out, remote_protocol="memory")
-    zz = zarr.open(m)
     # TODO: make some assert_eq style function
     assert (
         z.time.dtype == "int16"
     )  # default is int64, or float64 if decode_cf is True because or array special name
+    assert z.time.values.tolist() == [1, 2]
+    assert z.data.shape == (2, 10, 10)
+    assert (z.data[0].values == arr).all()
+    assert (z.data[1].values == arr).all()
+
+
+def test_lazy_filler(tmpdir, refs):
+    pd = pytest.importorskip("pandas")
+    pytest.importorskip("fastparquet")
+    from fsspec.implementations.reference import LazyReferenceMapper
+
+    fs = fsspec.filesystem("file")
+    tmpdir = str(tmpdir)
+    out = LazyReferenceMapper.create(10, tmpdir, fs)
+
+    mzz = MultiZarrToZarr(
+        [refs["single1"], refs["single2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+        out=out,
+    )
+    mzz.first_pass()
+    mzz.store_coords()
+
+    out.flush()
+    allfiles = fs.find(tmpdir)
+    assert allfiles == [f"{tmpdir}/{a}" for a in [".zmetadata", "time/refs.0.parq"]]
+    df = pd.read_parquet(f"{tmpdir}/time/refs.0.parq", engine="fastparquet")
+    assert df.to_dict() == {
+        "path": {0: None},
+        "offset": {0: 0},
+        "size": {0: 0},
+        "raw": {0: b"\x01\x00\x02\x00"},
+    }
+    assert out["time/0"] == b"\x01\x00\x02\x00"
+    mzz.second_pass()
+
+    # actual references don't show
+    assert list(out) == [
+        ".zattrs",
+        ".zgroup",
+        ".zmetadata",
+        "data/.zarray",
+        "data/.zattrs",
+        "static/.zarray",
+        "static/.zattrs",
+        "time/.zarray",
+        "time/.zattrs",
+    ]
+    out.flush()
+    assert list(out) == [
+        ".zattrs",
+        ".zgroup",
+        ".zmetadata",
+        "data/.zarray",
+        "data/.zattrs",
+        "static/.zarray",
+        "static/.zattrs",
+        "time/.zarray",
+        "time/.zattrs",
+    ]
+    allfiles = fs.find(tmpdir)
+    assert [
+        f"{tmpdir}/{a}" in allfiles for a in ["static/refs.0.parq", "data/refs.0.parq"]
+    ]
+
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={
+            "storage_options": {"fo": tmpdir, "remote_protocol": "memory"},
+            "consolidated": False,
+        },
+        engine="zarr",
+        decode_cf=False,
+    )
     assert z.time.values.tolist() == [1, 2]
     assert z.data.shape == (2, 10, 10)
     assert (z.data[0].values == arr).all()
