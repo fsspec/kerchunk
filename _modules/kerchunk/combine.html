@@ -168,9 +168,10 @@
 <span class="sd">    :param postprocess: callable</span>
 <span class="sd">        Acts on the references dict before output.</span>
 <span class="sd">        postprocess(dict)-&gt; dict</span>
-<span class="sd">    :param validate_dataet: callable</span>
-<span class="sd">    :param validate_variable: callable</span>
-<span class="sd">    :param validate_chunk: callable</span>
+<span class="sd">    :param out: dict-like or None</span>
+<span class="sd">        This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper</span>
+<span class="sd">        to write out parquet as the references get filled, or some other dictionary-like class</span>
+<span class="sd">        to customise how references get stored</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="MultiZarrToZarr.__init__"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -187,6 +188,7 @@
         <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
         <span class="n">preprocess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">postprocess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_fss</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span> <span class="o">=</span> <span class="kc">None</span>
@@ -220,7 +222,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Values being mapped cannot also be identical&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">preprocess</span> <span class="o">=</span> <span class="n">preprocess</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">postprocess</span> <span class="o">=</span> <span class="n">postprocess</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span></div>
 
     <span class="nd">@property</span>
@@ -243,8 +245,13 @@
                 <span class="k">for</span> <span class="n">of</span> <span class="ow">in</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open_files</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">target_options</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">of</span><span class="o">.</span><span class="n">full_name</span><span class="p">)</span>
                 <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">url_to_fs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">target_options</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">fo_list</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-                <span class="n">fo_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fo_list</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># JSON path</span>
+                    <span class="n">fo_list</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                    <span class="n">fo_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fo_list</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">IOError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                    <span class="c1"># tries again sequentially in comprehension below</span>
+                    <span class="n">fo_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_fss</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
@@ -447,22 +454,27 @@
                     <span class="n">cv</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">cv</span><span class="p">)))[</span><span class="mi">0</span><span class="p">]</span>
                     <span class="n">cvalues</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">cv</span>
 
-            <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">attrs</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">dirs</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">dirs</span><span class="p">:</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">dirs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coo_map</span> <span class="ow">or</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">skip</span> <span class="ow">or</span> <span class="n">v</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.z&quot;</span><span class="p">):</span>
                     <span class="c1"># already made coordinate variables and metadata</span>
                     <span class="k">continue</span>
-                <span class="k">if</span> <span class="s2">&quot;.zgroup&quot;</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">v</span><span class="p">:</span>
-                        <span class="c1"># non-base groups need group metadata copied</span>
-                        <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.zgroup&quot;</span><span class="p">,</span> <span class="s2">&quot;.zattrs&quot;</span><span class="p">]:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/</span><span class="si">{fn}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/</span><span class="si">{fn}</span><span class="s2">&quot;</span><span class="p">]</span>
+                <span class="n">fns</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zgroup&quot;</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
+                    <span class="c1"># recurse into groups - copy meta, add to dirs to process and don&#39;t look</span>
+                    <span class="c1"># for references in this dir</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zgroup&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zgroup&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zattrs&quot;</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zattrs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zattrs&quot;</span><span class="p">]</span>
+                    <span class="n">dirs</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fns</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.z&quot;</span><span class="p">)])</span>
                     <span class="k">continue</span>
                 <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">identical_dims</span><span class="p">:</span>
                     <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zarray&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">:</span>
                         <span class="k">continue</span>
-                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
                         <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/&quot;</span><span class="p">):</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
                     <span class="k">continue</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Second pass: </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
@@ -521,7 +533,7 @@
                     <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;{var or v}/.zarray&quot;</span><span class="p">]</span>
                     <span class="n">ch</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">k</span><span class="p">)[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
 
-                <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
                     <span class="c1"># loop over the chunks and copy the references</span>
                     <span class="k">if</span> <span class="s2">&quot;.z&quot;</span> <span class="ow">in</span> <span class="n">fn</span><span class="p">:</span>
                         <span class="k">continue</span>
