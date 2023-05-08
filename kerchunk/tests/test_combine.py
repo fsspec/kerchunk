@@ -336,7 +336,7 @@ def test_lazy_filler(tmpdir, refs):
     mzz.second_pass()
 
     # actual references don't show
-    assert list(out) == [
+    assert set(out) == {
         ".zattrs",
         ".zgroup",
         ".zmetadata",
@@ -346,9 +346,9 @@ def test_lazy_filler(tmpdir, refs):
         "static/.zattrs",
         "time/.zarray",
         "time/.zattrs",
-    ]
+    }
     out.flush()
-    assert list(out) == [
+    assert set(out) == {
         ".zattrs",
         ".zgroup",
         ".zmetadata",
@@ -358,7 +358,7 @@ def test_lazy_filler(tmpdir, refs):
         "static/.zattrs",
         "time/.zarray",
         "time/.zattrs",
-    ]
+    }
     allfiles = fs.find(tmpdir)
     assert [
         f"{tmpdir}/{a}" in allfiles for a in ["static/refs.0.parq", "data/refs.0.parq"]
