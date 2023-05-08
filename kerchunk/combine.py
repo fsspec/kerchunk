@@ -372,14 +372,20 @@ class MultiZarrToZarr:
                     cv = tuple(sorted(set(cv)))[0]
                     cvalues[c] = cv
 
-            for v in fs.ls("", detail=False):
+            dirs = fs.ls("", detail=False)
+            while dirs:
+                v = dirs.pop(0)
                 if v in self.coo_map or v in skip or v.startswith(".z"):
                     # already made coordinate variables and metadata
                     continue
-                if fs.exists(f"{v}/.zgroup"):
-                    # non-base groups need group metadata copied
-                    for fn in [".zgroup", ".zattrs"]:
-                        self.out[f"{v}/{fn}"] = m[f"{v}/{fn}"]
+                fns = fs.ls(v, detail=False)
+                if f"{v}/.zgroup" in fns:
+                    # recurse into groups - copy meta, add to dirs to process and don't look
+                    # for references in this dir
+                    self.out[f"{v}/.zgroup"] = m[f"{v}/.zgroup"]
+                    if f"{v}/.zattrs" in fns:
+                        self.out[f"{v}/.zattrs"] = m[f"{v}/.zattrs"]
+                    dirs.extend([f for f in fns if not f.startswith(f"{v}/.z")])
                     continue
                 if v in self.identical_dims:
                     if f"{v}/.zarray" in self.out:
@@ -445,7 +451,7 @@ class MultiZarrToZarr:
                     k = self.out[f"{var or v}/.zarray"]
                     ch = ujson.loads(k)["chunks"]
 
-                for fn in fs.ls(v, detail=False):
+                for fn in fns:
                     # loop over the chunks and copy the references
                     if ".z" in fn:
                         continue
