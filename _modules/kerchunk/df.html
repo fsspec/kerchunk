@@ -182,8 +182,10 @@
 
 
 <div class="viewcode-block" id="refs_to_dataframe"><a class="viewcode-back" href="../../reference.html#kerchunk.df.refs_to_dataframe">[docs]</a><span class="k">def</span> <span class="nf">refs_to_dataframe</span><span class="p">(</span>
-    <span class="n">refs</span><span class="p">,</span>
+    <span class="n">fo</span><span class="p">,</span>
     <span class="n">url</span><span class="p">,</span>
+    <span class="n">target_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">target_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">record_size</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
     <span class="n">categorical_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
@@ -196,12 +198,17 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    refs: str | dict</span>
+<span class="sd">    fo : str | dict</span>
 <span class="sd">        Location of a JSON file containing references or a reference set already loaded</span>
 <span class="sd">        into memory.</span>
-<span class="sd">    url: str</span>
+<span class="sd">    url : str</span>
 <span class="sd">        Location for the output, together with protocol. This must be a writable</span>
 <span class="sd">        directory.</span>
+<span class="sd">    target_protocol : str</span>
+<span class="sd">        Used for loading the reference file, if it is a path. If None, protocol</span>
+<span class="sd">        will be derived from the given path</span>
+<span class="sd">    target_options : dict</span>
+<span class="sd">        Extra FS options for loading the reference file ``fo``, if given as a path</span>
 <span class="sd">    storage_options: dict | None</span>
 <span class="sd">        Passed to fsspec when for writing the parquet.</span>
 <span class="sd">    record_size : int</span>
@@ -214,6 +221,17 @@
 <span class="sd">    **kwargs : dict</span>
 <span class="sd">        Additional keyword arguments passed to fastparquet.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Taken from fsspec/implementations/reference.py</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="c1"># JSON file</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="o">**</span><span class="p">(</span><span class="n">target_options</span> <span class="ow">or</span> <span class="p">{}),</span> <span class="n">protocol</span><span class="o">=</span><span class="n">target_protocol</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">dic</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Read reference from URL </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="p">)</span>
+            <span class="n">refs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Mapping object</span>
+        <span class="n">refs</span> <span class="o">=</span> <span class="n">fo</span>
+
     <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
         <span class="n">refs</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span>
 

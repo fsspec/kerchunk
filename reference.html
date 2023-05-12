@@ -679,7 +679,7 @@ to the number of dask workers, or a multple thereof.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.utils.inline_array" title="kerchunk.utils.inline_array"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.utils.inline_array</span></code></a>(store[, …])</p></td>
 <td><p>Inline whole arrays by threshold or name, repace with a single metadata chunk</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.df.refs_to_dataframe" title="kerchunk.df.refs_to_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.df.refs_to_dataframe</span></code></a>(refs, url[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.df.refs_to_dataframe" title="kerchunk.df.refs_to_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.df.refs_to_dataframe</span></code></a>(fo, url[, …])</p></td>
 <td><p>Write references as a parquet files store.</p></td>
 </tr>
 </tbody>
@@ -842,18 +842,23 @@ in the data.</p>
 
 <dl class="function">
 <dt id="kerchunk.df.refs_to_dataframe">
-<code class="sig-prename descclassname">kerchunk.df.</code><code class="sig-name descname">refs_to_dataframe</code><span class="sig-paren">(</span><em class="sig-param">refs</em>, <em class="sig-param">url</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">record_size=10000</em>, <em class="sig-param">categorical_threshold=10</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/df.html#refs_to_dataframe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.df.refs_to_dataframe" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">kerchunk.df.</code><code class="sig-name descname">refs_to_dataframe</code><span class="sig-paren">(</span><em class="sig-param">fo</em>, <em class="sig-param">url</em>, <em class="sig-param">target_protocol=None</em>, <em class="sig-param">target_options=None</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">record_size=10000</em>, <em class="sig-param">categorical_threshold=10</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/df.html#refs_to_dataframe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.df.refs_to_dataframe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write references as a parquet files store.</p>
 <p>The directory structure should mimic a normal zarr store but instead of standard chunk
 keys, references are saved as parquet dataframes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>refs: str | dict</strong></dt><dd><p>Location of a JSON file containing references or a reference set already loaded
+<dt><strong>fo</strong><span class="classifier">str | dict</span></dt><dd><p>Location of a JSON file containing references or a reference set already loaded
 into memory.</p>
 </dd>
-<dt><strong>url: str</strong></dt><dd><p>Location for the output, together with protocol. This must be a writable
+<dt><strong>url</strong><span class="classifier">str</span></dt><dd><p>Location for the output, together with protocol. This must be a writable
 directory.</p>
+</dd>
+<dt><strong>target_protocol</strong><span class="classifier">str</span></dt><dd><p>Used for loading the reference file, if it is a path. If None, protocol
+will be derived from the given path</p>
+</dd>
+<dt><strong>target_options</strong><span class="classifier">dict</span></dt><dd><p>Extra FS options for loading the reference file <code class="docutils literal notranslate"><span class="pre">fo</span></code>, if given as a path</p>
 </dd>
 <dt><strong>storage_options: dict | None</strong></dt><dd><p>Passed to fsspec when for writing the parquet.</p>
 </dd>
