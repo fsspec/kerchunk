@@ -8,7 +8,8 @@ import ujson
 from kerchunk.df import refs_to_dataframe
 
 
-def test_1():
+@pytest.mark.parametrize("url", [True, False])
+def test_1(m, url):
     refs = {
         "a/0": ["memory://url1.file"],
         "a/1": ["memory://url1.file", 10, 100],
@@ -20,6 +21,18 @@ def test_1():
         "a/.zarray": b"""{"shape": [7], "chunks":[1], "filters": [], "compression": null}""",
         ".zgroup": b'{"zarr_format": 2}',
     }
+    u = "memory://myrefs.json"
+    if url:
+        with fsspec.open(u, "wt") as f:
+            ujson.dump(
+                {
+                    k: (v.decode() if isinstance(v, bytes) else v)
+                    for k, v in refs.items()
+                },
+                f,
+            )
+        refs = u
+
     refs_to_dataframe(refs, "memory://outdir", record_size=4)
     with fsspec.open("memory:///outdir/.zmetadata") as f:
         meta = ujson.load(f)
