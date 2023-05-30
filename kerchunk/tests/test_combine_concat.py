@@ -6,6 +6,7 @@ import zarr
 
 import kerchunk.combine
 import kerchunk.zarr
+import kerchunk.df
 
 
 @pytest.mark.parametrize(
@@ -45,7 +46,7 @@ import kerchunk.zarr
         ),
     ],
 )
-def test_success(tmpdir, arrays, chunks, axis):
+def test_success(tmpdir, arrays, chunks, axis, m):
     fns = []
     refs = []
     for i, x in enumerate(arrays):
@@ -61,6 +62,26 @@ def test_success(tmpdir, arrays, chunks, axis):
     )
 
     mapper = fsspec.get_mapper("reference://", fo=out)
+    g = zarr.open(mapper)
+    assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
+
+    kerchunk.df.refs_to_dataframe(out, "memory://out.parq")
+    mapper = fsspec.get_mapper(
+        "reference://",
+        fo="memory://out.parq",
+        remote_protocol="file",
+        skip_instance_cache=True,
+    )
+    g = zarr.open(mapper)
+    assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
+
+    kerchunk.df.refs_to_dataframe(out, "memory://out.parq", record_size=1)
+    mapper = fsspec.get_mapper(
+        "reference://",
+        fo="memory://out.parq",
+        remote_protocol="file",
+        skip_instance_cache=True,
+    )
     g = zarr.open(mapper)
     assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
 

@@ -326,11 +326,11 @@ def test_lazy_filler(tmpdir, refs):
     allfiles = fs.find(tmpdir)
     assert allfiles == [f"{tmpdir}/{a}" for a in [".zmetadata", "time/refs.0.parq"]]
     df = pd.read_parquet(f"{tmpdir}/time/refs.0.parq", engine="fastparquet")
-    assert df.to_dict() == {
-        "path": {0: None},
+    assert df.iloc[:1].to_dict() == {
+        "raw": {0: b"\x01\x00\x02\x00"},
         "offset": {0: 0},
         "size": {0: 0},
-        "raw": {0: b"\x01\x00\x02\x00"},
+        "path": {0: None},
     }
     assert out["time/0"] == b"\x01\x00\x02\x00"
     mzz.second_pass()
