@@ -83,7 +83,6 @@
 <span></span><span class="kn">import</span> <span class="nn">base64</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">ujson</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">fsspec</span>
@@ -187,9 +186,8 @@
     <span class="n">target_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">target_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">record_size</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+    <span class="n">record_size</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
     <span class="n">categorical_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Write references as a parquet files store.</span>
 
@@ -218,10 +216,9 @@
 <span class="sd">        Encode urls as pandas.Categorical to reduce memory footprint if the ratio</span>
 <span class="sd">        of the number of unique urls to total number of refs for each variable</span>
 <span class="sd">        is greater than or equal to this number. (default 10)</span>
-<span class="sd">    **kwargs : dict</span>
-<span class="sd">        Additional keyword arguments passed to fastparquet.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Taken from fsspec/implementations/reference.py</span>
+    <span class="kn">from</span> <span class="nn">fsspec.implementations.reference</span> <span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
+
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="c1"># JSON file</span>
         <span class="n">dic</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="o">**</span><span class="p">(</span><span class="n">target_options</span> <span class="ow">or</span> <span class="p">{}),</span> <span class="n">protocol</span><span class="o">=</span><span class="n">target_protocol</span><span class="p">)</span>
@@ -235,128 +232,14 @@
     <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
         <span class="n">refs</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span>
 
-    <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">url_to_fs</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-    <span class="n">fs</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">fields</span> <span class="o">=</span> <span class="n">get_variables</span><span class="p">(</span><span class="n">refs</span><span class="p">,</span> <span class="n">consolidated</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="c1"># write into .zmetadata at top level, one fewer read on access</span>
-    <span class="n">refs</span><span class="p">[</span><span class="s2">&quot;.zmetadata&quot;</span><span class="p">][</span><span class="s2">&quot;record_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record_size</span>
+    <span class="n">fs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">url_to_fs</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">LazyReferenceMapper</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">record_size</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span> <span class="n">categorical_threshold</span><span class="o">=</span><span class="n">categorical_threshold</span>
+    <span class="p">)</span>
 
-    <span class="c1"># Initialize arrays</span>
-    <span class="n">paths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">record_size</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;O&quot;</span><span class="p">)</span>
-    <span class="n">offsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">record_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">)</span>
-    <span class="n">sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">record_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int64&quot;</span><span class="p">)</span>
-    <span class="n">raws</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">record_size</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;O&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
-        <span class="n">field_path</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">url</span><span class="p">,</span> <span class="n">field</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
-            <span class="c1"># zarr metadata keys (.zgroup, .zmetadata, etc)</span>
-            <span class="c1"># only need to save .zmetadata</span>
-            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;.zmetadata&quot;</span><span class="p">:</span>
-                <span class="n">_write_json</span><span class="p">(</span><span class="n">field_path</span><span class="p">,</span> <span class="n">refs</span><span class="p">[</span><span class="n">field</span><span class="p">],</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">)</span>
-            <span class="k">continue</span>
-
-        <span class="n">fs</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">field_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="c1"># Read the variable zarray metadata to determine number of chunks</span>
-        <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">refs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{field}</span><span class="s2">/.zarray&quot;</span><span class="p">])</span>
-        <span class="n">chunk_sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="n">chunk_sizes</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">chunk_sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">nchunks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">chunk_sizes</span><span class="p">))</span>
-        <span class="n">nrec</span> <span class="o">=</span> <span class="n">nchunks</span> <span class="o">//</span> <span class="n">record_size</span>
-        <span class="n">rem</span> <span class="o">=</span> <span class="n">nchunks</span> <span class="o">%</span> <span class="n">record_size</span>
-        <span class="k">if</span> <span class="n">rem</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">nrec</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">nmissing</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">nraw</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">npath</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">irec</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndindex</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">chunk_sizes</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)))):</span>
-            <span class="n">chunk_id</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span> <span class="k">for</span> <span class="n">ix</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">])</span>
-            <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{field}</span><span class="s2">/</span><span class="si">{chunk_id}</span><span class="s2">&quot;</span>
-            <span class="c1"># Last parquet record can be smaller than record_size</span>
-            <span class="n">output_size</span> <span class="o">=</span> <span class="n">record_size</span> <span class="k">if</span> <span class="n">irec</span> <span class="o">&lt;</span> <span class="n">nrec</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">rem</span>
-            <span class="k">if</span> <span class="n">output_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">continue</span>
-            <span class="n">j</span> <span class="o">=</span> <span class="n">i</span> <span class="o">%</span> <span class="n">record_size</span>
-            <span class="c1"># Make note if expected number of chunks differs from actual</span>
-            <span class="c1"># number found in references</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">:</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                    <span class="n">npath</span> <span class="o">+=</span> <span class="mi">1</span>
-                    <span class="n">paths</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                        <span class="n">offsets</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                        <span class="n">sizes</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">nraw</span> <span class="o">+=</span> <span class="mi">1</span>
-                    <span class="n">raws</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">_proc_raw</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">nmissing</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="n">output_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="c1"># The convention for parquet files is</span>
-                <span class="c1"># &lt;url&gt;/&lt;field_name&gt;/refs.&lt;rec_num&gt;.parq</span>
-                <span class="n">out_path</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">field_path</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;refs.</span><span class="si">{irec}</span><span class="s2">.parq&quot;</span><span class="p">])</span>
-                <span class="k">if</span> <span class="n">nraw</span> <span class="o">==</span> <span class="n">output_size</span><span class="p">:</span>
-                    <span class="c1"># All raw refs, so we can drop path/offset/size</span>
-                    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="n">raws</span><span class="p">),</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                    <span class="n">object_encoding</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="s2">&quot;bytes&quot;</span><span class="p">)</span>
-                    <span class="n">has_nulls</span> <span class="o">=</span> <span class="kc">False</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">paths_maybe_cat</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
-                    <span class="n">nunique</span> <span class="o">=</span> <span class="n">paths_maybe_cat</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
-                    <span class="k">if</span> <span class="n">nunique</span> <span class="ow">and</span> <span class="n">npath</span> <span class="o">/</span> <span class="n">nunique</span> <span class="o">&gt;=</span> <span class="n">categorical_threshold</span><span class="p">:</span>
-                        <span class="n">paths_maybe_cat</span> <span class="o">=</span> <span class="n">paths_maybe_cat</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;category&quot;</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">nraw</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="c1"># No raw refs</span>
-                        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-                            <span class="nb">dict</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">paths_maybe_cat</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">sizes</span><span class="p">),</span>
-                            <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                        <span class="p">)</span>
-                        <span class="n">object_encoding</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">&quot;utf8&quot;</span><span class="p">)</span>
-                        <span class="n">has_nulls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">npath</span> <span class="o">!=</span> <span class="n">output_size</span> <span class="k">else</span> <span class="kc">False</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-                            <span class="nb">dict</span><span class="p">(</span>
-                                <span class="n">path</span><span class="o">=</span><span class="n">paths_maybe_cat</span><span class="p">,</span>
-                                <span class="n">offset</span><span class="o">=</span><span class="n">offsets</span><span class="p">,</span>
-                                <span class="n">size</span><span class="o">=</span><span class="n">sizes</span><span class="p">,</span>
-                                <span class="n">raw</span><span class="o">=</span><span class="n">raws</span><span class="p">,</span>
-                            <span class="p">),</span>
-                            <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                        <span class="p">)</span>
-                        <span class="n">object_encoding</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="s2">&quot;bytes&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;utf8&quot;</span><span class="p">)</span>
-                        <span class="n">has_nulls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">,</span> <span class="s2">&quot;raw&quot;</span><span class="p">]</span>
-
-                <span class="c1"># Subset df if selection is smaller than record size</span>
-                <span class="k">if</span> <span class="n">output_size</span> <span class="o">!=</span> <span class="n">record_size</span><span class="p">:</span>
-                    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">output_size</span><span class="p">]</span>
-
-                <span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span>
-                    <span class="n">out_path</span><span class="p">,</span>
-                    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;fastparquet&quot;</span><span class="p">,</span>
-                    <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">,</span>
-                    <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;zstd&quot;</span><span class="p">,</span>
-                    <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">object_encoding</span><span class="o">=</span><span class="n">object_encoding</span><span class="p">,</span>
-                    <span class="n">has_nulls</span><span class="o">=</span><span class="n">has_nulls</span><span class="p">,</span>
-                    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="c1"># Reinitialize arrays for next batch of refs to process.</span>
-                <span class="n">paths</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-                <span class="n">offsets</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">sizes</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">raws</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-                <span class="n">irec</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="n">nraw</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">npath</span> <span class="o">=</span> <span class="mi">0</span>
-
-        <span class="k">if</span> <span class="n">nmissing</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Warning: Chunks missing for field </span><span class="si">{field}</span><span class="s2">. &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Expected: </span><span class="si">{nchunks}</span><span class="s2">, Found: {nchunks - nmissing}&quot;</span>
-            <span class="p">)</span></div>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 </pre></div>
 
            </div>
