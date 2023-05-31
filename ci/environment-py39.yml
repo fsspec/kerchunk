@@ -22,6 +22,7 @@ dependencies:
   - python-blosc
   - flake8
   - fastparquet
+  - pyopenssl=23.1.1
   - black
   - pip
   - tifffile
