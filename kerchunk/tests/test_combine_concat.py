@@ -65,6 +65,10 @@ def test_success(tmpdir, arrays, chunks, axis, m):
     g = zarr.open(mapper)
     assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
 
+    try:
+        import fastparquet
+    except ImportError:
+        return
     kerchunk.df.refs_to_dataframe(out, "memory://out.parq")
     mapper = fsspec.get_mapper(
         "reference://",
