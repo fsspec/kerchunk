@@ -24,6 +24,7 @@ dependencies:
   - black
   - fastparquet
   - pip
+  - pyopenssl=23.1.1
   - tifffile
   - netCDF4
   - pip:

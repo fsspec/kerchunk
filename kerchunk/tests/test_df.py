@@ -36,7 +36,7 @@ def test_1(m, url):
     refs_to_dataframe(refs, "memory://outdir", record_size=4)
     with fsspec.open("memory:///outdir/.zmetadata") as f:
         meta = ujson.load(f)
-        assert list(meta) == ["metadata", "zarr_consolidated_format", "record_size"]
+        assert list(meta) == ["metadata", "record_size"]
         assert meta["record_size"] == 4
 
     df0 = pd.read_parquet("memory:///outdir/a/refs.0.parq")
@@ -51,13 +51,14 @@ def test_1(m, url):
             3: "memory://url3.file",
         },
         "size": {0: 0, 1: 100, 2: 0, 3: 0},
+        "raw": {0: None, 1: None, 2: None, 3: None},
     }
 
     # with raw column
     df1 = pd.read_parquet("memory:///outdir/a/refs.1.parq")
     assert df1.to_dict() == {
-        "offset": {0: 0, 1: 0, 2: 0},
-        "path": {0: "memory://url4.file", 1: "memory://url5.file", 2: None},
-        "raw": {0: None, 1: None, 2: b"data"},
-        "size": {0: 0, 1: 0, 2: 0},
+        "offset": {0: 0, 1: 0, 2: 0, 3: 0},
+        "path": {0: "memory://url4.file", 1: "memory://url5.file", 2: None, 3: None},
+        "raw": {0: None, 1: None, 2: b"data", 3: None},
+        "size": {0: 0, 1: 0, 2: 0, 3: 0},
     }
