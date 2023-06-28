@@ -81,6 +81,8 @@
              
   <h1>Source code for kerchunk.codecs</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">io</span>
+
 <span class="kn">import</span> <span class="nn">numcodecs</span>
 <span class="kn">from</span> <span class="nn">numcodecs.abc</span> <span class="kn">import</span> <span class="n">Codec</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -288,6 +290,37 @@
 
     <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<span class="k">class</span> <span class="nc">DeflateCodec</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;As implemented for members of zip-files</span>
+
+<span class="sd">    The input buffer contains the file header as well as the compressed bytes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;deflate&quot;</span>
+
+    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">zipfile</span>
+        <span class="kn">import</span> <span class="nn">struct</span>
+
+        <span class="n">head</span> <span class="o">=</span> <span class="n">buf</span><span class="p">[:</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">sizeFileHeader</span><span class="p">]</span>
+        <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="n">csize</span><span class="p">,</span> <span class="n">usize</span><span class="p">,</span> <span class="n">fnsize</span><span class="p">,</span> <span class="n">extra_size</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span>
+            <span class="n">zipfile</span><span class="o">.</span><span class="n">structFileHeader</span><span class="p">,</span> <span class="n">head</span>
+        <span class="p">)</span>
+
+        <span class="n">zi</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipInfo</span><span class="p">()</span>
+        <span class="n">zi</span><span class="o">.</span><span class="n">compress_size</span> <span class="o">=</span> <span class="n">csize</span>
+        <span class="n">zi</span><span class="o">.</span><span class="n">file_size</span> <span class="o">=</span> <span class="n">usize</span>
+        <span class="n">zi</span><span class="o">.</span><span class="n">compress_type</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZIP_DEFLATED</span>
+
+        <span class="n">b</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+        <span class="n">b</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">zipfile</span><span class="o">.</span><span class="n">sizeFileHeader</span> <span class="o">+</span> <span class="n">fnsize</span> <span class="o">+</span> <span class="n">extra_size</span><span class="p">)</span>
+        <span class="n">zf</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipExtFile</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">zipinfo</span><span class="o">=</span><span class="n">zi</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">zf</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 </pre></div>
 
            </div>
