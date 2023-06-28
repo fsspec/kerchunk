@@ -1,4 +1,6 @@
 import ast
+import io
+
 import numcodecs
 from numcodecs.abc import Codec
 import numpy as np
@@ -203,6 +205,37 @@ class RecordArrayMember(Codec):
     def decode(self, buf, out=None):
         arr = np.frombuffer(buf, dtype=np.dtype(self.dtype))
         return arr[self.member].copy()
+
+    def encode(self, buf):
+        raise NotImplementedError
+
+
+class DeflateCodec(Codec):
+    """As implemented for members of zip-files
+
+    The input buffer contains the file header as well as the compressed bytes
+    """
+
+    codec_id = "deflate"
+
+    def decode(self, buf, out=None):
+        import zipfile
+        import struct
+
+        head = buf[: zipfile.sizeFileHeader]
+        *_, csize, usize, fnsize, extra_size = struct.unpack(
+            zipfile.structFileHeader, head
+        )
+
+        zi = zipfile.ZipInfo()
+        zi.compress_size = csize
+        zi.file_size = usize
+        zi.compress_type = zipfile.ZIP_DEFLATED
+
+        b = io.BytesIO(buf)
+        b.seek(zipfile.sizeFileHeader + fnsize + extra_size)
+        zf = zipfile.ZipExtFile(b, mode="r", zipinfo=zi)
+        return zf.read()
 
     def encode(self, buf):
         raise NotImplementedError
