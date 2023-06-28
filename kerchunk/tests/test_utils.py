@@ -146,3 +146,25 @@ def test_archive(m, archive):
     assert fs.cat("a") == b"stuff"
     assert fs.cat("b") == data
     assert fs.cat("c") == data[5:7]
+
+
+def test_deflate_zip_archive(m):
+    import zipfile
+    from kerchunk.codecs import DeflateCodec
+
+    dec = DeflateCodec()
+
+    data = b"piece of data"
+    with fsspec.open("memory://archive", "wb") as f:
+        arc = zipfile.ZipFile(file=f, mode="w", compression=zipfile.ZIP_DEFLATED)
+        arc.writestr("data1", data)
+        arc.close()
+    refs = {
+        "b": [f"zip://data1::memory://archive"],
+    }
+
+    with pytest.warns(UserWarning):
+        refs2 = kerchunk.utils.dereference_archives(refs)
+
+    fs = fsspec.filesystem("reference", fo=refs2)
+    assert dec.decode(fs.cat("b")) == data

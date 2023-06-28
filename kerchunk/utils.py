@@ -1,6 +1,7 @@
 import base64
 import copy
 import itertools
+import warnings
 
 import ujson
 
@@ -309,9 +310,26 @@ def dereference_archives(references, remote_options=None):
                 for zipinfo in zf.filelist:
                     if zipinfo.is_dir():
                         continue
+                    # if uncompressed, include only the buffer. In compressed (DEFLATE), include
+                    # also the header, and must use DeflateCodec
+                    if zipinfo.compress_type == zipfile.ZIP_DEFLATED:
+                        # TODO: find relevant .zarray and add filter directly
+                        header = 0
+                        warnings.warn(
+                            "ZIP file contains compressed files, must use DeflateCodec"
+                        )
+                        tail = len(zipinfo.FileHeader())
+                    elif zipinfo.compress_type == zipfile.ZIP_STORED:
+                        header = len(zipinfo.FileHeader())
+                        tail = 0
+                    else:
+                        comp = zipfile.compressor_names[zipinfo.compress_type]
+                        raise ValueError(
+                            f"ZIP compression method not supported: {comp}"
+                        )
                     offsets[target][zipinfo.filename] = {
-                        "offset": zipinfo.header_offset + len(zipinfo.FileHeader()),
-                        "size": zipinfo.compress_size,
+                        "offset": zipinfo.header_offset + header,
+                        "size": zipinfo.compress_size + tail,
                         "comp": zipinfo.compress_type != zipfile.ZIP_STORED,
                     }
 
@@ -327,7 +345,7 @@ def dereference_archives(references, remote_options=None):
         detail = offsets[target][infile]
         if detail["comp"]:
             # leave compressed member file alone
-            continue
+            pass
         v[0] = target
         if len(v) == 1:
             v.append(detail["offset"])
