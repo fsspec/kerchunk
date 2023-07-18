@@ -286,3 +286,23 @@ def test_compact():
     m = fsspec.get_mapper("reference://", fo=out)
     g = zarr.open(m)
     assert np.allclose(g.ancillary_data.atlas_sdp_gps_epoch[:], 1.19880002e09)
+
+
+def test_embed():
+    fn = osp.join(here, "NEONDSTowerTemperatureData.hdf5")
+    h = kerchunk.hdf.SingleHdf5ToZarr(fn, vlen_encode="embed")
+    out = h.translate()
+
+    fs = fsspec.filesystem("reference", fo=out)
+    z = zarr.open(fs.get_mapper())
+    data = z["Domain_10"]["STER"]["min_1"]["boom_1"]["temperature"][:]
+    assert data[0].tolist() == [
+        "2014-04-01 00:00:00.0",
+        "60",
+        "6.72064364129017",
+        "6.667845743708792",
+        "6.774491093631761",
+        "0.0012746926446369846",
+        "0.004609216572327277",
+        "0.01298182345556785",
+    ]

@@ -7,6 +7,7 @@ import numpy as np
 import zarr
 from zarr.meta import encode_fill_value
 import numcodecs
+
 from .codecs import FillStringsCodec
 from .utils import _encode_for_JSON
 
@@ -358,8 +359,26 @@ class SingleHdf5ToZarr:
                                 )
                                 for v in h5obj.dtype.names
                             ]
-                        else:
+                        elif self.vlen == "embed":
                             # embed fails due to https://github.com/zarr-developers/numcodecs/issues/333
+                            data = h5obj[:].tolist()
+                            data2 = []
+                            for d in data:
+                                data2.append(
+                                    [
+                                        (
+                                            _.decode(errors="ignore")
+                                            if isinstance(_, bytes)
+                                            else _
+                                        )
+                                        for _ in d
+                                    ]
+                                )
+                            dt = "O"
+                            kwargs["data"] = data2
+                            kwargs["object_codec"] = numcodecs.JSON()
+                            fill = None
+                        else:
                             raise NotImplementedError
                     # Add filter for shuffle
                     if h5obj.shuffle and h5obj.dtype.kind != "O":
