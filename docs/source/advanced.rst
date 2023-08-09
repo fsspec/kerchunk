@@ -162,9 +162,9 @@ one go and may be faster, if you have a Dask cluster available.
    single_ref_sets = [hdf.SingleHdf5ToZarr(_).translate() for _ in files]
    out_dict = combine.MultiZarrToZarr(single_ref_sets, concat_dims=["time"]).translate()
    os.mkdir("combined.parq")
-   df.refs_to_dataframe(out_dict, "combined.parq", partition=True)
+   df.refs_to_dataframe(out_dict, "combined.parq")
 
-   fs = fsspec.implementations.reference.DFReferenceFileSystem(
+   fs = fsspec.implementations.reference.ReferenceFileSystem(
        "combined.parq", lazy=True)
    ds = xr.open_dataset(
        fs.get_mapper(), engine="zarr",
