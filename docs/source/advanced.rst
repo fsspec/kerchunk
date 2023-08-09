@@ -156,11 +156,28 @@ one go and may be faster, if you have a Dask cluster available.
 
    from kerchunk import hdf, combine, df
    import fsspec.implementations.reference
+   from fsspec.implementations.reference import LazyReferenceMapper
+   from tempfile import TemporaryDirectory
+
    import xarray as xr
 
    files = fsspec.open(location_of_data)
+
+   # Create LazyReferenceMapper to pass to MultiZarrToZarr
+   fs = fsspec.filesystem("file")
+   td = TemporaryDirectory()
+   tmpdir = str(td.name)
+   out = LazyReferenceMapper.create(10, tmpdir, fs)
+
+   # Create references from input files
    single_ref_sets = [hdf.SingleHdf5ToZarr(_).translate() for _ in files]
-   out_dict = combine.MultiZarrToZarr(single_ref_sets, concat_dims=["time"]).translate()
+
+   out_dict = MultiZarrToZarr(
+    single_ref_sets,
+    remote_protocol="memory",
+    concat_dims=["time"],
+    out=out).translate()
+
    os.mkdir("combined.parq")
    df.refs_to_dataframe(out_dict, "combined.parq")
 
