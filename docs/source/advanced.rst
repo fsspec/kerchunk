@@ -165,9 +165,9 @@ one go and may be faster, if you have a Dask cluster available.
 
    # Create LazyReferenceMapper to pass to MultiZarrToZarr
    fs = fsspec.filesystem("file")
-   td = TemporaryDirectory()
-   tmpdir = str(td.name)
-   out = LazyReferenceMapper.create(10, tmpdir, fs)
+
+   os.makedirs("combined.parq")
+   out = LazyReferenceMapper.create(1000, "combined.parq", fs)
 
    # Create references from input files
    single_ref_sets = [hdf.SingleHdf5ToZarr(_).translate() for _ in files]
@@ -178,11 +178,12 @@ one go and may be faster, if you have a Dask cluster available.
     concat_dims=["time"],
     out=out).translate()
 
-   os.mkdir("combined.parq")
+   out.flush()
+
    df.refs_to_dataframe(out_dict, "combined.parq")
 
    fs = fsspec.implementations.reference.ReferenceFileSystem(
-       "combined.parq", lazy=True)
+       "combined.parq", remote_protocol="s3", target_protocol="file", lazy=True)
    ds = xr.open_dataset(
        fs.get_mapper(), engine="zarr",
        backend_kwargs={"consolidated": False}
