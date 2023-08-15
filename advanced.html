@@ -219,16 +219,34 @@ these references with much smaller  memory requirements.</p>
 one go and may be faster, if you have a Dask cluster available.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk</span> <span class="kn">import</span> <span class="n">hdf</span><span class="p">,</span> <span class="n">combine</span><span class="p">,</span> <span class="n">df</span>
 <span class="kn">import</span> <span class="nn">fsspec.implementations.reference</span>
+<span class="kn">from</span> <span class="nn">fsspec.implementations.reference</span> <span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+
 <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
 
 <span class="n">files</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">location_of_data</span><span class="p">)</span>
-<span class="n">single_ref_sets</span> <span class="o">=</span> <span class="p">[</span><span class="n">hdf</span><span class="o">.</span><span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
-<span class="n">out_dict</span> <span class="o">=</span> <span class="n">combine</span><span class="o">.</span><span class="n">MultiZarrToZarr</span><span class="p">(</span><span class="n">single_ref_sets</span><span class="p">,</span> <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
-<span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="s2">&quot;combined.parq&quot;</span><span class="p">)</span>
-<span class="n">df</span><span class="o">.</span><span class="n">refs_to_dataframe</span><span class="p">(</span><span class="n">out_dict</span><span class="p">,</span> <span class="s2">&quot;combined.parq&quot;</span><span class="p">,</span> <span class="n">partition</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-<span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">implementations</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">DFReferenceFileSystem</span><span class="p">(</span>
-    <span class="s2">&quot;combined.parq&quot;</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># Create LazyReferenceMapper to pass to MultiZarrToZarr</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">)</span>
+
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">&quot;combined.parq&quot;</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">LazyReferenceMapper</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="s2">&quot;combined.parq&quot;</span><span class="p">,</span> <span class="n">fs</span><span class="p">)</span>
+
+<span class="c1"># Create references from input files</span>
+<span class="n">single_ref_sets</span> <span class="o">=</span> <span class="p">[</span><span class="n">hdf</span><span class="o">.</span><span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
+
+<span class="n">out_dict</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span>
+ <span class="n">single_ref_sets</span><span class="p">,</span>
+ <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span>
+ <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span>
+ <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+
+<span class="n">out</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+<span class="n">df</span><span class="o">.</span><span class="n">refs_to_dataframe</span><span class="p">(</span><span class="n">out_dict</span><span class="p">,</span> <span class="s2">&quot;combined.parq&quot;</span><span class="p">)</span>
+
+<span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">implementations</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">ReferenceFileSystem</span><span class="p">(</span>
+    <span class="s2">&quot;combined.parq&quot;</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">target_protocol</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
     <span class="n">fs</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(),</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span>
     <span class="n">backend_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
