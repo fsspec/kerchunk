@@ -189,12 +189,40 @@ class SingleHdf5ToZarr:
                     f"TypeError transferring attr, skipping:\n {n}@{h5obj.name} = {v} ({type(v)})"
                 )
 
+    def _decode_blosc(properties): # 32001
+        blosc_compressors = ('blosclz', 'lz4', 'lz4hc', 'snappy', 'zlib', 'zstd')
+        _1, _2, bytes_per_num, total_bytes, clevel, shuffle, compressor = properties
+        return dict (id="blosc", blocksize=total_bytes, clevel=clevel, shuffle=shuffle, cname=blosc_compressors[compressor],)
+
+    def _decode_zstd(properties): #32015
+        return dict (id='zstd', level=properties[0],)
+
+
+    decoders = { "32001" : _decode_blosc,
+                 "32015" : _decode_zstd,
+                }
+
+    def _decode_filters(self, h5obj: Union[h5py.Dataset, h5py.Group]):
+        if len(h5obj._filters.keys()) > 1:
+            raise RuntimeError(
+                f"{h5obj.name} uses multiple filters {list (h5obj._filters.keys())}. This is not supported by kerchunk."
+                )
+        for filter_id, properties in h5obj._filters.items():
+            if not str(filter_id) in self.decoders.keys():
+                raise RuntimeError(
+                    f"{h5obj.name} uses filter id {filter_id} with properties {properties}, not supported by kerchunk., supported filters are {self.decoders.keys()}"
+                    )
+            else:
+                return numcodecs.get_codec(self.decoders[filter_id](properties))
+
+
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
         try:  # method must not raise exception
             kwargs = {}
             if isinstance(h5obj, h5py.Dataset):
                 lggr.debug(f"HDF5 dataset: {h5obj.name}")
+                lggr.debug (f"HDF5 compression: {h5obj.compression}")
                 if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
                     # Only do if h5obj.nbytes < self.inline??
                     kwargs["data"] = h5obj[:]
@@ -214,7 +242,7 @@ class SingleHdf5ToZarr:
                     if h5obj.compression == "gzip":
                         compression = numcodecs.Zlib(level=h5obj.compression_opts)
                     else:
-                        compression = None
+                        compression = self._decode_filters(h5obj)
                 filters = []
                 dt = None
                 # Get storage info of this HDF5 dataset...
