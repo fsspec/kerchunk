@@ -59,6 +59,7 @@ class NetCDF3ToZarr(netcdf_file):
         self.threshold = inline_threshold
         self.max_chunk_size = max_chunk_size
         self.out = {}
+        self.storage_options = storage_options
         with fsspec.open(filename, **(storage_options or {})) as fp:
             super().__init__(
                 fp, *args, mmap=False, mode="r", maskandscale=False, **kwargs
@@ -259,7 +260,7 @@ class NetCDF3ToZarr(netcdf_file):
         )
 
         if self.threshold > 0:
-            out = do_inline(out, self.threshold)
+            out = do_inline(out, self.threshold, remote_options=self.storage_options)
         out = _encode_for_JSON(out)
 
         return {"version": 1, "refs": out}

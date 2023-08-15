@@ -29,7 +29,7 @@ setup(
             "fill_hdf_strings = kerchunk.codecs:FillStringsCodec",
             "FITSAscii = kerchunk.codecs:AsciiTableCodec",
             "FITSVarBintable = kerchunk.codecs:VarArrCodec",
-            "record_member = kerchunk.codecs.RecordArrayMember",
+            "record_member = kerchunk.codecs:RecordArrayMember",
         ],
     },
     zip_safe=False,
