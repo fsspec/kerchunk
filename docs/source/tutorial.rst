@@ -8,7 +8,7 @@ Initially we create a pair of single file jsons for two ERA5 variables using ``K
 Single file JSONs
 -----------------
 
-The ``Kerchunk.hdf.SingleHdf5ToZarr`` method is used to create a single ``.json`` reference file for each file url passed to it. Here we use it to create a number of reference files for the ERA5 pubic dataset on `AWS <https://registry.opendata.aws/ecmwf-era5/>`__. We will compute a number of different times and variables to demonstrate different methods of combining them.
+The ``Kerchunk.hdf.SingleHdf5ToZarr`` method is used to create a single ``.json`` reference file for each file url passed to it. Here we use it to create a number of reference files for the ERA5 public dataset on `AWS <https://registry.opendata.aws/ecmwf-era5/>`__. We will compute a number of different times and variables to demonstrate different methods of combining them.
 
 The Kerchunk package is still in a development phase and so changes frequently. Installing directly from the source code is recommended.
 
@@ -244,8 +244,7 @@ For more complex uses it is also possible to pass in a compiled ``regex`` functi
 
 Here the ``new_dimension`` values have been populated by the compiled ``regex`` function ``ex`` which takes the file urls as input.
 
-To extract time information from file names, a custom function can be defined of the form ``(index, fs, var, fn) -> value`` to generate a valid ``datetime.datetime`` data type, typically using regular expressions.  These datetime objects are then used to generate time coordinates through the
- ``coo_dtypes`` argument in the ``MultiZarrToZarr`` function.
+To extract time information from file names, a custom function can be defined of the form ``(index, fs, var, fn) -> value`` to generate a valid ``datetime.datetime`` data type, typically using regular expressions.  These datetime objects are then used to generate time coordinates through the ``coo_dtypes`` argument in the ``MultiZarrToZarr`` function.
 
 Here's an example for file names following the pattern ``cgl_TOC_YYYYmmddHHMM_X21Y05_S3A_v1.1.0.json``:
 
