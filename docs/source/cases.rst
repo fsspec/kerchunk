@@ -22,7 +22,7 @@ Discussion: https://github.com/fsspec/kerchunk/issues/78
 
 Generator script: https://github.com/cgohlke/tifffile/blob/v2021.10.10/examples/earthbigdata.py
 
-Notebook: https://github.com/fsspec/kerchunk/raw/main/examples/earthbigdata.ipynb
+Notebook: https://nbviewer.org/github/fsspec/kerchunk/blob/main/examples/earthbigdata.ipynb
 
 Solar Dynamics Observatory
 --------------------------
@@ -34,7 +34,7 @@ Effective in-memory data size: 400GB
 Notes: each wavelength filter is presented as a separate variable. The DATE-OBS of the nearest preceding 94A image
 is used for other filters to maintain a single time axis for all variables.
 
-Notebook: https://github.com/fsspec/kerchunk/raw/main/examples/SDO.ipynb
+Notebook: https://nbviewer.org/github/fsspec/kerchunk/blob/main/examples/SDO.ipynb
 
 National Water Model
 --------------------
@@ -46,9 +46,9 @@ Effective in-memory size: 80TB
 Notes: there are so many files, that dask and a tee reduction were required to aggregate the
 metadata.
 
-Notebook: https://nbviewer.org/gist/rsignell-usgs/02da7d9257b4b26d84d053be1af2ceeb
+Generator notebook: https://nbviewer.org/gist/rsignell-usgs/ef435a53ac530a2843ce7e1d59f96e22
 
-Generator notebook: https://gist.github.com/rsignell-usgs/ef435a53ac530a2843ce7e1d59f96e22
+Notebook: https://nbviewer.org/gist/rsignell-usgs/02da7d9257b4b26d84d053be1af2ceeb
 
 MUR SST
 -------
