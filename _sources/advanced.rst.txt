@@ -7,7 +7,7 @@ Using Dask
 Scanning and combining datasets can be computationally intensive and may
 require a lot of bandwidth for some data formats. Where the target data
 contains many input files, it makes sense to parallelise the job with
-dask and maybe disrtibuted the workload on a cluster to get additional
+dask and maybe distribute the workload on a cluster to get additional
 CPUs and network performance.
 
 Simple parallel
@@ -41,7 +41,7 @@ Tree reduction
 
 In some cases, the combine process can itself be slow or memory hungry.
 In such cases, it is useful to combine the single-file reference sets in
-batches (which reducec a lot of redundancy between them) and then
+batches (which reduce a lot of redundancy between them) and then
 combine the results of the batches. This technique is known as tree
 reduction. An example of doing this by hand can be seen `here`_.
 
@@ -106,13 +106,13 @@ Parquet Storage
 
 JSON is very convenient as a storage format for references, because it is
 simple, human-readable and ubiquitously supported. However, it is not the most
-efficient in terns of storage size of parsing speed. For python, in particular,
+efficient in terms of storage size of parsing speed. For python, in particular,
 it comes with the added downside of repeated strings becoming separate python
 string instances, greatly inflating memory footprint at load time.
 
 To overcome these problems, and in particular keep down the memory use for the
 end-user of kerchunked data, we can convert references to be stored in parquet,
-and use them with ``fsspec.implementations.reference.DRFererenceFileSystem``,
+and use them with ``fsspec.implementations.reference.ReferenceFileSystem``,
 an alternative new implementation designed to work only with parquet input.
 
 The principle benefits of the parquet path are:
