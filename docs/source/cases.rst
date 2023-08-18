@@ -46,7 +46,7 @@ Effective in-memory size: 80TB
 Notes: there are so many files, that dask and a tee reduction were required to aggregate the
 metadata.
 
-Generator notebook: https://gist.github.com/rsignell-usgs/ef435a53ac530a2843ce7e1d59f96e22
+Generator notebook: https://nbviewer.org/gist/rsignell-usgs/ef435a53ac530a2843ce7e1d59f96e22
 
 Notebook: https://nbviewer.org/gist/rsignell-usgs/02da7d9257b4b26d84d053be1af2ceeb
 
