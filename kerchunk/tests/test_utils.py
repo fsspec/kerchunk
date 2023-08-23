@@ -70,12 +70,16 @@ def test_inline_array():
 """,
         "data/0": b"\x01\x00\x00\x00",
         "data/1": b"\x02\x00\x00\x00",
+        'data/.zattrs': '{"_ARRAY_DIMENSIONS":["Longitude","nv"],"comment":"longitude '
+                        'values at the west and east bounds of each '
+                        'pixel.","units":"degrees_east"}',
     }
     fs = fsspec.filesystem("reference", fo=refs)
     out1 = kerchunk.utils.inline_array(refs, threshold=1000)  # does nothing
     assert out1 == refs
     out2 = kerchunk.utils.inline_array(refs, threshold=1000, names=["data"])  # explicit
     assert "data/1" not in out2
+    assert out2["data/.zattrs"] == refs["data/.zattrs"]
     fs = fsspec.filesystem("reference", fo=out2)
     g = zarr.open(fs.get_mapper())
     assert g.data[:].tolist() == [1, 2]
