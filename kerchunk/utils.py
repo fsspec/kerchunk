@@ -134,13 +134,18 @@ def _encode_for_JSON(store):
     return store
 
 
-def do_inline(store, threshold, remote_options=None):
+def do_inline(store, threshold, remote_options=None, remote_protocol=None):
     """Replace short chunks with the value of that chunk
 
     The chunk may need encoding with base64 if not ascii, so actual
     length may be larger than threshold.
     """
-    fs = fsspec.filesystem("reference", fo=store, **(remote_options or {}))
+    fs = fsspec.filesystem(
+        "reference",
+        fo=store,
+        remote_options=remote_options,
+        remote_protocol=remote_protocol,
+    )
     out = fs.references.copy()
     get_keys = [
         k
@@ -234,6 +239,7 @@ def subchunk(store, variable, factor):
     modified store
     """
     fs = fsspec.filesystem("reference", fo=store)
+    store = copy.deepcopy(store)
     meta_file = f"{variable}/.zarray"
     meta = ujson.loads(fs.cat(meta_file))
     if meta["compressor"] is not None:

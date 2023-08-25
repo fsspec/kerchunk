@@ -24,7 +24,8 @@ def single_zarr(uri_or_store, storage_options=None, inline_threshold=100, inline
             refs[k] = mapper[k]
         else:
             refs[k] = [fsspec.utils._unstrip_protocol(mapper._key_to_str(k), mapper.fs)]
-    refs = do_inline(refs, inline_threshold)
+    if inline_threshold:
+        refs = do_inline(refs, inline_threshold, remote_options=storage_options)
     return refs
 
 
