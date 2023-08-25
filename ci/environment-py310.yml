@@ -8,6 +8,7 @@ dependencies:
   - zarr
   - xarray
   - h5netcdf
+  - h5py<3.9
   - pandas
   - cfgrib
   - cftime
@@ -24,7 +25,7 @@ dependencies:
   - black
   - fastparquet
   - pip
-  - pyopenssl=23.1.1
+  - pyopenssl
   - tifffile
   - netCDF4
   - pip:
