@@ -70,9 +70,7 @@ def test_inline_array():
 """,
         "data/0": b"\x01\x00\x00\x00",
         "data/1": b"\x02\x00\x00\x00",
-        "data/.zattrs": '{"_ARRAY_DIMENSIONS":["Longitude","nv"],"comment":"longitude '
-        "values at the west and east bounds of each "
-        'pixel.","units":"degrees_east"}',
+        "data/.zattrs": '{"foo": "bar"}',
     }
     fs = fsspec.filesystem("reference", fo=refs)
     out1 = kerchunk.utils.inline_array(refs, threshold=1000)  # does nothing
