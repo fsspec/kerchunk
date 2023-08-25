@@ -175,7 +175,8 @@ def _inline_array(group, threshold, names, prefix=""):
             cond1 = threshold and thing.nbytes < threshold and thing.nchunks > 1
             cond2 = prefix1 in names
             if cond1 or cond2:
-                group.create_dataset(
+                original_attrs = dict(thing.attrs)
+                arr = group.create_dataset(
                     name=name,
                     dtype=thing.dtype,
                     shape=thing.shape,
@@ -184,6 +185,7 @@ def _inline_array(group, threshold, names, prefix=""):
                     compression=None,
                     overwrite=True,
                 )
+                arr.attrs.update(original_attrs)
 
 
 def inline_array(store, threshold=1000, names=None, remote_options=None):
