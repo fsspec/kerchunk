@@ -216,13 +216,18 @@
     <span class="k">return</span> <span class="n">store</span>
 
 
-<div class="viewcode-block" id="do_inline"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.do_inline">[docs]</a><span class="k">def</span> <span class="nf">do_inline</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="do_inline"><a class="viewcode-back" href="../../reference.html#kerchunk.utils.do_inline">[docs]</a><span class="k">def</span> <span class="nf">do_inline</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Replace short chunks with the value of that chunk</span>
 
 <span class="sd">    The chunk may need encoding with base64 if not ascii, so actual</span>
 <span class="sd">    length may be larger than threshold.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{}))</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
+        <span class="s2">&quot;reference&quot;</span><span class="p">,</span>
+        <span class="n">fo</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
+        <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span><span class="p">,</span>
+        <span class="n">remote_protocol</span><span class="o">=</span><span class="n">remote_protocol</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">get_keys</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">k</span>
@@ -314,6 +319,7 @@
 <span class="sd">    modified store</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">store</span><span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
     <span class="n">meta_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{variable}</span><span class="s2">/.zarray&quot;</span>
     <span class="n">meta</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">meta_file</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">meta</span><span class="p">[</span><span class="s2">&quot;compressor&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
