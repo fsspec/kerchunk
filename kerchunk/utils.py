@@ -237,6 +237,7 @@ def subchunk(store, variable, factor):
     modified store
     """
     fs = fsspec.filesystem("reference", fo=store)
+    store = copy.deepcopy(store)
     meta_file = f"{variable}/.zarray"
     meta = ujson.loads(fs.cat(meta_file))
     if meta["compressor"] is not None:

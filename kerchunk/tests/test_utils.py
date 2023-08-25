@@ -107,7 +107,7 @@ def test_subchunk_exact(m, chunks):
 
     out = kerchunk.utils.subchunk(ref, "data", 5)
     nchunk = 10 // chunks[0] * 5
-    assert list(ref) == [".zgroup", "data/.zarray"] + [
+    assert list(out) == [".zgroup", "data/.zarray"] + [
         f"data/{_}.0" for _ in range(nchunk)
     ]
 
