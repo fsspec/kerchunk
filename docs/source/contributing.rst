@@ -243,3 +243,8 @@ You can see the remote repositories.
 
 If you navigate to your branch on GitHub, you should see a banner to submit a pull
 request to the *kerchunk* repository.
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>

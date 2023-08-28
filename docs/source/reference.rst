@@ -101,3 +101,8 @@ Utilities
 .. autofunction:: kerchunk.utils.inline_array
 
 .. autofunction:: kerchunk.df.refs_to_dataframe
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>

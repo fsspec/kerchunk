@@ -37,8 +37,8 @@ If we can scan the file just once, we can determine where the rows end, and whic
 are safe to use, allowing parallel/distributed processing of files with embedded
 newlines.
 
-parquet/orc
------------
+parquet/orc/feather
+-------------------
 
 Parquet is an efficient tabular data format. Sometimes, however, it is useful to
 *partition* the data on low-cardinality rows, so save on storage and make it easier
@@ -51,3 +51,12 @@ Since we have the ability to name files as we wish in a virtual file system, we 
 use this feature of parquet to be able to assign values to partitions even when the
 files were not written as part of the same dataset. We can, in effect, perform smart
 concatenation without having to move/copy files around.
+
+Feather is a more raw buffer-wise serialisation of Arrow data, and we may be able to
+construct logical feather files out of buffer pieces (and serialised feather metadata)
+to present to the pyarrow API.
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>

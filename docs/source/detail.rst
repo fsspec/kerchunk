@@ -77,3 +77,8 @@ expected by ``zarr``, in this case for the variable "time".
 .. image:: images/multi_refs.png
   :width: 400
   :alt: Zarr can view many files as a single dataset
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
