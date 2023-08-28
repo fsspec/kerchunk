@@ -18,3 +18,8 @@ as a storage object that ``zarr`` can use.
 One example of a reference dataset used via a JS implementation, applied to multi-scale
 TIFF microscopy, can be found
 at https://observablehq.com/@manzt/ome-tiff-as-filesystemreference.
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>

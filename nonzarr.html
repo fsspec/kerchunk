@@ -54,7 +54,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Non-zarr uses</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#tar-zstd">.tar.zstd</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#csv-json">.csv/.json</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#parquet-orc">parquet/orc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parquet-orc-feather">parquet/orc/feather</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
@@ -118,8 +118,8 @@ a record terminator, and any misidentification will lead to parsing failure.</p>
 are safe to use, allowing parallel/distributed processing of files with embedded
 newlines.</p>
 </div>
-<div class="section" id="parquet-orc">
-<h2>parquet/orc<a class="headerlink" href="#parquet-orc" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="parquet-orc-feather">
+<h2>parquet/orc/feather<a class="headerlink" href="#parquet-orc-feather" title="Permalink to this headline">¶</a></h2>
 <p>Parquet is an efficient tabular data format. Sometimes, however, it is useful to
 <em>partition</em> the data on low-cardinality rows, so save on storage and make it easier
 to exclude unneeded files from processing. For instance, if one file in a dataset
@@ -130,7 +130,11 @@ values.</p>
 use this feature of parquet to be able to assign values to partitions even when the
 files were not written as part of the same dataset. We can, in effect, perform smart
 concatenation without having to move/copy files around.</p>
-</div>
+<p>Feather is a more raw buffer-wise serialisation of Arrow data, and we may be able to
+construct logical feather files out of buffer pieces (and serialised feather metadata)
+to present to the pyarrow API.</p>
+<script data-goatcounter="https://kerchunk.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script></div>
 </div>
 
 

@@ -617,3 +617,8 @@ Once the referenced dataset is loaded it can be operated on just like any other 
 
     CPU times: user 9.92 s, sys: 663 ms, total: 10.6 s
     Wall time: 16.5 s
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>

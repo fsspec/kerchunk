@@ -196,3 +196,8 @@ Even for a very large reference set, the memory use at this point should be <500
 
 As you access the variables of ``ds``, they will be loaded on demand and cached.
 If using ``dask``, workers will also only load those references they need.
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>

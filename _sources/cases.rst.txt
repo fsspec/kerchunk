@@ -75,3 +75,8 @@ Notebook (generation and use): https://nbviewer.org/gist/peterm790/92eb1df3d58ba
 
 Notes: High-Resolution Rapid Refresh, real-time 3-km resolution, hourly updated, cloud-resolving,
 convection-allowing atmospheric model from NOAA.  Notebook extracts only sections matching the filter "heightAboveGround=2".
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>

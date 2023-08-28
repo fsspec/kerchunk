@@ -133,3 +133,8 @@ This example evaluates to the Version 0 equivalent
 
 such that accessing, for instance, "key0" returns ``b"data"`` and accessing "gen_key0" returns 1000 bytes
 from the given URL, at an offset of 1000.
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>

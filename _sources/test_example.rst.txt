@@ -98,3 +98,8 @@ Example/Tutorial Notebook
 =========================
 
 A set of tutorials notebooks, presented at the Earth Science Information Partners 2022 Winter Meeting, can be found at the following link, along with links to run the code on free cloud-based notebook environments: https://github.com/lsterzinger/2022-esip-kerchunk-tutorial
+
+.. raw:: html
+
+    <script data-goatcounter="https://kerchunk.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
