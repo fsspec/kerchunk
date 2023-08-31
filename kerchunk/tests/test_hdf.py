@@ -290,7 +290,8 @@ def test_compact():
 
 def test_compress():
     import glob
-    files = glob.glob (osp.join(here, "hdf5_compression_*.h5"))
+
+    files = glob.glob(osp.join(here, "hdf5_compression_*.h5"))
     for f in files:
         h = kerchunk.hdf.SingleHdf5ToZarr(f)
         out = h.translate()
