@@ -288,6 +288,22 @@ def test_compact():
     assert np.allclose(g.ancillary_data.atlas_sdp_gps_epoch[:], 1.19880002e09)
 
 
+def test_compress():
+    import glob
+
+    files = glob.glob(osp.join(here, "hdf5_compression_*.h5"))
+    for f in files:
+        h = kerchunk.hdf.SingleHdf5ToZarr(f, error="raise")
+        if "compression_lz4" in f or "compression_bitshuffle" in f:
+            with pytest.raises(RuntimeError):
+                h.translate()
+            continue
+        out = h.translate()
+        m = fsspec.get_mapper("reference://", fo=out)
+        g = zarr.open(m)
+        assert np.mean(g.data) == 49.5
+
+
 def test_embed():
     fn = osp.join(here, "NEONDSTowerTemperatureData.hdf5")
     h = kerchunk.hdf.SingleHdf5ToZarr(fn, vlen_encode="embed")
