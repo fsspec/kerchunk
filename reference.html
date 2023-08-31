@@ -136,7 +136,7 @@ to disable</p>
 </dd>
 <dt><strong>storage_options: dict</strong></dt><dd><p>passed to fsspec if h5f is a str</p>
 </dd>
-<dt><strong>error: “warn” (default) | “pdb” | “ignore”</strong></dt><dd></dd>
+<dt><strong>error: “warn” (default) | “pdb” | “ignore” | “raise”</strong></dt><dd></dd>
 <dt><strong>vlen_encode: [“embed”, “null”, “leave”, “encode”]</strong></dt><dd><p>What to do with VLEN string variables or columns of tabular variables
 leave: pass through the 16byte garbage IDs unaffected, but requires no codec
 null: set all the strings to None or empty; required that this library is available
