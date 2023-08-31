@@ -293,7 +293,11 @@ def test_compress():
 
     files = glob.glob(osp.join(here, "hdf5_compression_*.h5"))
     for f in files:
-        h = kerchunk.hdf.SingleHdf5ToZarr(f)
+        h = kerchunk.hdf.SingleHdf5ToZarr(f, error="raise")
+        if "compression_lz4" in f or "compression_bitshuffle" in f:
+            with pytest.raises(RuntimeError):
+                h.translate()
+            continue
         out = h.translate()
         m = fsspec.get_mapper("reference://", fo=out)
         g = zarr.open(m)
