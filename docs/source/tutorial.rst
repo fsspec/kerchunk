@@ -539,11 +539,11 @@ s3://esip-qhub-public/ecmwf/ERA5_2020_2022_multivar.json.zst
 .. code::
 
     %%time
-    fs = fsspec.filesystem("reference", fo='s3://esip-qhub-public/ecmwf/ERA5_1979_2022_multivar.json.zst',
-                           ref_storage_args={"compression": "zstd"},
+    fs = fsspec.filesystem('reference', fo='s3://esip-qhub-public/ecmwf/ERA5_1979_2022_multivar.json.zst',
+                           target_options={'compression': 'zstd', 'anon':True},
                            remote_protocol='s3', remote_options={'anon':True})
-    m = fs.get_mapper("")
-    ds = xr.open_dataset(m, engine="zarr", backend_kwargs={'consolidated':False})
+    m = fs.get_mapper('')
+    ds = xr.open_dataset(m, engine='zarr', backend_kwargs={'consolidated':False})
     print(ds)
 
 
