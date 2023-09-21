@@ -41,7 +41,7 @@ def _fetch_first(url):
 @pytest.mark.parametrize(
     "url",
     [
-        "s3://noaa-hrrr-bdp-pds/hrrr.20140730/conus/hrrr.t23z.wrfsubhf1430.grib2",
+        "s3://noaa-hrrr-bdp-pds/hrrr.20140730/conus/hrrr.t23z.wrfsubhf08.grib2",
         "s3://noaa-gefs-pds/gefs.20221011/00/atmos/pgrb2ap5/gep01.t00z.pgrb2a.0p50.f570",
     ],
 )
