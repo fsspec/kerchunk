@@ -188,13 +188,13 @@ def scan_grib(
             _store_array(store, z, vals, varName, inline_threshold, offset, size, attrs)
             if "typeOfLevel" in m and "level" in m:
                 name = m["typeOfLevel"]
-                data = np.array([m["level"]])
+                data = np.array(m["level"])[()]
                 try:
                     attrs = cfgrib.dataset.COORD_ATTRS[name]
                 except KeyError:
                     logger.debug(f"Couldn't find coord {name} in dataset")
                     attrs = {}
-                attrs["_ARRAY_DIMENSIONS"] = [name]
+                attrs["_ARRAY_DIMENSIONS"] = []
                 _store_array(
                     store, z, data, name, inline_threshold, offset, size, attrs
                 )
@@ -228,6 +228,9 @@ def scan_grib(
                         elif coord == "longitude":
                             x = x.reshape(vals.shape)[0].copy()
                         inline_extra = x.nbytes + 1
+                elif np.isscalar(x):
+                    x = np.array(x)[()]
+                    dims = []
                 else:
                     x = np.array([x])
                     dims = [coord]
