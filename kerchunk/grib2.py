@@ -143,6 +143,7 @@ def scan_grib(
             store = {}
             mid = eccodes.codes_new_from_message(data)
             m = cfgrib.cfmessage.CfMessage(mid)
+            coordinates = []
 
             good = True
             for k, v in (filter or {}).items():
@@ -188,6 +189,7 @@ def scan_grib(
             _store_array(store, z, vals, varName, inline_threshold, offset, size, attrs)
             if "typeOfLevel" in m and "level" in m:
                 name = m["typeOfLevel"]
+                coordinates.append(name)
                 data = np.array(m["level"])[()]
                 try:
                     attrs = cfgrib.dataset.COORD_ATTRS[name]
@@ -213,6 +215,7 @@ def scan_grib(
                     x = m[coord2]
                 else:
                     continue
+                coordinates.append(coord2)
                 inline_extra = 0
                 if isinstance(x, np.ndarray) and x.size == vals.size:
                     if (
@@ -246,6 +249,8 @@ def scan_grib(
                     attrs,
                 )
                 z[coord].attrs["_ARRAY_DIMENSIONS"] = dims
+            if coordinates:
+                z.attrs["coordinates"] = " ".join(coordinates)
 
             out.append(
                 {
