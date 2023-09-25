@@ -190,6 +190,7 @@ def scan_grib(
             if "typeOfLevel" in m and "level" in m:
                 name = m["typeOfLevel"]
                 coordinates.append(name)
+                # convert to numpy scalar, so that .tobytes can be used for inlining
                 data = np.array(m["level"])[()]
                 try:
                     attrs = cfgrib.dataset.COORD_ATTRS[name]
@@ -230,8 +231,12 @@ def scan_grib(
                             x = x.reshape(vals.shape)[:, 0].copy()
                         elif coord == "longitude":
                             x = x.reshape(vals.shape)[0].copy()
+                        # force inlining of x/y/latitude/longitude coordinates.
+                        # TODO: Why?
                         inline_extra = x.nbytes + 1
                 elif np.isscalar(x):
+                    # convert python scalars to numpy scalar
+                    # so that .tobytes can be used for inlining
                     x = np.array(x)[()]
                     dims = []
                 else:
