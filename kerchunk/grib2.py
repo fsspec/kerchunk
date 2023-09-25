@@ -144,6 +144,10 @@ def scan_grib(
             mid = eccodes.codes_new_from_message(data)
             m = cfgrib.cfmessage.CfMessage(mid)
             message_keys = tuple(m.message_grib_keys())
+            shape = (m["Ny"], m["Nx"])
+            # thank you, gribscan
+            native_type = eccodes.codes_get_native_type(m.codes_id, "values")
+            data_size = eccodes.codes_get_size(m.codes_id, "values")
             coordinates = []
 
             good = True
@@ -169,7 +173,14 @@ def scan_grib(
                 global_attrs["institution"] = global_attrs["GRIB_centreDescription"]
             z.attrs.update(global_attrs)
 
-            vals = m["values"].reshape((m["Ny"], m["Nx"]))
+            if data_size < inline_threshold:
+                # read the data
+                vals = m["values"].reshape(shape)
+            else:
+                # dummy array to match the required interface
+                vals = np.empty(shape, dtype=native_type)
+                assert vals.size == data_size
+
             attrs = {
                 # Follow cfgrib convention and rename key
                 f"GRIB_{k}": m[k]
