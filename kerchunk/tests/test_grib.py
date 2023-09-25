@@ -21,7 +21,7 @@ def test_one():
         backend_kwargs={"consolidated": False, "storage_options": {"fo": out[0]}},
     )
 
-    assert ds.attrs["centre"] == "cwao"
+    assert ds.attrs["GRIB_centre"] == "cwao"
     ds2 = xr.open_dataset(fn, engine="cfgrib", backend_kwargs={"indexpath": ""})
 
     for var in ["latitude", "longitude", "unknown", "isobaricInhPa", "time"]:

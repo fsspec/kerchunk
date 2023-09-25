@@ -18,6 +18,15 @@ import numpy as np
 from kerchunk.utils import class_factory, _encode_for_JSON
 from kerchunk.codecs import GRIBCodec
 
+
+# cfgrib copies over certain GRIB attributes
+# but renames them to CF-compliant values
+ATTRS_TO_COPY_OVER = {
+    "long_name": "GRIB_name",
+    "units": "GRIB_units",
+    "standard_name": "GRIB_cfName",
+}
+
 logger = logging.getLogger("grib2-to-zarr")
 
 
@@ -149,18 +158,28 @@ def scan_grib(
 
             z = zarr.open_group(store)
             global_attrs = {
-                k: m[k] for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS if k in m
+                f"GRIB_{k}": m[k]
+                for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS
+                if k in m
             }
+            if "GRIB_centreDescription" in global_attrs:
+                # follow CF compliant renaming from cfgrib
+                global_attrs["institution"] = global_attrs["GRIB_centreDescription"]
             z.attrs.update(global_attrs)
 
             vals = m["values"].reshape((m["Ny"], m["Nx"]))
             attrs = {
-                k: m[k]
+                # Follow cfgrib convention and rename key
+                f"GRIB_{k}": m[k]
                 for k in cfgrib.dataset.DATA_ATTRIBUTES_KEYS
-                + cfgrib.dataset.DATA_TIME_KEYS
                 + cfgrib.dataset.EXTRA_DATA_ATTRIBUTES_KEYS
+                + cfgrib.dataset.GRID_TYPE_MAP.get(m["gridType"], [])
                 if k in m
             }
+            for k, v in ATTRS_TO_COPY_OVER.items():
+                if v in attrs:
+                    attrs[k] = attrs[v]
+
             # try to use cfVarName if available,
             # otherwise use the grib shortName
             varName = m["cfVarName"]
