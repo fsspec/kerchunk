@@ -143,11 +143,12 @@ def scan_grib(
             store = {}
             mid = eccodes.codes_new_from_message(data)
             m = cfgrib.cfmessage.CfMessage(mid)
+            message_keys = tuple(m.message_grib_keys())
             coordinates = []
 
             good = True
             for k, v in (filter or {}).items():
-                if k not in m:
+                if k not in message_keys:
                     good = False
                 elif isinstance(v, (list, tuple, set)):
                     if m[k] not in v:
@@ -161,7 +162,7 @@ def scan_grib(
             global_attrs = {
                 f"GRIB_{k}": m[k]
                 for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS
-                if k in m
+                if k in message_keys
             }
             if "GRIB_centreDescription" in global_attrs:
                 # follow CF compliant renaming from cfgrib
@@ -175,7 +176,7 @@ def scan_grib(
                 for k in cfgrib.dataset.DATA_ATTRIBUTES_KEYS
                 + cfgrib.dataset.EXTRA_DATA_ATTRIBUTES_KEYS
                 + cfgrib.dataset.GRID_TYPE_MAP.get(m["gridType"], [])
-                if k in m
+                if k in message_keys
             }
             for k, v in ATTRS_TO_COPY_OVER.items():
                 if v in attrs:
@@ -187,7 +188,7 @@ def scan_grib(
             if varName in ("undef", "unknown"):
                 varName = m["shortName"]
             _store_array(store, z, vals, varName, inline_threshold, offset, size, attrs)
-            if "typeOfLevel" in m and "level" in m:
+            if "typeOfLevel" in message_keys and "level" in message_keys:
                 name = m["typeOfLevel"]
                 coordinates.append(name)
                 # convert to numpy scalar, so that .tobytes can be used for inlining
@@ -212,7 +213,7 @@ def scan_grib(
                 coord2 = {"latitude": "latitudes", "longitude": "longitudes"}.get(
                     coord, coord
                 )
-                if coord2 in m:
+                if coord2 in message_keys:
                     x = m[coord2]
                 else:
                     continue
