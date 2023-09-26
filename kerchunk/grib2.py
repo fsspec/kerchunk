@@ -251,7 +251,8 @@ def scan_grib(
                         elif coord == "longitude":
                             x = x.reshape(vals.shape)[0].copy()
                         # force inlining of x/y/latitude/longitude coordinates.
-                        # TODO: Why?
+                        # since these are derived from analytic formulae
+                        # and are not stored in the message
                         inline_extra = x.nbytes + 1
                 elif np.isscalar(x):
                     # convert python scalars to numpy scalar
