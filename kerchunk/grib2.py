@@ -151,10 +151,10 @@ def scan_grib(
 
             # It would be nice to just have a list of valid keys
             # There does not seem to be a nice API for this
-            # 1. message_grib_keys returns keys in the message
-            # 2. There exist computed keys, that are functions applied on the data
+            # 1. message_grib_keys returns keys coded in the message
+            # 2. There exist "computed" keys, that are functions applied on the data
             # 3. There are also aliases!
-            #    e.g. "number" is an alias of "perturbationNumber"
+            #    e.g. "number" is an alias of "perturbationNumber", and cfgrib uses this alias
             # So we stick to checking membership in 'm', which ends up doing
             # a lot of reads.
             message_keys = set(m.message_grib_keys())
