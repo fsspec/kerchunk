@@ -136,6 +136,9 @@ def scan_grib(
     storage_options = storage_options or {}
     logger.debug(f"Open {url}")
 
+    # This is hardcoded a lot in cfgrib!
+    TIME_DIMS = ("step", "time")
+
     out = []
     with fsspec.open(url, "rb", **storage_options) as f:
         logger.debug(f"File {url}")
@@ -143,7 +146,10 @@ def scan_grib(
             store = {}
             mid = eccodes.codes_new_from_message(data)
             m = cfgrib.cfmessage.CfMessage(mid)
-            message_keys = tuple(m.message_grib_keys())
+            message_keys = set(m.message_grib_keys())
+            message_keys.update(cfgrib.dataset.ENSEMBLE_KEYS)
+            message_keys.update(TIME_DIMS)
+            # message_keys.extend(m.computed_keys)
             shape = (m["Ny"], m["Nx"])
             # thank you, gribscan
             native_type = eccodes.codes_get_native_type(m.codes_id, "values")
@@ -166,7 +172,7 @@ def scan_grib(
             global_attrs = {
                 f"GRIB_{k}": m[k]
                 for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS
-                if k in message_keys
+                # if k in message_keys
             }
             if "GRIB_centreDescription" in global_attrs:
                 # follow CF compliant renaming from cfgrib
@@ -230,7 +236,7 @@ def scan_grib(
                     continue
                 coordinates.append(coord2)
                 inline_extra = 0
-                if isinstance(x, np.ndarray) and x.size == vals.size:
+                if isinstance(x, np.ndarray) and x.size == data_size:
                     if (
                         m["gridType"]
                         in cfgrib.dataset.GRID_TYPES_2D_NON_DIMENSION_COORDS
