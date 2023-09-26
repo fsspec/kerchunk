@@ -137,7 +137,9 @@ def scan_grib(
     logger.debug(f"Open {url}")
 
     # This is hardcoded a lot in cfgrib!
-    TIME_DIMS = ("step", "time")
+    # valid_time is added if "time" and "step" are present in time_dims
+    # These are present by default
+    # TIME_DIMS = ["step", "time", "valid_time"]
 
     out = []
     with fsspec.open(url, "rb", **storage_options) as f:
@@ -146,10 +148,23 @@ def scan_grib(
             store = {}
             mid = eccodes.codes_new_from_message(data)
             m = cfgrib.cfmessage.CfMessage(mid)
+
+            # It would be nice to just have a list of valid keys
+            # There does not seem to be a nice API for this
+            # 1. message_grib_keys returns keys in the message
+            # 2. There exist computed keys, that are functions applied on the data
+            # 3. There are also aliases!
+            #    e.g. "number" is an alias of "perturbationNumber"
+            # So we stick to checking membership in 'm', which ends up doing
+            # a lot of reads.
             message_keys = set(m.message_grib_keys())
-            message_keys.update(cfgrib.dataset.ENSEMBLE_KEYS)
-            message_keys.update(TIME_DIMS)
+            # The choices here copy cfgrib :(
+            # message_keys.update(cfgrib.dataset.INDEX_KEYS)
+            # message_keys.update(TIME_DIMS)
+            # print("totalNumber" in cfgrib.dataset.INDEX_KEYS)
+            # Adding computed keys adds a lot that isn't added by cfgrib
             # message_keys.extend(m.computed_keys)
+
             shape = (m["Ny"], m["Nx"])
             # thank you, gribscan
             native_type = eccodes.codes_get_native_type(m.codes_id, "values")
@@ -158,7 +173,7 @@ def scan_grib(
 
             good = True
             for k, v in (filter or {}).items():
-                if k not in message_keys:
+                if k not in m:
                     good = False
                 elif isinstance(v, (list, tuple, set)):
                     if m[k] not in v:
@@ -172,7 +187,7 @@ def scan_grib(
             global_attrs = {
                 f"GRIB_{k}": m[k]
                 for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS
-                # if k in message_keys
+                if k in m
             }
             if "GRIB_centreDescription" in global_attrs:
                 # follow CF compliant renaming from cfgrib
@@ -193,7 +208,7 @@ def scan_grib(
                 for k in cfgrib.dataset.DATA_ATTRIBUTES_KEYS
                 + cfgrib.dataset.EXTRA_DATA_ATTRIBUTES_KEYS
                 + cfgrib.dataset.GRID_TYPE_MAP.get(m["gridType"], [])
-                if k in message_keys
+                if k in m
             }
             for k, v in ATTRS_TO_COPY_OVER.items():
                 if v in attrs:
@@ -231,9 +246,8 @@ def scan_grib(
                 coord2 = {"latitude": "latitudes", "longitude": "longitudes"}.get(
                     coord, coord
                 )
-                if coord2 in message_keys:
-                    x = m[coord2]
-                else:
+                x = m.get(coord2)
+                if x is None:
                     continue
                 coordinates.append(coord2)
                 inline_extra = 0
