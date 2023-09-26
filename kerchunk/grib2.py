@@ -249,7 +249,7 @@ def scan_grib(
                 x = m.get(coord2)
                 if x is None:
                     continue
-                coordinates.append(coord2)
+                coordinates.append(coord)
                 inline_extra = 0
                 if isinstance(x, np.ndarray) and x.size == data_size:
                     if (
