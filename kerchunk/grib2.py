@@ -209,7 +209,8 @@ def scan_grib(
                 name = m["typeOfLevel"]
                 coordinates.append(name)
                 # convert to numpy scalar, so that .tobytes can be used for inlining
-                data = np.array(m["level"])[()]
+                # dtype=float is hardcoded in cfgrib
+                data = np.array(m["level"], dtype=float)[()]
                 try:
                     attrs = cfgrib.dataset.COORD_ATTRS[name]
                 except KeyError:
