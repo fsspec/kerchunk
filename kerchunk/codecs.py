@@ -91,21 +91,23 @@ class GRIBCodec(numcodecs.abc.Codec):
 
         if self.var in ["latitude", "longitude"]:
             var = self.var + "s"
-            dt = self.dtype or "float64"
+            dtype = self.dtype or "float64"
         else:
             var = "values"
-            dt = self.dtype or "float32"
+            dtype = self.dtype or "float32"
+        if isinstance(dtype, str):
+            dtype = np.dtype(dtype).type
         with self.eclock:
             mid = eccodes.codes_new_from_message(bytes(buf))
             try:
-                data = eccodes.codes_get_array(mid, var)
+                data = eccodes.codes_get_array(mid, var, dtype)
                 missingValue = eccodes.codes_get_string(mid, "missingValue")
                 if var == "values" and missingValue:
                     data[data == float(missingValue)] = np.nan
                 if out is not None:
                     return numcodecs.compat.ndarray_copy(data, out)
                 else:
-                    return data.astype(dt, copy=False)
+                    return data
 
             finally:
                 eccodes.codes_release(mid)
