@@ -106,7 +106,7 @@ class GRIBCodec(numcodecs.abc.Codec):
                 if out is not None:
                     return numcodecs.compat.ndarray_copy(data, out)
                 else:
-                    return data.astype(dt)
+                    return data.astype(dt, copy=False)
 
             finally:
                 eccodes.codes_release(mid)
