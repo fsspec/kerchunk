@@ -241,7 +241,6 @@ class SingleHdf5ToZarr:
                     f"{h5obj.name} uses bitshuffle compression - not supported by kerchunk"
                 )
             else:
-                breakpoint()
                 raise RuntimeError(
                     f"{h5obj.name} uses filter id {filter_id} with properties {properties},"
                     f" not supported by kerchunk., supported filters are {self.decoders.keys()}"
