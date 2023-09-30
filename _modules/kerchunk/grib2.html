@@ -100,6 +100,15 @@
 <span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span><span class="p">,</span> <span class="n">_encode_for_JSON</span>
 <span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">GRIBCodec</span>
 
+
+<span class="c1"># cfgrib copies over certain GRIB attributes</span>
+<span class="c1"># but renames them to CF-compliant values</span>
+<span class="n">ATTRS_TO_COPY_OVER</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;long_name&quot;</span><span class="p">:</span> <span class="s2">&quot;GRIB_name&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;GRIB_units&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;standard_name&quot;</span><span class="p">:</span> <span class="s2">&quot;GRIB_cfName&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;grib2-to-zarr&quot;</span><span class="p">)</span>
 
 
@@ -209,6 +218,11 @@
     <span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Open </span><span class="si">{url}</span><span class="s2">&quot;</span><span class="p">)</span>
 
+    <span class="c1"># This is hardcoded a lot in cfgrib!</span>
+    <span class="c1"># valid_time is added if &quot;time&quot; and &quot;step&quot; are present in time_dims</span>
+    <span class="c1"># These are present by default</span>
+    <span class="c1"># TIME_DIMS = [&quot;step&quot;, &quot;time&quot;, &quot;valid_time&quot;]</span>
+
     <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{url}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -216,6 +230,28 @@
             <span class="n">store</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="n">mid</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_new_from_message</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
             <span class="n">m</span> <span class="o">=</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">cfmessage</span><span class="o">.</span><span class="n">CfMessage</span><span class="p">(</span><span class="n">mid</span><span class="p">)</span>
+
+            <span class="c1"># It would be nice to just have a list of valid keys</span>
+            <span class="c1"># There does not seem to be a nice API for this</span>
+            <span class="c1"># 1. message_grib_keys returns keys coded in the message</span>
+            <span class="c1"># 2. There exist &quot;computed&quot; keys, that are functions applied on the data</span>
+            <span class="c1"># 3. There are also aliases!</span>
+            <span class="c1">#    e.g. &quot;number&quot; is an alias of &quot;perturbationNumber&quot;, and cfgrib uses this alias</span>
+            <span class="c1"># So we stick to checking membership in &#39;m&#39;, which ends up doing</span>
+            <span class="c1"># a lot of reads.</span>
+            <span class="n">message_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">message_grib_keys</span><span class="p">())</span>
+            <span class="c1"># The choices here copy cfgrib :(</span>
+            <span class="c1"># message_keys.update(cfgrib.dataset.INDEX_KEYS)</span>
+            <span class="c1"># message_keys.update(TIME_DIMS)</span>
+            <span class="c1"># print(&quot;totalNumber&quot; in cfgrib.dataset.INDEX_KEYS)</span>
+            <span class="c1"># Adding computed keys adds a lot that isn&#39;t added by cfgrib</span>
+            <span class="c1"># message_keys.extend(m.computed_keys)</span>
+
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;Ny&quot;</span><span class="p">],</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;Nx&quot;</span><span class="p">])</span>
+            <span class="c1"># thank you, gribscan</span>
+            <span class="n">native_type</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_native_type</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">codes_id</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">)</span>
+            <span class="n">data_size</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_size</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">codes_id</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">)</span>
+            <span class="n">coordinates</span> <span class="o">=</span> <span class="p">[]</span>
 
             <span class="n">good</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">filter</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -231,33 +267,53 @@
 
             <span class="n">z</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
             <span class="n">global_attrs</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="n">k</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GLOBAL_ATTRIBUTES_KEYS</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">m</span>
-            <span class="p">}</span>
-            <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">global_attrs</span><span class="p">)</span>
-
-            <span class="n">vals</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;Ny&quot;</span><span class="p">],</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;Nx&quot;</span><span class="p">]))</span>
-            <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="n">k</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">DATA_ATTRIBUTES_KEYS</span>
-                <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">DATA_TIME_KEYS</span>
-                <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">EXTRA_DATA_ATTRIBUTES_KEYS</span>
+                <span class="sa">f</span><span class="s2">&quot;GRIB_</span><span class="si">{k}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GLOBAL_ATTRIBUTES_KEYS</span>
                 <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">m</span>
             <span class="p">}</span>
+            <span class="k">if</span> <span class="s2">&quot;GRIB_centreDescription&quot;</span> <span class="ow">in</span> <span class="n">global_attrs</span><span class="p">:</span>
+                <span class="c1"># follow CF compliant renaming from cfgrib</span>
+                <span class="n">global_attrs</span><span class="p">[</span><span class="s2">&quot;institution&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">global_attrs</span><span class="p">[</span><span class="s2">&quot;GRIB_centreDescription&quot;</span><span class="p">]</span>
+            <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">global_attrs</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">data_size</span> <span class="o">&lt;</span> <span class="n">inline_threshold</span><span class="p">:</span>
+                <span class="c1"># read the data</span>
+                <span class="n">vals</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># dummy array to match the required interface</span>
+                <span class="n">vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">native_type</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">vals</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">data_size</span>
+
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="c1"># Follow cfgrib convention and rename key</span>
+                <span class="sa">f</span><span class="s2">&quot;GRIB_</span><span class="si">{k}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">DATA_ATTRIBUTES_KEYS</span>
+                <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">EXTRA_DATA_ATTRIBUTES_KEYS</span>
+                <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPE_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">],</span> <span class="p">[])</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">m</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ATTRS_TO_COPY_OVER</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+                    <span class="n">attrs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+
             <span class="c1"># try to use cfVarName if available,</span>
             <span class="c1"># otherwise use the grib shortName</span>
             <span class="n">varName</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;cfVarName&quot;</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">varName</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;undef&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">):</span>
                 <span class="n">varName</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;shortName&quot;</span><span class="p">]</span>
             <span class="n">_store_array</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attrs</span><span class="p">)</span>
-            <span class="k">if</span> <span class="s2">&quot;typeOfLevel&quot;</span> <span class="ow">in</span> <span class="n">m</span> <span class="ow">and</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;typeOfLevel&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span> <span class="ow">and</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span><span class="p">:</span>
                 <span class="n">name</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">]</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">]])</span>
+                <span class="n">coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="c1"># convert to numpy scalar, so that .tobytes can be used for inlining</span>
+                <span class="c1"># dtype=float is hardcoded in cfgrib</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)[()]</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">attrs</span> <span class="o">=</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">COORD_ATTRS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
                 <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find coord </span><span class="si">{name}</span><span class="s2"> in dataset&quot;</span><span class="p">)</span>
                     <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
-                <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">_store_array</span><span class="p">(</span>
                     <span class="n">store</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attrs</span>
                 <span class="p">)</span>
@@ -272,12 +328,12 @@
                 <span class="n">coord2</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;latitudes&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;longitudes&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
                     <span class="n">coord</span><span class="p">,</span> <span class="n">coord</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">coord2</span> <span class="ow">in</span> <span class="n">m</span><span class="p">:</span>
-                    <span class="n">x</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="n">coord2</span><span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">coord2</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">continue</span>
+                <span class="n">coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
                 <span class="n">inline_extra</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">vals</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">data_size</span><span class="p">:</span>
                     <span class="k">if</span> <span class="p">(</span>
                         <span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">]</span>
                         <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_2D_NON_DIMENSION_COORDS</span>
@@ -290,7 +346,15 @@
                             <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                         <span class="k">elif</span> <span class="n">coord</span> <span class="o">==</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span>
                             <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                        <span class="c1"># force inlining of x/y/latitude/longitude coordinates.</span>
+                        <span class="c1"># since these are derived from analytic formulae</span>
+                        <span class="c1"># and are not stored in the message</span>
                         <span class="n">inline_extra</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+                    <span class="c1"># convert python scalars to numpy scalar</span>
+                    <span class="c1"># so that .tobytes can be used for inlining</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)[()]</span>
+                    <span class="n">dims</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">])</span>
                     <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">coord</span><span class="p">]</span>
@@ -306,6 +370,8 @@
                     <span class="n">attrs</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">z</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dims</span>
+            <span class="k">if</span> <span class="n">coordinates</span><span class="p">:</span>
+                <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
 
             <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">{</span>
