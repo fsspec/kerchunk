@@ -21,7 +21,7 @@ def test_one():
         backend_kwargs={"consolidated": False, "storage_options": {"fo": out[0]}},
     )
 
-    assert ds.attrs["centre"] == "cwao"
+    assert ds.attrs["GRIB_centre"] == "cwao"
     ds2 = xr.open_dataset(fn, engine="cfgrib", backend_kwargs={"indexpath": ""})
 
     for var in ["latitude", "longitude", "unknown", "isobaricInhPa", "time"]:
@@ -43,12 +43,13 @@ def _fetch_first(url):
     [
         "s3://noaa-hrrr-bdp-pds/hrrr.20140730/conus/hrrr.t23z.wrfsubhf08.grib2",
         "s3://noaa-gefs-pds/gefs.20221011/00/atmos/pgrb2ap5/gep01.t00z.pgrb2a.0p50.f570",
+        "s3://noaa-gefs-retrospective/GEFSv12/reforecast/2000/2000010100/c00/Days:10-16/acpcp_sfc_2000010100_c00.grib2",
     ],
 )
 def test_archives(tmpdir, url):
     grib = GribToZarr(url, storage_options={"anon": True}, skip=1)
     out = grib.translate()[0]
-    ds = xr.open_dataset(
+    ours = xr.open_dataset(
         "reference://",
         engine="zarr",
         backend_kwargs={
@@ -66,11 +67,11 @@ def test_archives(tmpdir, url):
     with open(fn, "wb") as f:
         f.write(data)
 
-    ds2 = cfgrib.open_dataset(fn)
-    dims = list(ds.dims)
+    theirs = cfgrib.open_dataset(fn)
     if "hrrr" in url:
-        assert (ds.refc == ds2.refc).all()
-        assert dims.index("y") < dims.index("x")
-    else:
-        assert np.allclose(ds.gh, ds2.gh)
-        assert dims[0] == "latitude"
+        # for some reason, cfgrib reads `step` as 7.25 hours
+        # while grib_ls and kerchunk reads `step` as 425 hours.
+        ours = ours.drop_vars("step")
+        theirs = theirs.drop_vars("step")
+
+    xr.testing.assert_allclose(ours, theirs)
