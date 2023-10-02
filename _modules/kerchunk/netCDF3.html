@@ -289,9 +289,15 @@
             <span class="n">outer_shape</span> <span class="o">=</span> <span class="n">size</span> <span class="o">//</span> <span class="n">dt</span><span class="o">.</span><span class="n">itemsize</span>
             <span class="n">offset</span> <span class="o">=</span> <span class="n">start</span>
             <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dt</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">dt</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+                <span class="c1"># Skip padding, but increment offset.</span>
+                <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_padding_&quot;</span><span class="p">):</span>
+                    <span class="n">offset</span> <span class="o">+=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span>
+                    <span class="k">continue</span>
+
                 <span class="c1"># the order of the names if fixed and important!</span>
                 <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-                <span class="n">dtype</span> <span class="o">=</span> <span class="n">dt</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
                 <span class="n">base</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">base</span>  <span class="c1"># actual dtype</span>
                 <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">outer_shape</span><span class="p">,)</span> <span class="o">+</span> <span class="n">dtype</span><span class="o">.</span><span class="n">shape</span>
 
