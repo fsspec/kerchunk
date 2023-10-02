@@ -45,6 +45,11 @@ def unlimited_dataset(tmpdir):
     rootgrp.createDimension("lat", 10)
     rootgrp.createDimension("lon", 5)
     rootgrp.createVariable("time", "f8", ("time",))
+    # reference time is an unbounded dimension that is a half byte long, so it
+    # has padding to line up to take up exactly one byte. It is here to test that
+    # kerchunk can handle the padding correctly and read following variables
+    # correctly.
+    rootgrp.createVariable("reference_time", "h", ("time",))
     rootgrp.title = "testing"
     latitudes = rootgrp.createVariable("lat", "f4", ("lat",))
     longitudes = rootgrp.createVariable("lon", "f4", ("lon",))
