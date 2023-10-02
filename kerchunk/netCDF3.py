@@ -207,9 +207,15 @@ class NetCDF3ToZarr(netcdf_file):
             outer_shape = size // dt.itemsize
             offset = start
             for name in dt.names:
+                dtype = dt[name]
+
+                # Skip padding, but increment offset.
+                if name.startswith("_padding_"):
+                    offset += dtype.itemsize
+                    continue
+
                 # the order of the names if fixed and important!
                 var = self.variables[name]
-                dtype = dt[name]
                 base = dtype.base  # actual dtype
                 shape = (outer_shape,) + dtype.shape
 
