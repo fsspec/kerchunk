@@ -156,10 +156,10 @@ class NetCDF3ToZarr(netcdf_file):
         out = self.out
         z = zarr.open(out, mode="w")
         for dim, var in self.variables.items():
-            if dim in self.dimensions:
-                shape = self.dimensions[dim]
-            elif dim in self.chunks:
+            if dim in self.chunks:
                 shape = self.chunks[dim][-1]
+            elif dim in self.dimensions:
+                shape = self.dimensions[dim]
             else:
                 # defer record array
                 continue
