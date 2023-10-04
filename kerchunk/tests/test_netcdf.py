@@ -93,8 +93,8 @@ def test_unlimited(unlimited_dataset):
 
 @pytest.fixture()
 def matching_coordinate_dimension_dataset(tmpdir):
-    '''Create a dataset with a coordinate dimension that matches the name of a
-    variable dimension.'''
+    """Create a dataset with a coordinate dimension that matches the name of a
+    variable dimension."""
     # https://unidata.github.io/netcdf4-python/#creatingopeningclosing-a-netcdf-file
     from netCDF4 import Dataset
 
