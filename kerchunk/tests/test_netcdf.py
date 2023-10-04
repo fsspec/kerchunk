@@ -1,11 +1,17 @@
 import os
 
+
 import fsspec
 import numpy as np
+from packaging.version import Version
 import pytest
 from kerchunk import netCDF3
 
 xr = pytest.importorskip("xarray")
+
+
+has_xarray_2023_8_0 = Version(xr.__version__) >= Version("2023.8.0")
+
 
 arr = np.random.rand(1, 10, 10)
 static = xr.DataArray(data=np.random.rand(10, 10), dims=["x", "y"], name="static")
@@ -114,6 +120,10 @@ def matching_coordinate_dimension_dataset(tmpdir):
     return fn
 
 
+@pytest.mark.skipif(
+    not has_xarray_2023_8_0, 
+    reason="XArray 2023.08.0 is required for this behavior."
+)
 def test_matching_coordinate_dimension(matching_coordinate_dimension_dataset):
     fn = matching_coordinate_dimension_dataset
     expected = xr.open_dataset(fn, engine="scipy")
