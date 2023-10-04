@@ -89,3 +89,43 @@ def test_unlimited(unlimited_dataset):
     assert (ds.lat.values == expected.lat.values).all()
     assert (ds.lon.values == expected.lon.values).all()
     assert (ds.temp.values == expected.temp.values).all()
+
+
+@pytest.fixture()
+def matching_coordinate_dimension_dataset(tmpdir):
+    '''Create a dataset with a coordinate dimension that matches the name of a
+    variable dimension.'''
+    # https://unidata.github.io/netcdf4-python/#creatingopeningclosing-a-netcdf-file
+    from netCDF4 import Dataset
+
+    fn = os.path.join(tmpdir, "test.nc")
+    rootgrp = Dataset(fn, "w", format="NETCDF3_64BIT")
+    rootgrp.createDimension("node", 2)
+    rootgrp.createDimension("sigma", 2)
+
+    node = rootgrp.createVariable("node", "i4", ("node",))
+    sigma = rootgrp.createVariable("sigma", "f8", ("sigma", "node"))
+
+    node[:] = [0, 1]
+    for i in range(2):
+        sigma[i] = np.random.uniform(size=(2,))
+
+    rootgrp.close()
+    return fn
+
+
+def test_matching_coordinate_dimension(matching_coordinate_dimension_dataset):
+    fn = matching_coordinate_dimension_dataset
+    expected = xr.open_dataset(fn, engine="scipy")
+    h = netCDF3.NetCDF3ToZarr(fn)
+    out = h.translate()
+    ds = xr.open_dataset(
+        "reference://",
+        engine="zarr",
+        backend_kwargs={
+            "consolidated": False,
+            "storage_options": {"fo": out},
+        },
+    )
+    assert (ds.node.values == expected.node.values).all()
+    assert (ds.sigma.values == expected.sigma.values).all()
