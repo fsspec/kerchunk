@@ -121,8 +121,7 @@ def matching_coordinate_dimension_dataset(tmpdir):
 
 
 @pytest.mark.skipif(
-    not has_xarray_2023_8_0, 
-    reason="XArray 2023.08.0 is required for this behavior."
+    not has_xarray_2023_8_0, reason="XArray 2023.08.0 is required for this behavior."
 )
 def test_matching_coordinate_dimension(matching_coordinate_dimension_dataset):
     fn = matching_coordinate_dimension_dataset
