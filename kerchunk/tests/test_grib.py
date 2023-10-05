@@ -75,3 +75,7 @@ def test_archives(tmpdir, url):
         theirs = theirs.drop_vars("step")
 
     xr.testing.assert_allclose(ours, theirs)
+
+def test_subhourly():
+    result = scan_grib("hrrr.wrfsubhf.sample.grib2")
+    len(result) == 2
