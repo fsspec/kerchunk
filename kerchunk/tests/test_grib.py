@@ -76,6 +76,7 @@ def test_archives(tmpdir, url):
 
     xr.testing.assert_allclose(ours, theirs)
 
+
 def test_subhourly():
     # two messages extracted from a hrrr output including one with an eccodes
     # non-compliant endstep type which raises WrongStepUnitError
