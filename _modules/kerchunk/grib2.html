@@ -328,7 +328,17 @@
                 <span class="n">coord2</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;latitudes&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;longitudes&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
                     <span class="n">coord</span><span class="p">,</span> <span class="n">coord</span>
                 <span class="p">)</span>
-                <span class="n">x</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">coord2</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">coord2</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">WrongStepUnitError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;Ignoring coordinate &#39;</span><span class="si">%s</span><span class="s2">&#39; for varname &#39;</span><span class="si">%s</span><span class="s2">&#39;, raises: eccodes.WrongStepUnitError(</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span>
+                        <span class="n">coord2</span><span class="p">,</span>
+                        <span class="n">varName</span><span class="p">,</span>
+                        <span class="n">e</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">continue</span>
+
                 <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">continue</span>
                 <span class="n">coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
