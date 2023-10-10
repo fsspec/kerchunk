@@ -246,7 +246,17 @@ def scan_grib(
                 coord2 = {"latitude": "latitudes", "longitude": "longitudes"}.get(
                     coord, coord
                 )
-                x = m.get(coord2)
+                try:
+                    x = m.get(coord2)
+                except eccodes.WrongStepUnitError as e:
+                    logger.warning(
+                        "Ignoring coordinate '%s' for varname '%s', raises: eccodes.WrongStepUnitError(%s)",
+                        coord2,
+                        varName,
+                        e,
+                    )
+                    continue
+
                 if x is None:
                     continue
                 coordinates.append(coord)
