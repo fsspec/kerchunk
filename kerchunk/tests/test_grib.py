@@ -75,3 +75,11 @@ def test_archives(tmpdir, url):
         theirs = theirs.drop_vars("step")
 
     xr.testing.assert_allclose(ours, theirs)
+
+
+def test_subhourly():
+    # two messages extracted from a hrrr output including one with an eccodes
+    # non-compliant endstep type which raises WrongStepUnitError
+    fpath = os.path.join(here, "hrrr.wrfsubhf.sample.grib2")
+    result = scan_grib(fpath)
+    assert len(result) == 2, "Expected two grib messages"
