@@ -37,9 +37,7 @@ class KerchunkBackend(BackendEntrypoint):
     url = "https://fsspec.github.io/kerchunk/"
 
 
-def open_reference_dataset(
-    filename_or_obj, *, storage_options=None
-):
+def open_reference_dataset(filename_or_obj, *, storage_options=None):
     fs = ReferenceFileSystem(fo=filename_or_obj, **storage_options)
     m = fs.get_mapper()
     return xr.open_dataset(m, engine="zarr", consolidated=False)

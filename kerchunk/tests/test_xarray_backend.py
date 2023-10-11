@@ -17,5 +17,7 @@ def test_reference_netcdf(m):
     m.pipe("data.nc3", bdata)
     h = netCDF3.netcdf_recording_file("memory://data.nc3")
     out = h.translate()
-    ds = xr.open_dataset(out, engine="kerchunk", storage_options={"remote_protocol": "memory"})
+    ds = xr.open_dataset(
+        out, engine="kerchunk", storage_options={"remote_protocol": "memory"}
+    )
     assert (ds.data == data).all()
