@@ -8,11 +8,22 @@ class KerchunkBackend(BackendEntrypoint):
     def open_dataset(
         self,
         filename_or_obj,
-        **kwargs,
+        drop_variables=None,
+        storage_options=None,
+        open_dataset_options=None,
     ):
-        return my_open_dataset(filename_or_obj, **kwargs)
 
-    open_dataset_parameters = ["filename_or_obj"]
+        ref_ds = open_reference_dataset(
+            filename_or_obj, storage_options, open_dataset_options
+        )
+        if drop_variables is not None:
+            ref_ds = ref_ds.drop_vars(drop_variables)
+
+    open_dataset_parameters = [
+        "filename_or_obj",
+        "storage_options",
+        "open_dataset_options",
+    ]
 
     def guess_can_open(self, filename_or_obj):
         try:
@@ -25,7 +36,8 @@ class KerchunkBackend(BackendEntrypoint):
     url = "https://fsspec.github.io/kerchunk/"
 
 
-def my_open_dataset(filename_or_obj, **kwargs):
-    fs = ReferenceFileSystem(fo=filename_or_obj, **kwargs)
+def open_reference_dataset(filename_or_obj, storage_options, open_dataset_options):
+    fs = ReferenceFileSystem(fo=filename_or_obj)
+
     m = fs.get_mapper()
-    return xr.open_dataset(m, engine="zarr", consolidated=False)
+    return xr.open_dataset(m, engine="zarr", consolidated=False, **open_dataset_options)
