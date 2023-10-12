@@ -1,7 +1,7 @@
 from xarray.backends import BackendEntrypoint
 import xarray as xr
 import os
-from fsspec.implementations.reference import ReferenceFileSystem
+import fsspec
 
 
 class KerchunkBackend(BackendEntrypoint):
@@ -47,7 +47,7 @@ def open_reference_dataset(
         storage_options = {}
     if open_dataset_options is None:
         open_dataset_options = {}
-    fs = ReferenceFileSystem(fo=filename_or_obj, **storage_options)
-    m = fs.get_mapper()
+
+    m = fsspec.get_mapper("reference://", fo=filename_or_obj, **storage_options)
 
     return xr.open_dataset(m, engine="zarr", consolidated=False, **open_dataset_options)
