@@ -34,7 +34,7 @@ class KerchunkBackend(BackendEntrypoint):
             _, ext = os.path.splitext(filename_or_obj)
         except TypeError:
             return False
-        return ext in {".json", ".parquet"}
+        return ext in {".json", ".json.zstd", ".parquet"}
 
     description = "Open Kerchunk References with Xarray"
     url = "https://fsspec.github.io/kerchunk/"
