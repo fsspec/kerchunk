@@ -146,16 +146,20 @@ def test_fail_irregular_chunk_boundaries(tmpdir):
     [
         (
             [
-                (np.arange(10), ([2, 2, 2, 2, 2],)),
-                (np.arange(10, 20), ([3, 3, 3, 1],)),
+                zarr.array(np.arange(10), chunks=([2, 2, 2, 2, 2],)),
+                zarr.array(np.arange(10, 20), chunks=([3, 3, 3, 1],)),
             ],
             0,
             ([2, 2, 2, 2, 2, 3, 3, 3, 1],),
         ),
         (
             [
-                (np.broadcast_to(np.arange(6), (10, 6)), ([5, 5], [6])),
-                (np.broadcast_to(np.arange(7, 10), (10, 3)), ([5, 5], [3])),
+                zarr.array(
+                    np.broadcast_to(np.arange(6), (10, 6)), chunks=([5, 5], [6])
+                ),
+                zarr.array(
+                    np.broadcast_to(np.arange(7, 10), (10, 3)), chunks=([5, 5], [3])
+                ),
             ],
             1,
             ([5, 5], [6, 3]),
@@ -165,10 +169,10 @@ def test_fail_irregular_chunk_boundaries(tmpdir):
 def test_variable_length_chunks(tmpdir, arrays, axis, expected_chunks):
     fns = []
     refs = []
-    for i, (x, chunks) in enumerate(arrays):
+    for i, x in enumerate(arrays):
         fn = f"{tmpdir}/out{i}.zarr"
         g = zarr.open(fn)
-        g.create_dataset("x", data=x, chunks=chunks)
+        g.create_dataset("x", data=x, chunks=x.chunks)
         fns.append(fn)
         ref = kerchunk.zarr.single_zarr(fn, inline=0)
         refs.append(ref)
@@ -182,5 +186,5 @@ def test_variable_length_chunks(tmpdir, arrays, axis, expected_chunks):
 
     assert g_result["x"].chunks == expected_chunks
     np.testing.assert_array_equal(
-        g_result["x"][:], np.concatenate([a for a, _ in arrays], axis=axis)
+        g_result["x"][...], np.concatenate([a[...] for a in arrays], axis=axis)
     )
