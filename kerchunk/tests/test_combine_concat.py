@@ -166,7 +166,7 @@ def test_fail_irregular_chunk_boundaries(tmpdir):
         ),
     ],
 )
-def test_variable_length_chunks(tmpdir, arrays, axis, expected_chunks):
+def test_variable_length_chunks_success(tmpdir, arrays, axis, expected_chunks):
     fns = []
     refs = []
     for i, x in enumerate(arrays):
@@ -188,3 +188,26 @@ def test_variable_length_chunks(tmpdir, arrays, axis, expected_chunks):
     np.testing.assert_array_equal(
         g_result["x"][...], np.concatenate([a[...] for a in arrays], axis=axis)
     )
+
+
+def test_variable_length_chunks_mismatch_chunk_failure(tmpdir):
+    arrays = [
+        zarr.array(np.arange(12).reshape(4, 3), chunks=([2, 2], [1, 2])),
+        zarr.array(np.arange(12, 24).reshape(4, 3), chunks=([4], [2, 1])),
+    ]
+    axis = 0
+
+    fns = []
+    refs = []
+    for i, x in enumerate(arrays):
+        fn = f"{tmpdir}/out{i}.zarr"
+        g = zarr.open(fn)
+        g.create_dataset("x", data=x, chunks=x.chunks)
+        fns.append(fn)
+        ref = kerchunk.zarr.single_zarr(fn, inline=0)
+        refs.append(ref)
+
+    with pytest.raises(ValueError):
+        kerchunk.combine.concatenate_arrays(
+            refs, axis=axis, path="x", check_arrays=True
+        )
