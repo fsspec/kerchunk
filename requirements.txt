@@ -2,4 +2,4 @@ fsspec
 numcodecs<=0.11
 numpy
 ujson
-zarr
+zarr @ git+https://github.com/martindurant/zarr.git@varchunk
