@@ -139,3 +139,28 @@ def test_fail_irregular_chunk_boundaries(tmpdir):
 
     with pytest.raises(ValueError, match=r"Array at index 0 has irregular chunking.*"):
         kerchunk.combine.concatenate_arrays([ref1, ref2], path="x", check_arrays=True)
+
+
+def test_variable_length_chunks(tmpdir):
+    fn1 = f"{tmpdir}/out1.zarr"
+    fn2 = f"{tmpdir}/out2.zarr"
+    x1 = np.arange(10)
+    x2 = np.arange(10, 20)
+    g1 = zarr.open(fn1)
+    g1.create_dataset("x", data=x1, chunks=([2, 2, 2, 2, 2],))
+    g2 = zarr.open(fn2)
+    g2.create_dataset("x", data=x2, chunks=([3, 3, 3, 1],))
+
+    ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
+    ref2 = kerchunk.zarr.single_zarr(fn2, inline=0)
+
+    out = kerchunk.combine.concatenate_arrays(
+        [ref1, ref2],
+        path="x",
+        check_arrays=True,  # allow_varible_chunks=True
+    )
+    mapper = fsspec.get_mapper("reference://", fo=out)
+    g_result = zarr.open(mapper)
+
+    assert g_result["x"].chunks == ([2, 2, 2, 2, 2, 3, 3, 3, 1],)
+    np.testing.assert_array_equal(g_result["x"][:], np.arange(20))
