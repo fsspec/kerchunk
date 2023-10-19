@@ -1,5 +1,0 @@
-fsspec
-numcodecs<=0.11
-numpy
-ujson
-zarr
