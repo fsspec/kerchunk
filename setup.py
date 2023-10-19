@@ -24,6 +24,7 @@ setup(
         "netcdf3": ["scipy"],
     },
     entry_points={
+        "xarray.backends": ["kerchunk=kerchunk.xarray_backend:KerchunkBackend"],
         "numcodecs.codecs": [
             "grib = kerchunk.codecs:GRIBCodec",
             "fill_hdf_strings = kerchunk.codecs:FillStringsCodec",

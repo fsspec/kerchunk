@@ -14,7 +14,6 @@ has_xarray_2023_8_0 = Version(xr.__version__) >= Version("2023.8.0")
 
 
 arr = np.random.rand(1, 10, 10)
-static = xr.DataArray(data=np.random.rand(10, 10), dims=["x", "y"], name="static")
 data = xr.DataArray(
     data=arr.squeeze(),
     dims=["x", "y"],
