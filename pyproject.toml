@@ -55,6 +55,9 @@ FITSAscii = "kerchunk.codecs:AsciiTableCodec"
 FITSVarBintable = "kerchunk.codecs:VarArrCodec"
 record_member = "kerchunk.codecs:RecordArrayMember"
 
+[project.entry-points."xarray.backends"]
+kerchunk = "kerchunk.xarray_backend:KerchunkBackend"
+
 [build-system]
 build-backend = "setuptools.build_meta"
 requires = [
