@@ -47,7 +47,12 @@ def open_reference_dataset(
         storage_options = {}
     if open_dataset_options is None:
         open_dataset_options = {}
+    if open_dataset_options.get("consolidated"):
+        raise ValueError(
+            "consolidated = True is not supported when opening Kerchunk reference files through Xarray."
+        )
+    open_dataset_options["consolidated"] = False
 
     m = fsspec.get_mapper("reference://", fo=filename_or_obj, **storage_options)
 
-    return xr.open_dataset(m, engine="zarr", consolidated=False, **open_dataset_options)
+    return xr.open_dataset(m, engine="zarr", **open_dataset_options)
