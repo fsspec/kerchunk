@@ -39,6 +39,7 @@ dev = [
     "jinja2",
     "mypy",
     "pytest",
+    "s3fs",
     "types-ujson",
     "xarray",
 ]
@@ -70,3 +71,5 @@ packages = ["kerchunk"]
 
 [tool.setuptools_scm]
 fallback_version = "9999"
+version_scheme = "post-release"
+local_scheme = "no-local-version"
