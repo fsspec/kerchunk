@@ -9,10 +9,12 @@ authors = [
   {name = "Martin Durant", email = "martin.durant@alumni.utoronto.ca"},
 ]
 classifiers = [
-  "License :: OSI Approved :: MIT",
+  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python",
+  "Topic :: Scientific/Engineering",
+  "Development Status :: 3 - Alpha",
   "Topic :: Scientific/Engineering",
 ]
 
