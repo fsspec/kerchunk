@@ -240,10 +240,13 @@ class SingleHdf5ToZarr:
                 raise RuntimeError(
                     f"{h5obj.name} uses bitshuffle compression - not supported by kerchunk"
                 )
+            elif str(filter_id) == "shuffle":
+                # already handled before this loop
+                pass
             else:
                 raise RuntimeError(
                     f"{h5obj.name} uses filter id {filter_id} with properties {properties},"
-                    f" not supported by kerchunk., supported filters are {self.decoders.keys()}"
+                    f" not supported by kerchunk."
                 )
         return filters
 
