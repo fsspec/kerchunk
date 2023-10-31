@@ -591,18 +591,38 @@ def concatenate_arrays(
         return l
 
     n_files = len(files)
-    chunk_type = None  # None, "fixed", "variable"
+    fss = [
+        fsspec.filesystem("reference", fo=fn, **(storage_options or {})) for fn in files
+    ]
+    zarrays = [ujson.load(fs.open(f"{path}.zarray")) for fs in fss]
+
+    # Determine chunk type
+    _prev_chunks = zarrays[0]["chunks"][axis]
+    for zarray in zarrays:
+        axis_chunks = zarray["chunks"][axis]
+        if isinstance(axis_chunks, list) or (axis_chunks != _prev_chunks):
+            chunk_type = "variable"
+            break
+        _prev_chunks = axis_chunks
+    else:
+        chunk_type = "fixed"
 
     chunks_offset = 0
-    for i, fn in enumerate(files):
-        fs = fsspec.filesystem("reference", fo=fn, **(storage_options or {}))
-        zarray = ujson.load(fs.open(f"{path}.zarray"))
+    for i, (fs, zarray) in enumerate(zip(fss, zarrays)):
         shape = zarray["shape"]
         chunks = zarray["chunks"]
 
         if isinstance(chunks[axis], int):
             n_chunks, rem = divmod(shape[axis], chunks[axis])
             n_chunks += rem > 0
+            if chunk_type == "variable":
+                if rem != 0:
+                    raise ValueError(
+                        "Cannot handle padded chunks when creating variably chunked arrays. "
+                        f"{i}-th array has {rem} padding for the last chunk."
+                    )
+                assert rem == 0
+                chunks[axis] = [chunks[axis] for _ in range(n_chunks)]
         else:
             n_chunks = len(chunks[axis])
             rem = 0
@@ -611,7 +631,7 @@ def concatenate_arrays(
 
         if i == 0:
             base_shape = _replace(shape, axis, None)
-            chunk_type = "fixed" if isinstance(chunks[axis], int) else "variable"
+            # chunk_type = "fixed" if isinstance(chunks[axis], int) else "variable"
             base_chunks = chunks
             # result_* are modified in-place
             result_zarray = zarray
