@@ -631,7 +631,6 @@ def concatenate_arrays(
 
         if i == 0:
             base_shape = _replace(shape, axis, None)
-            # chunk_type = "fixed" if isinstance(chunks[axis], int) else "variable"
             base_chunks = chunks
             # result_* are modified in-place
             result_zarray = zarray
