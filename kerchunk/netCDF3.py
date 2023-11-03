@@ -172,6 +172,8 @@ class NetCDF3ToZarr(netcdf_file):
                 # simple array block
                 # TODO: chance to sub-chunk
                 fill = var._attributes.get("missing_value", None)
+                if fill is None:
+                    fill = var._attributes.get("_FillValue", None)
                 if fill is not None and var.data.dtype.kind == "f":
                     fill = float(fill)
                 if fill is not None and var.data.dtype.kind == "i":
@@ -221,6 +223,8 @@ class NetCDF3ToZarr(netcdf_file):
 
                 # TODO: avoid this code repeat
                 fill = var._attributes.get("missing_value", None)
+                if fill is None:
+                    fill = var._attributes.get("_FillValue", None)
                 if fill is not None and base.kind == "f":
                     fill = float(fill)
                 if fill is not None and base.kind == "i":
