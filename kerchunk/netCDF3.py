@@ -61,8 +61,17 @@ class NetCDF3ToZarr(netcdf_file):
         self.out = {}
         self.storage_options = storage_options
         with fsspec.open(filename, **(storage_options or {})) as fp:
+            magic = fp.read(4)
+            assert magic[:3] == b"CDF"
+            version = magic[3]
             super().__init__(
-                fp, *args, mmap=False, mode="r", maskandscale=False, **kwargs
+                fp,
+                *args,
+                mmap=False,
+                mode="r",
+                maskandscale=False,
+                version=version,
+                **kwargs,
             )
         self.filename = filename  # this becomes an attribute, so must ignore on write
 
@@ -187,7 +196,8 @@ class NetCDF3ToZarr(netcdf_file):
                     compression=None,
                 )
                 part = ".".join(["0"] * len(shape)) or "0"
-                out[f"{dim}/{part}"] = [self.filename] + [
+                out[f"{dim}/{part}"] = [
+                    self.filename,
                     int(self.chunks[dim][0]),
                     int(self.chunks[dim][1]),
                 ]
