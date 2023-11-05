@@ -64,6 +64,7 @@ class NetCDF3ToZarr(netcdf_file):
             magic = fp.read(4)
             assert magic[:3] == b"CDF"
             version = magic[3]
+            fp.seek(0)
             super().__init__(
                 fp,
                 *args,
