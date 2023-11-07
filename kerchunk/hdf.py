@@ -3,6 +3,7 @@ import logging
 from typing import Union, BinaryIO
 
 import fsspec.core
+from fsspec.implementations.reference import LazyReferenceMapper
 import numpy as np
 import zarr
 from zarr.meta import encode_fill_value
@@ -75,6 +76,7 @@ class SingleHdf5ToZarr:
         storage_options=None,
         error="warn",
         vlen_encode="embed",
+        out=None,
     ):
 
         # Open HDF5 file in read mode...
@@ -92,7 +94,7 @@ class SingleHdf5ToZarr:
         self.vlen = vlen_encode
         self._h5f = h5py.File(self.input_file, mode="r")
 
-        self.store = {}
+        self.store = out or {}
         self._zroot = zarr.group(store=self.store, overwrite=True)
 
         self._uri = url
@@ -115,9 +117,10 @@ class SingleHdf5ToZarr:
         lggr.debug("Translation begins")
         self._transfer_attrs(self._h5f, self._zroot)
         self._h5f.visititems(self._translator)
-        if self.inline > 0:
-            self._do_inline(self.inline)
         if self.spec < 1:
+            return self.store
+        elif isinstance(self.store, LazyReferenceMapper):
+            self.store.flush()
             return self.store
         else:
             store = _encode_for_JSON(self.store)
@@ -126,24 +129,6 @@ class SingleHdf5ToZarr:
     def _unref(self, ref):
         name = h5py.h5r.get_name(ref, self._h5f.id)
         return self._h5f[name]
-
-    def _do_inline(self, threshold):
-        """Replace short chunks with the value of that chunk
-
-        The chunk may need encoding with base64 if not ascii, so actual
-        length may be larger than threshold.
-        """
-        # TODO: use version in utils
-        for k, v in self.store.copy().items():
-            if isinstance(v, list) and v[2] < threshold:
-                self.input_file.seek(v[1])
-                data = self.input_file.read(v[2])
-                try:
-                    # easiest way to test if data is ascii
-                    data.decode("ascii")
-                except UnicodeDecodeError:
-                    data = b"base64:" + base64.b64encode(data)
-                self.store[k] = data
 
     def _transfer_attrs(
         self,
@@ -461,11 +446,21 @@ class SingleHdf5ToZarr:
                         if h5obj.fletcher32:
                             logging.info("Discarding fletcher32 checksum")
                             v["size"] -= 4
-                        self.store[za._chunk_key(k)] = [
-                            self._uri,
-                            v["offset"],
-                            v["size"],
-                        ]
+                        if self.inline and isinstance(v, list) and v[2] < self.inline:
+                            self.input_file.seek(v["offset"])
+                            data = self.input_file.read(v["size"])
+                            try:
+                                # easiest way to test if data is ascii
+                                data.decode("ascii")
+                            except UnicodeDecodeError:
+                                data = b"base64:" + base64.b64encode(data)
+                            self.store[k] = data
+                        else:
+                            self.store[za._chunk_key(k)] = [
+                                self._uri,
+                                v["offset"],
+                                v["size"],
+                            ]
 
             elif isinstance(h5obj, h5py.Group):
                 lggr.debug(f"HDF5 group: {h5obj.name}")

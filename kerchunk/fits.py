@@ -37,6 +37,7 @@ def process_file(
     extension=None,
     inline_threshold=100,
     primary_attr_to_group=False,
+    out=None,
 ):
     """
     Create JSON references for a single FITS file as a zarr group
@@ -63,7 +64,7 @@ def process_file(
     from astropy.io import fits
 
     storage_options = storage_options or {}
-    out = {}
+    out = out or {}
     g = zarr.open(out)
 
     with fsspec.open(url, mode="rb", **storage_options) as f:

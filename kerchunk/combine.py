@@ -107,6 +107,7 @@ class MultiZarrToZarr:
         preprocess=None,
         postprocess=None,
         out=None,
+        append=False,
     ):
         self._fss = None
         self._paths = None
