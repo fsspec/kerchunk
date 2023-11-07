@@ -143,8 +143,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span>
         <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">magic</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">magic</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;CDF&quot;</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="n">magic</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-                <span class="n">fp</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">maskandscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+                <span class="n">fp</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span>
+                <span class="n">maskandscale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>  <span class="c1"># this becomes an attribute, so must ignore on write</span></div>
 
@@ -269,7 +279,8 @@
                     <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">part</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">&quot;0&quot;</span>
-                <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{dim}</span><span class="s2">/</span><span class="si">{part}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+                <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{dim}</span><span class="s2">/</span><span class="si">{part}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span>
                     <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
                     <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chunks</span><span class="p">[</span><span class="n">dim</span><span class="p">][</span><span class="mi">1</span><span class="p">]),</span>
                 <span class="p">]</span>
