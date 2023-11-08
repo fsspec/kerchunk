@@ -50,6 +50,10 @@ class NetCDF3ToZarr(netcdf_file):
             subchunking, and there is never subchunking for coordinate/dimension arrays.
             E.g., if an array contains 10,000bytes, and this value is 6000, there will
             be two output chunks, split on the biggest available dimension. [TBC]
+        out: dict-like or None
+            This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
+            to write out parquet as the references get filled, or some other dictionary-like class
+            to customise how references get stored
         args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
         """
         assert kwargs.pop("mmap", False) is False

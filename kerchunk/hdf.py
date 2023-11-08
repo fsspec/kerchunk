@@ -65,6 +65,10 @@ class SingleHdf5ToZarr:
         encode: save the ID-to-value mapping in a codec, to produce the real values at read
         time; requires this library to be available. Can be efficient storage where there
         are few unique values.
+    out: dict-like or None
+        This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
+        to write out parquet as the references get filled, or some other dictionary-like class
+        to customise how references get stored
     """
 
     def __init__(

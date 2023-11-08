@@ -5,6 +5,8 @@ import numcodecs.abc
 import numpy as np
 import zarr
 
+from fsspec.implementations.reference import LazyReferenceMapper
+
 
 from kerchunk.utils import class_factory
 from kerchunk.codecs import AsciiTableCodec, VarArrCodec
@@ -56,6 +58,11 @@ def process_file(
     primary_attr_to_group: bool
         Whether the output top-level group contains the attributes of the primary extension
         (which often contains no data, just a general description)
+    out: dict-like or None
+        This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
+        to write out parquet as the references get filled, or some other dictionary-like class
+        to customise how references get stored
+
 
     Returns
     -------
@@ -181,6 +188,8 @@ def process_file(
                     if k != "COMMENT"
                 }
             )
+    if isinstance(out, LazyReferenceMapper):
+        out.flush()
     return out
 
 
