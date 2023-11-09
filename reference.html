@@ -109,14 +109,14 @@
 <tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr" title="kerchunk.tiff.tiff_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></a>(urlpath[, …])</p></td>
 <td><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="kerchunk.netCDF3.NetCDF3ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></a>(filename, *args)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="kerchunk.netCDF3.NetCDF3ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></a>(filename[, …])</p></td>
 <td><p>Generate references for a netCDF3 file</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="class">
 <dt id="kerchunk.hdf.SingleHdf5ToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO | str</em>, <em class="sig-param">url: str = None</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">error='warn'</em>, <em class="sig-param">vlen_encode='embed'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.hdf.</code><code class="sig-name descname">SingleHdf5ToZarr</code><span class="sig-paren">(</span><em class="sig-param">h5f: BinaryIO | str</em>, <em class="sig-param">url: str = None</em>, <em class="sig-param">spec=1</em>, <em class="sig-param">inline_threshold=500</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">error='warn'</em>, <em class="sig-param">vlen_encode='embed'</em>, <em class="sig-param">out=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate the content of one HDF5 file into Zarr metadata.</p>
 <p>HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array
 chunks remain in the HDF5 file.</p>
@@ -145,6 +145,10 @@ embed: include all the values in the output JSON (should not be used for large t
 encode: save the ID-to-value mapping in a codec, to produce the real values at read
 time; requires this library to be available. Can be efficient storage where there
 are few unique values.</p>
+</dd>
+<dt><strong>out: dict-like or None</strong></dt><dd><p>This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
+to write out parquet as the references get filled, or some other dictionary-like class
+to customise how references get stored</p>
 </dd>
 </dl>
 </dd>
@@ -213,7 +217,7 @@ only keeps messages where heightAboveGround==2.</p>
 
 <dl class="function">
 <dt id="kerchunk.fits.process_file">
-<code class="sig-prename descclassname">kerchunk.fits.</code><code class="sig-name descname">process_file</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">extension=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">primary_attr_to_group=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/fits.html#process_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.fits.process_file" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">kerchunk.fits.</code><code class="sig-name descname">process_file</code><span class="sig-paren">(</span><em class="sig-param">url</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">extension=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">primary_attr_to_group=False</em>, <em class="sig-param">out=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/fits.html#process_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.fits.process_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create JSON references for a single FITS file as a zarr group</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -229,6 +233,10 @@ uses the first data extension</p>
 </dd>
 <dt><strong>primary_attr_to_group: bool</strong></dt><dd><p>Whether the output top-level group contains the attributes of the primary extension
 (which often contains no data, just a general description)</p>
+</dd>
+<dt><strong>out: dict-like or None</strong></dt><dd><p>This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
+to write out parquet as the references get filled, or some other dictionary-like class
+to customise how references get stored</p>
 </dd>
 </dl>
 </dd>
@@ -267,7 +275,7 @@ uses the first data extension</p>
 
 <dl class="class">
 <dt id="kerchunk.netCDF3.NetCDF3ToZarr">
-<em class="property">class </em><code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">NetCDF3ToZarr</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">*args</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">max_chunk_size=0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#NetCDF3ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">kerchunk.netCDF3.</code><code class="sig-name descname">NetCDF3ToZarr</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">max_chunk_size=0</em>, <em class="sig-param">out=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#NetCDF3ToZarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate references for a netCDF3 file</p>
 <p>Uses scipy’s netCDF3 reader, but only reads the metadata. Note that instances
 do behave like actual scipy netcdf files, but contain no valid data.
@@ -286,7 +294,7 @@ Also appears to work for netCDF2, although this is not currently tested.</p>
 </table>
 <dl class="method">
 <dt id="kerchunk.netCDF3.NetCDF3ToZarr.__init__">
-<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">*args</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">max_chunk_size=0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#NetCDF3ToZarr.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.NetCDF3ToZarr.__init__" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">filename</em>, <em class="sig-param">storage_options=None</em>, <em class="sig-param">inline_threshold=100</em>, <em class="sig-param">max_chunk_size=0</em>, <em class="sig-param">out=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/netCDF3.html#NetCDF3ToZarr.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kerchunk.netCDF3.NetCDF3ToZarr.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><dl class="simple">
@@ -301,6 +309,10 @@ to disable inlining.</p>
 subchunking, and there is never subchunking for coordinate/dimension arrays.
 E.g., if an array contains 10,000bytes, and this value is 6000, there will
 be two output chunks, split on the biggest available dimension. [TBC]</p>
+</dd>
+<dt><strong>out: dict-like or None</strong></dt><dd><p>This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
+to write out parquet as the references get filled, or some other dictionary-like class
+to customise how references get stored</p>
 </dd>
 <dt><strong>args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``</strong></dt><dd></dd>
 </dl>

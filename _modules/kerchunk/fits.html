@@ -87,6 +87,8 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">zarr</span>
 
+<span class="kn">from</span> <span class="nn">fsspec.implementations.reference</span> <span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
+
 
 <span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span>
 <span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">AsciiTableCodec</span><span class="p">,</span> <span class="n">VarArrCodec</span>
@@ -119,6 +121,7 @@
     <span class="n">extension</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
     <span class="n">primary_attr_to_group</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create JSON references for a single FITS file as a zarr group</span>
@@ -137,6 +140,11 @@
 <span class="sd">    primary_attr_to_group: bool</span>
 <span class="sd">        Whether the output top-level group contains the attributes of the primary extension</span>
 <span class="sd">        (which often contains no data, just a general description)</span>
+<span class="sd">    out: dict-like or None</span>
+<span class="sd">        This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper</span>
+<span class="sd">        to write out parquet as the references get filled, or some other dictionary-like class</span>
+<span class="sd">        to customise how references get stored</span>
+
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -145,7 +153,7 @@
     <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
 
     <span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -262,6 +270,8 @@
                     <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;COMMENT&quot;</span>
                 <span class="p">}</span>
             <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">LazyReferenceMapper</span><span class="p">):</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">out</span></div>
 
 
