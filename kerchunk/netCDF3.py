@@ -1,8 +1,12 @@
+import base64
 from functools import reduce
 from operator import mul
 
 import numpy as np
-from .utils import do_inline, _encode_for_JSON
+from fsspec.implementations.reference import LazyReferenceMapper
+import fsspec
+
+from kerchunk.utils import _encode_for_JSON
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
@@ -11,8 +15,6 @@ except ModuleNotFoundError:  # pragma: no cover
         "Scipy is required for kerchunking NetCDF3 files. Please install with "
         "`pip/conda install scipy`. See https://scipy.org/install/ for more details."
     )
-
-import fsspec
 
 
 class NetCDF3ToZarr(netcdf_file):
@@ -26,10 +28,10 @@ class NetCDF3ToZarr(netcdf_file):
     def __init__(
         self,
         filename,
-        *args,
         storage_options=None,
         inline_threshold=100,
         max_chunk_size=0,
+        out=None,
         **kwargs,
     ):
         """
@@ -47,6 +49,10 @@ class NetCDF3ToZarr(netcdf_file):
             subchunking, and there is never subchunking for coordinate/dimension arrays.
             E.g., if an array contains 10,000bytes, and this value is 6000, there will
             be two output chunks, split on the biggest available dimension. [TBC]
+        out: dict-like or None
+            This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
+            to write out parquet as the references get filled, or some other dictionary-like class
+            to customise how references get stored
         args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
         """
         assert kwargs.pop("mmap", False) is False
@@ -58,22 +64,20 @@ class NetCDF3ToZarr(netcdf_file):
         self.chunks = {}
         self.threshold = inline_threshold
         self.max_chunk_size = max_chunk_size
-        self.out = {}
+        self.out = out or {}
         self.storage_options = storage_options
-        with fsspec.open(filename, **(storage_options or {})) as fp:
-            magic = fp.read(4)
-            assert magic[:3] == b"CDF"
-            version = magic[3]
-            fp.seek(0)
-            super().__init__(
-                fp,
-                *args,
-                mmap=False,
-                mode="r",
-                maskandscale=False,
-                version=version,
-                **kwargs,
-            )
+        self.fp = fsspec.open(filename, **(storage_options or {})).open()
+        magic = self.fp.read(4)
+        assert magic[:3] == b"CDF"
+        version = kwargs.pop("version", None) or magic[3]
+        self.fp.seek(0)
+        super().__init__(
+            self.fp,
+            mmap=False,
+            mode="r",
+            maskandscale=False,
+            version=version,
+        )
         self.filename = filename  # this becomes an attribute, so must ignore on write
 
     def _read_var_array(self):
@@ -197,11 +201,22 @@ class NetCDF3ToZarr(netcdf_file):
                     compression=None,
                 )
                 part = ".".join(["0"] * len(shape)) or "0"
-                out[f"{dim}/{part}"] = [
-                    self.filename,
-                    int(self.chunks[dim][0]),
-                    int(self.chunks[dim][1]),
-                ]
+                k = f"{dim}/{part}"
+                if self.threshold and int(self.chunks[dim][1]) < self.threshold:
+                    self.fp.seek(int(self.chunks[dim][0]))
+                    data = self.fp.read(int(self.chunks[dim][1]))
+                    try:
+                        # easiest way to test if data is ascii
+                        data.decode("ascii")
+                    except UnicodeDecodeError:
+                        data = b"base64:" + base64.b64encode(data)
+                    out[k] = data
+                else:
+                    out[k] = [
+                        self.filename,
+                        int(self.chunks[dim][0]),
+                        int(self.chunks[dim][1]),
+                    ]
             arr.attrs.update(
                 {
                     k: v.decode() if isinstance(v, bytes) else str(v)
@@ -280,11 +295,12 @@ class NetCDF3ToZarr(netcdf_file):
             }
         )
 
-        if self.threshold > 0:
-            out = do_inline(out, self.threshold, remote_options=self.storage_options)
-        out = _encode_for_JSON(out)
+        if isinstance(out, LazyReferenceMapper):
+            out.flush()
+            return out
+        else:
+            out = _encode_for_JSON(out)
+            return {"version": 1, "refs": out}
 
-        return {"version": 1, "refs": out}
 
-
-netcdf_recording_file = NetCDF3ToZarr
+netcdf_recording_file = NetCDF3ToZarr  # old name
