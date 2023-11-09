@@ -28,7 +28,6 @@ class NetCDF3ToZarr(netcdf_file):
     def __init__(
         self,
         filename,
-        *args,
         storage_options=None,
         inline_threshold=100,
         max_chunk_size=0,
@@ -70,16 +69,14 @@ class NetCDF3ToZarr(netcdf_file):
         self.fp = fsspec.open(filename, **(storage_options or {})).open()
         magic = self.fp.read(4)
         assert magic[:3] == b"CDF"
-        version = magic[3]
+        version = kwargs.pop("version", None) or magic[3]
         self.fp.seek(0)
         super().__init__(
             self.fp,
-            *args,
             mmap=False,
             mode="r",
             maskandscale=False,
             version=version,
-            **kwargs,
         )
         self.filename = filename  # this becomes an attribute, so must ignore on write
 
