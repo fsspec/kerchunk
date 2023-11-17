@@ -310,7 +310,7 @@ def test_lazy_filler(tmpdir, refs):
 
     fs = fsspec.filesystem("file")
     tmpdir = str(tmpdir)
-    out = LazyReferenceMapper.create(10, tmpdir, fs)
+    out = LazyReferenceMapper.create(record_size=10, root=tmpdir, fs=fs)
 
     mzz = MultiZarrToZarr(
         [refs["single1"], refs["single2"]],
