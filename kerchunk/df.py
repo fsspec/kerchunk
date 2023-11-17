@@ -152,7 +152,10 @@ def refs_to_dataframe(
 
     fs, _ = fsspec.core.url_to_fs(url, **(storage_options or {}))
     out = LazyReferenceMapper.create(
-        record_size, root=url, fs=fs, categorical_threshold=categorical_threshold
+        record_size=record_size,
+        root=url,
+        fs=fs,
+        categorical_threshold=categorical_threshold,
     )
 
     for k in sorted(refs):
