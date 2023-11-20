@@ -44,6 +44,9 @@ dev = [
     "s3fs",
     "types-ujson",
     "xarray",
+    "cfgrib",
+    "scipy",
+    "netcdf4"
 ]
 
 [project.urls]
