@@ -4,8 +4,8 @@ import fsspec
 import numpy as np
 import pytest
 import xarray as xr
-
-from kerchunk.grib2 import scan_grib, _split_file, GribToZarr
+import zarr
+from kerchunk.grib2 import scan_grib, _split_file, GribToZarr, grib_tree
 
 cfgrib = pytest.importorskip("cfgrib")
 here = os.path.dirname(__file__)
@@ -83,3 +83,17 @@ def test_subhourly():
     fpath = os.path.join(here, "hrrr.wrfsubhf.sample.grib2")
     result = scan_grib(fpath)
     assert len(result) == 2, "Expected two grib messages"
+
+
+def test_grib_tree():
+    """
+    Additional testing here would be good.
+    Maybe add json files with scan_grib output?
+    """
+    fpath = os.path.join(here, "hrrr.wrfsubhf.sample.grib2")
+    scanned_msg_groups = scan_grib(fpath)
+    result = grib_tree(scanned_msg_groups)
+    fs = fsspec.filesystem("reference", fo=result)
+    zg = zarr.open_group(fs.get_mapper(""))
+    isinstance(zg["refc/instant/atmosphere/refc"], zarr.Array)
+    isinstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
