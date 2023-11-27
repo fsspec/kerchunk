@@ -366,7 +366,9 @@ def grib_tree(
     remote_options=None,
 ) -> Dict:
     """
-    Build a hierarchical data model from a set of scanned grib messages. The iterable input groups should
+    Build a hierarchical data model from a set of scanned grib messages. 
+    
+    The iterable input groups should
     be a collection of results from scan_grib. Multiple grib files can be processed together to produce an
     FMRC like collection.
     The time (reference_time) and step coordinates will be used as concat_dims in the MultiZarrToZarr
