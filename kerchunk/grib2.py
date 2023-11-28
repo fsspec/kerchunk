@@ -366,11 +366,10 @@ def grib_tree(
     remote_options=None,
 ) -> Dict:
     """
-    Build a hierarchical data model from a set of scanned grib messages. 
-    
-    The iterable input groups should
-    be a collection of results from scan_grib. Multiple grib files can be processed together to produce an
-    FMRC like collection.
+    Build a hierarchical data model from a set of scanned grib messages.
+
+    The iterable input groups should be a collection of results from scan_grib. Multiple grib files can
+    be processed together to produce an FMRC like collection.
     The time (reference_time) and step coordinates will be used as concat_dims in the MultiZarrToZarr
     aggregation. Each variable name will become a group with nested subgroups representing the grib
     step type and grib level. The resulting hierarchy can be opened as a zarr_group or a xarray datatree.
@@ -421,7 +420,9 @@ def grib_tree(
             # If you process the groups from a single file in order, you can use the msg# to compare with the
             # IDX file.
             logger.warning(
-                "Found unknown variable in msg# %s... it will be dropped", msg_ind
+                "Dropping unknown variable in msg# %d. Compare with the grib idx file to identify and build"
+                " a ecCodes local grib definitions to fix it.",
+                msg_ind,
             )
             unknown_counter += 1
             continue
