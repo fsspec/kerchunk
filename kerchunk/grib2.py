@@ -396,6 +396,7 @@ def grib_tree(
     # Hard code the filters in the correct order for the group hierarchy
     filters = ["stepType", "typeOfLevel"]
 
+    # TODO allow passing a LazyReferenceMapper as output?
     zarr_store = {}
     zroot = zarr.open_group(store=zarr_store)
     result = dict(refs=zarr_store)
