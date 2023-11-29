@@ -18,6 +18,7 @@ except ModuleNotFoundError as err:  # pragma: no cover
 
 import fsspec
 import zarr
+import xarray
 import numpy as np
 
 from kerchunk.utils import class_factory, _encode_for_JSON
@@ -376,10 +377,12 @@ def grib_tree(
     Grib message variable names that decode as "unknown" are dropped
     Grib typeOfLevel attributes that decode as unknown are treated as a single group
     Grib steps that are missing due to WrongStepUnitError are patched with NaT
+    The input message_groups should not be modified by this method
 
     :param message_groups: a collection of zarr store like dictionaries as produced by scan_grib
     :param remote_options: remote options to pass to ZarrToMultiZarr
-    :return: A new zarr store like dictionary for use as a reference filesystem mapper
+    :return: A new zarr store like dictionary for use as a reference filesystem mapper with zarr
+    or xarray datatree
     """
     from kerchunk.combine import MultiZarrToZarr
 
@@ -418,10 +421,10 @@ def grib_tree(
             # To resolve unknown variables add custom grib tables.
             # https://confluence.ecmwf.int/display/UDOC/Creating+your+own+local+definitions+-+ecCodes+GRIB+FAQ
             # If you process the groups from a single file in order, you can use the msg# to compare with the
-            # IDX file.
+            # IDX file. The idx files message index is 1 based where the grib_tree message count is zero based
             logger.warning(
-                "Dropping unknown variable in msg# %d. Compare with the grib idx file to identify and build"
-                " a ecCodes local grib definitions to fix it.",
+                "Dropping unknown variable in msg# %d. Compare with the grib idx file to help identify it"
+                " and build an ecCodes local grib definitions file to fix it.",
                 msg_ind,
             )
             unknown_counter += 1
@@ -457,6 +460,8 @@ def grib_tree(
                 # Add an attribute to give context
                 zgroup.attrs[key] = value
 
+        # Set the coordinates attribute for the group
+        zgroup.attrs["coordinates"] = " ".join(coordinates)
         # add to the list of groups to multi-zarr
         aggregations[zgroup.path].append(group)
 
@@ -496,21 +501,13 @@ def grib_tree(
             catdims,
         )
 
-        fix_group_step = add_missing_step_var(aggregations[path], path)
         mzz = MultiZarrToZarr(
-            fix_group_step,
+            aggregations[path],
             remote_options=remote_options,
             concat_dims=catdims,
             identical_dims=idims,
         )
-        try:
-            group = mzz.translate()
-        except KeyError:
-            import pprint
-
-            gstr = pprint.pformat(fix_group_step)
-            logger.exception(f"Failed to multizarr {path}\n{gstr}")
-            continue
+        group = mzz.translate()
 
         for key, value in group["refs"].items():
             if key not in [".zattrs", ".zgroup"]:
@@ -519,40 +516,44 @@ def grib_tree(
     return result
 
 
-def add_missing_step_var(groups: List[dict], path: str) -> List[dict]:
+def correct_hrrr_subhf_step(group: dict) -> dict:
     """
-    Attempt to fill in missing step var. Should this be done where the step unit error is handled
-    in scan grib?
-    :param groups:
-    :param path:
-    :return:
+    Overrides the definition of the step variable. Sets the value equal to the `valid_time - time`
+    in hours as a floating point value. This fixes issues with the HRRR SubHF grib2 step as read by
+    cfgrib via scan_grib.
+    The result is a deep copy, the original data is unmodified.
+    :param group: the zarr group store for a single grib message
+    :return: a new deep copy of the corrected zarr group store
     """
-    result = []
-    for group in groups:
-        if "step/.zarray" not in group["refs"]:
-            group = copy.deepcopy(group)
-            logger.warning("Adding missing step variable to group path %s", path)
-            group["refs"]["step/.zarray"] = (
-                '{"chunks":[],"compressor":null,"dtype":"<f8","fill_value":"NaN","filters":null,"order":"C",'
-                '"shape":[],"zarr_format":2}'
-            )
-            group["refs"]["step/.zattrs"] = (
-                '{"_ARRAY_DIMENSIONS":[],"long_name":"time since forecast_reference_time",'
-                '"standard_name":"forecast_period","units":"hours"}'
-            )
+    group = copy.deepcopy(group)
+    group["refs"]["step/.zarray"] = (
+        '{"chunks":[],"compressor":null,"dtype":"<f8","fill_value":"NaN","filters":null,"order":"C",'
+        '"shape":[],"zarr_format":2}'
+    )
+    group["refs"]["step/.zattrs"] = (
+        '{"_ARRAY_DIMENSIONS":[],"long_name":"time since forecast_reference_time",'
+        '"standard_name":"forecast_period","units":"hours"}'
+    )
 
-        # # Try to set the value - this doesn't work
-        # import xarray
-        # fo = fsspec.filesystem("reference", fo=group, mode="rw")
-        # xd = xarray.open_dataset(fo.get_mapper(), engine="zarr", consolidated=False)
-        # if np.isnan(xd.step.values[()]):
-        #     logger.info("%s has step val %s", path, xd.step)
-        #     xd.step[()] = xd.valid_time.values - xd.time.values
-        #     xd.close()
-        #     for k, v in group["refs"].items():
-        #         if "step" in k:
-        #             logger.info("New step value %s, %s", k, v)
+    # add step to coords
+    attrs = ujson.loads(group["refs"][".zattrs"])
+    if "step" not in attrs["coordinates"]:
+        attrs["coordinates"] += " step"
+    group["refs"][".zattrs"] = ujson.dumps(attrs)
 
-        result.append(group)
+    fo = fsspec.filesystem("reference", fo=group, mode="r")
+    xd = xarray.open_dataset(fo.get_mapper(), engine="zarr", consolidated=False)
 
-    return result
+    correct_step = xd.valid_time.values - xd.time.values
+
+    assert correct_step.shape == ()
+    step_float = correct_step.astype("timedelta64[s]").astype("float") / 3600.0
+    step_bytes = step_float.tobytes()
+    try:
+        enocded_val = step_bytes.decode("ascii")
+    except UnicodeDecodeError:
+        enocded_val = (b"base64:" + base64.b64encode(step_bytes)).decode("ascii")
+
+    group["refs"]["step/0"] = enocded_val
+
+    return group

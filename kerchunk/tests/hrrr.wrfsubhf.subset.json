@@ -1,0 +1,644 @@
+[
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"heightAboveGround latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "u/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"u\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "u/0.0": [
+        "{{u}}",
+        3653893,
+        1088857
+      ],
+      "u/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"eastward_wind\",\"GRIB_cfVarName\":\"u\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"U component of wind\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":131,\"GRIB_shortName\":\"u\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"heightAboveGround\",\"GRIB_units\":\"m s**-1\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"U component of wind\",\"standard_name\":\"eastward_wind\",\"units\":\"m s**-1\"}",
+      "heightAboveGround/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "heightAboveGround/0": "\u0000\u0000\u0000\u0000\u0000\u0000T@",
+      "heightAboveGround/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"height above the surface\",\"positive\":\"up\",\"standard_name\":\"height\",\"units\":\"m\"}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        3653893,
+        1088857
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        3653893,
+        1088857
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:ENAUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf00.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        23103704,
+        387589
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"avg\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        23103704,
+        387589
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        23103704,
+        387589
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:ENAUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf00.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        30668850,
+        597663
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        30668850,
+        597663
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        30668850,
+        597663
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:ENAUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf00.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"heightAboveGround latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "u/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"u\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "u/0.0": [
+        "{{u}}",
+        3562657,
+        1095473
+      ],
+      "u/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"eastward_wind\",\"GRIB_cfVarName\":\"u\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"U component of wind\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":131,\"GRIB_shortName\":\"u\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"heightAboveGround\",\"GRIB_units\":\"m s**-1\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"U component of wind\",\"standard_name\":\"eastward_wind\",\"units\":\"m s**-1\"}",
+      "heightAboveGround/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "heightAboveGround/0": "\u0000\u0000\u0000\u0000\u0000\u0000T@",
+      "heightAboveGround/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"height above the surface\",\"positive\":\"up\",\"standard_name\":\"height\",\"units\":\"m\"}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        3562657,
+        1095473
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        3562657,
+        1095473
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000.@",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:lNMUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        23247353,
+        371150
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"avg\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        23247353,
+        371150
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        23247353,
+        371150
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:lNMUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        30856504,
+        514649
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        30856504,
+        514649
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        30856504,
+        514649
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000.@",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:lNMUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"heightAboveGround latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "u/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"u\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "u/0.0": [
+        "{{u}}",
+        46412956,
+        1098403
+      ],
+      "u/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"eastward_wind\",\"GRIB_cfVarName\":\"u\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"U component of wind\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":131,\"GRIB_shortName\":\"u\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"heightAboveGround\",\"GRIB_units\":\"m s**-1\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"U component of wind\",\"standard_name\":\"eastward_wind\",\"units\":\"m s**-1\"}",
+      "heightAboveGround/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "heightAboveGround/0": "\u0000\u0000\u0000\u0000\u0000\u0000T@",
+      "heightAboveGround/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"height above the surface\",\"positive\":\"up\",\"standard_name\":\"height\",\"units\":\"m\"}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        46412956,
+        1098403
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        46412956,
+        1098403
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000>@",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:GNcUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        66130542,
+        262115
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"avg\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        66130542,
+        262115
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        66130542,
+        262115
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000>@",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:GNcUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        73418573,
+        386739
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        73418573,
+        386739
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        73418573,
+        386739
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000>@",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:GNcUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"heightAboveGround latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "u/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"u\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "u/0.0": [
+        "{{u}}",
+        88359532,
+        1105040
+      ],
+      "u/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"eastward_wind\",\"GRIB_cfVarName\":\"u\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"U component of wind\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":131,\"GRIB_shortName\":\"u\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"heightAboveGround\",\"GRIB_units\":\"m s**-1\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"U component of wind\",\"standard_name\":\"eastward_wind\",\"units\":\"m s**-1\"}",
+      "heightAboveGround/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "heightAboveGround/0": "\u0000\u0000\u0000\u0000\u0000\u0000T@",
+      "heightAboveGround/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"height above the surface\",\"positive\":\"up\",\"standard_name\":\"height\",\"units\":\"m\"}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        88359532,
+        1105040
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        88359532,
+        1105040
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "base64:AAAAAACARkA=",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:nNoUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        108165133,
+        172091
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"avg\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        108165133,
+        172091
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        108165133,
+        172091
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "base64:AAAAAACARkA=",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:nNoUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        115335065,
+        240444
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        115335065,
+        240444
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        115335065,
+        240444
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "base64:AAAAAACARkA=",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:nNoUZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"heightAboveGround latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "u/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"u\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "u/0.0": [
+        "{{u}}",
+        129691270,
+        1113546
+      ],
+      "u/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"eastward_wind\",\"GRIB_cfVarName\":\"u\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"U component of wind\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":131,\"GRIB_shortName\":\"u\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"heightAboveGround\",\"GRIB_units\":\"m s**-1\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"U component of wind\",\"standard_name\":\"eastward_wind\",\"units\":\"m s**-1\"}",
+      "heightAboveGround/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "heightAboveGround/0": "\u0000\u0000\u0000\u0000\u0000\u0000T@",
+      "heightAboveGround/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"height above the surface\",\"positive\":\"up\",\"standard_name\":\"height\",\"units\":\"m\"}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        129691270,
+        1113546
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        129691270,
+        1113546
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "base64:AAAAAAAA8D8=",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:IN4UZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        149322652,
+        147580
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"avg\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        149322652,
+        147580
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        149322652,
+        147580
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "\u0000\u0000\u0000\u0000\u0000\u0000N@",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:IN4UZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  },
+  {
+    "version": 1,
+    "refs": {
+      ".zgroup": "{\"zarr_format\":2}",
+      ".zattrs": "{\"GRIB_centre\":\"kwbc\",\"GRIB_centreDescription\":\"US National Weather Service - NCEP \",\"GRIB_edition\":2,\"GRIB_subCentre\":0,\"coordinates\":\"surface latitude longitude step time valid_time\",\"institution\":\"US National Weather Service - NCEP \"}",
+      "dswrf/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"dswrf\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "dswrf/0.0": [
+        "{{u}}",
+        156408715,
+        149193
+      ],
+      "dswrf/.zattrs": "{\"GRIB_DxInMetres\":3000.0,\"GRIB_DyInMetres\":3000.0,\"GRIB_LaDInDegrees\":38.5,\"GRIB_Latin1InDegrees\":38.5,\"GRIB_Latin2InDegrees\":38.5,\"GRIB_LoVInDegrees\":262.5,\"GRIB_NV\":0,\"GRIB_Nx\":1799,\"GRIB_Ny\":1059,\"GRIB_cfName\":\"unknown\",\"GRIB_cfVarName\":\"dswrf\",\"GRIB_dataType\":\"fc\",\"GRIB_gridDefinitionDescription\":\"Lambert Conformal can be secant or tangent, conical or bipolar\",\"GRIB_gridType\":\"lambert\",\"GRIB_iScansNegatively\":0,\"GRIB_jPointsAreConsecutive\":0,\"GRIB_jScansPositively\":1,\"GRIB_latitudeOfFirstGridPointInDegrees\":21.138123,\"GRIB_latitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_longitudeOfFirstGridPointInDegrees\":237.280472,\"GRIB_longitudeOfSouthernPoleInDegrees\":0.0,\"GRIB_missingValue\":3.4028234663852886e+38,\"GRIB_name\":\"Downward short-wave radiation flux\",\"GRIB_numberOfPoints\":1905141,\"GRIB_paramId\":260087,\"GRIB_shortName\":\"dswrf\",\"GRIB_stepType\":\"instant\",\"GRIB_stepUnits\":1,\"GRIB_typeOfLevel\":\"surface\",\"GRIB_units\":\"W m**-2\",\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"Downward short-wave radiation flux\",\"standard_name\":\"unknown\",\"units\":\"W m**-2\"}",
+      "surface/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "surface/0": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+      "surface/.zattrs": "{\"_ARRAY_DIMENSIONS\":[]}",
+      "latitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"latitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "latitude/0.0": [
+        "{{u}}",
+        156408715,
+        149193
+      ],
+      "latitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"latitude\",\"standard_name\":\"latitude\",\"units\":\"degrees_north\"}",
+      "longitude/.zarray": "{\"chunks\":[1059,1799],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":[{\"dtype\":\"float64\",\"id\":\"grib\",\"var\":\"longitude\"}],\"order\":\"C\",\"shape\":[1059,1799],\"zarr_format\":2}",
+      "longitude/0.0": [
+        "{{u}}",
+        156408715,
+        149193
+      ],
+      "longitude/.zattrs": "{\"_ARRAY_DIMENSIONS\":[\"y\",\"x\"],\"long_name\":\"longitude\",\"standard_name\":\"longitude\",\"units\":\"degrees_east\"}",
+      "step/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<f8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "step/0": "base64:AAAAAAAA8D8=",
+      "step/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"long_name\":\"time since forecast_reference_time\",\"standard_name\":\"forecast_period\",\"units\":\"hours\"}",
+      "time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "time/0": "base64:ENAUZQAAAAA=",
+      "time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"initial time of forecast\",\"standard_name\":\"forecast_reference_time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}",
+      "valid_time/.zarray": "{\"chunks\":[],\"compressor\":null,\"dtype\":\"<i8\",\"fill_value\":null,\"filters\":null,\"order\":\"C\",\"shape\":[],\"zarr_format\":2}",
+      "valid_time/0": "base64:IN4UZQAAAAA=",
+      "valid_time/.zattrs": "{\"_ARRAY_DIMENSIONS\":[],\"calendar\":\"proleptic_gregorian\",\"long_name\":\"time\",\"standard_name\":\"time\",\"units\":\"seconds since 1970-01-01T00:00:00\"}"
+    },
+    "templates": {
+      "u": "testdata/hrrr.t01z.wrfsubhf01.grib2"
+    }
+  }
+]
