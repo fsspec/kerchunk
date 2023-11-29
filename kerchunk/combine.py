@@ -328,9 +328,6 @@ class MultiZarrToZarr:
             )
             if k in z:
                 # copy attributes if values came from an original variable
-                logger.warning(
-                    "Zarr attrs: %s", {ii: vv for ii, vv in z[k].attrs.items()}
-                )
                 arr.attrs.update(z[k].attrs)
             arr.attrs["_ARRAY_DIMENSIONS"] = [k]
             if self.cf_units and k in self.cf_units:
