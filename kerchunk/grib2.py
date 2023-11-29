@@ -379,9 +379,16 @@ def grib_tree(
     Grib steps that are missing due to WrongStepUnitError are patched with NaT
     The input message_groups should not be modified by this method
 
-    :param message_groups: a collection of zarr store like dictionaries as produced by scan_grib
-    :param remote_options: remote options to pass to ZarrToMultiZarr
-    :return: A new zarr store like dictionary for use as a reference filesystem mapper with zarr
+    Parameters
+    ----------
+    message_groups: iterable[dict]
+        a collection of zarr store like dictionaries as produced by scan_grib
+    remote_options: dict
+        remote options to pass to ZarrToMultiZarr
+
+    Returns
+    -------
+    list(dict): A new zarr store like dictionary for use as a reference filesystem mapper with zarr
     or xarray datatree
     """
     from kerchunk.combine import MultiZarrToZarr
@@ -516,14 +523,22 @@ def grib_tree(
     return result
 
 
-def correct_hrrr_subhf_step(group: dict) -> dict:
+def correct_hrrr_subhf_step(group: Dict) -> Dict:
     """
     Overrides the definition of the step variable. Sets the value equal to the `valid_time - time`
     in hours as a floating point value. This fixes issues with the HRRR SubHF grib2 step as read by
     cfgrib via scan_grib.
     The result is a deep copy, the original data is unmodified.
-    :param group: the zarr group store for a single grib message
-    :return: a new deep copy of the corrected zarr group store
+
+    Parameters
+    ----------
+    group: dict
+        the zarr group store for a single grib message
+
+    Returns
+    -------
+    dict: A new zarr store like dictionary for use as a reference filesystem mapper with zarr
+    or xarray datatree
     """
     group = copy.deepcopy(group)
     group["refs"]["step/.zarray"] = (
