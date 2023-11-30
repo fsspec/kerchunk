@@ -103,8 +103,8 @@ def test_grib_tree():
     result = grib_tree(corrected_msg_groups)
     fs = fsspec.filesystem("reference", fo=result)
     zg = zarr.open_group(fs.get_mapper(""))
-    isinstance(zg["refc/instant/atmosphere/refc"], zarr.Array)
-    isinstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
+    assert isinstance(zg["refc/instant/atmosphere/refc"], zarr.Array)
+    assert isinstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
     assert (
         zg["vbdsf/avg/surface"].attrs["coordinates"]
         == "surface latitude longitude time valid_time step"
