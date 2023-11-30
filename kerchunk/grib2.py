@@ -23,6 +23,7 @@ import numpy as np
 
 from kerchunk.utils import class_factory, _encode_for_JSON
 from kerchunk.codecs import GRIBCodec
+from kerchunk.combine import MultiZarrToZarr, drop
 
 
 # cfgrib copies over certain GRIB attributes
@@ -334,8 +335,6 @@ def example_combine(
     ...        "consolidated": False,
     ...        "storage_options": {"fo": tot, "remote_options": {"anon": True}}})
     """
-    from kerchunk.combine import MultiZarrToZarr, drop
-
     files = [
         "s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t22z.wrfsfcf01.grib2",
         "s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t23z.wrfsfcf01.grib2",
@@ -391,8 +390,6 @@ def grib_tree(
     list(dict): A new zarr store like dictionary for use as a reference filesystem mapper with zarr
     or xarray datatree
     """
-    from kerchunk.combine import MultiZarrToZarr
-
     # Hard code the filters in the correct order for the group hierarchy
     filters = ["stepType", "typeOfLevel"]
 
@@ -526,8 +523,8 @@ def grib_tree(
 
 def correct_hrrr_subhf_step(group: Dict) -> Dict:
     """
-    Overrides the definition of the "step" variable. 
-    
+    Overrides the definition of the "step" variable.
+
     Sets the value equal to the `valid_time - time`
     in hours as a floating point value. This fixes issues with the HRRR SubHF grib2 step as read by
     cfgrib via scan_grib.

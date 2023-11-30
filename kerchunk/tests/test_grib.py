@@ -4,6 +4,7 @@ import fsspec
 import numpy as np
 import pytest
 import xarray as xr
+import datatree
 import zarr
 import ujson
 from kerchunk.grib2 import (
@@ -192,7 +193,7 @@ def test_hrrr_subhf_corrected_grib_tree():
     assert zg.dswrf.avg.surface.time.shape == (1,)
 
 
-# The following test use json fixture data generated from calling scan grib
+# The following two test use json fixture data generated from calling scan grib
 #   scan_grib("testdata/hrrr.t01z.wrfsfcf00.grib2")
 #   scan_grib("testdata/hrrr.t01z.wrfsfcf01.grib2")
 # and filtering the results for keys starting with "dswrf" or "u"
@@ -248,3 +249,21 @@ def test_hrrr_sfcf_grib_tree():
 
     assert zg.u.instant.isobaricInhPa.time[:].tolist() == [1695862800]
     assert zg.u.instant.isobaricInhPa.time.shape == (1,)
+
+
+def test_hrrr_sfcf_grib_datatree():
+    fpath = os.path.join(here, "hrrr.wrfsfcf.subset.json")
+    with open(fpath, "rb") as fobj:
+        scanned_msgs = ujson.load(fobj)
+    merged = grib_tree(scanned_msgs)
+    dt = datatree.open_datatree(
+        fsspec.filesystem("reference", fo=merged).get_mapper(""),
+        engine="zarr",
+        consolidated=False,
+    )
+    # Assert a few things... but if it loads we are mostly done.
+    np.testing.assert_array_equal(
+        dt.u.instant.heightAboveGround.step.values[:],
+        np.array([0, 3600 * 10**9], dtype="timedelta64[ns]"),
+    )
+    assert dt.u.attrs == dict(name="U component of wind")
