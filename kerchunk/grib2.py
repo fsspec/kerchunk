@@ -526,7 +526,9 @@ def grib_tree(
 
 def correct_hrrr_subhf_step(group: Dict) -> Dict:
     """
-    Overrides the definition of the step variable. Sets the value equal to the `valid_time - time`
+    Overrides the definition of the "step" variable. 
+    
+    Sets the value equal to the `valid_time - time`
     in hours as a floating point value. This fixes issues with the HRRR SubHF grib2 step as read by
     cfgrib via scan_grib.
     The result is a deep copy, the original data is unmodified.
