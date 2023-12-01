@@ -396,15 +396,13 @@ def grib_tree(
     # TODO allow passing a LazyReferenceMapper as output?
     zarr_store = {}
     zroot = zarr.open_group(store=zarr_store)
-    result = dict(refs=zarr_store)
 
     aggregations: Dict[str, List] = defaultdict(list)
     aggregation_dims: Dict[str, Set] = defaultdict(set)
 
     unknown_counter = 0
     for msg_ind, group in enumerate(message_groups):
-        if "version" not in result:
-            result["version"] = group["version"]
+        assert group["version"] == 1
 
         gattrs = ujson.loads(group["refs"][".zattrs"])
         coordinates = gattrs["coordinates"].split(" ")
@@ -517,6 +515,16 @@ def grib_tree(
         for key, value in group["refs"].items():
             if key not in [".zattrs", ".zgroup"]:
                 zarr_store[f"{path}/{key}"] = value
+
+    # Force all stored values to decode as string, not bytes. String should be correct.
+    # ujson will reject bytes values by default.
+    # Using 'reject_bytes=False' one write would fail an equality check on read.
+    zarr_store = {
+        key: (val.decode() if isinstance(val, bytes) else val)
+        for key, val in zarr_store.items()
+    }
+    # TODO handle other kerchunk reference spec versions?
+    result = dict(refs=zarr_store, version=1)
 
     return result
 
