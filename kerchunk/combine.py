@@ -311,8 +311,13 @@ class MultiZarrToZarr:
                         for _ in v
                     ]
                 ).ravel()
-            if "fill_value" not in kw and data.dtype.kind == "i":
-                kw["fill_value"] = None
+            if "fill_value" not in kw:
+                if data.dtype.kind == "i":
+                    kw["fill_value"] = None
+                elif k in z:
+                    # Fall back to existing fill value
+                    kw["fill_value"] = z[k].fill_value
+
             arr = group.create_dataset(
                 name=k,
                 data=data,
