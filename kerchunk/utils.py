@@ -135,7 +135,7 @@ def _encode_for_JSON(store):
 
 
 def do_inline(store, threshold, remote_options=None, remote_protocol=None):
-    """Replace short chunks with the value of that chunk
+    """Replace short chunks with the value of that chunk and inline metadata
 
     The chunk may need encoding with base64 if not ascii, so actual
     length may be larger than threshold.
@@ -147,10 +147,20 @@ def do_inline(store, threshold, remote_options=None, remote_protocol=None):
         remote_protocol=remote_protocol,
     )
     out = fs.references.copy()
+
+    # Inlining is done when one of two conditions are satisfied:
+    # 1. The item is small enough, i.e. smaller than the threshold specified in the function call
+    # 2. The item is a metadata file, i.e. a .z* file
     get_keys = [
         k
         for k, v in out.items()
-        if isinstance(v, list) and len(v) == 3 and v[2] < threshold
+        if (isinstance(v, list) and len(v) == 3 and v[2] < threshold)
+        or (
+            isinstance(v, list)
+            and len(v) == 1
+            and isinstance(v[0], str)
+            and v[0].split("/")[-1].startswith(".z")
+        )
     ]
     values = fs.cat(get_keys)
     for k, v in values.items():
