@@ -32,4 +32,3 @@ dependencies:
   - sphinx
   - numpydoc
   - sphinx-rtd-theme
-  - autodoc
