@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contributing to kerchunk &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Contributing to kerchunk &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -43,7 +48,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
@@ -97,8 +102,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="contributing-to-kerchunk">
-<span id="contributing"></span><h1>Contributing to kerchunk<a class="headerlink" href="#contributing-to-kerchunk" title="Permalink to this headline">¶</a></h1>
+  <section id="contributing-to-kerchunk">
+<span id="contributing"></span><h1>Contributing to kerchunk<a class="headerlink" href="#contributing-to-kerchunk" title="Link to this heading"></a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Large parts of this document are based on the
@@ -113,33 +118,33 @@ In its current state, it is possible for experienced users to build kerchunk ind
 which work today and will continue to work. End users of these reference sets will not be exposed
 to changes in kerchunk’s code and usually don’t even need to install kerchunk.</p>
 </div>
-<div class="section" id="bug-reports-and-feature-requests">
-<h2>Bug reports and feature requests<a class="headerlink" href="#bug-reports-and-feature-requests" title="Permalink to this headline">¶</a></h2>
+<section id="bug-reports-and-feature-requests">
+<h2>Bug reports and feature requests<a class="headerlink" href="#bug-reports-and-feature-requests" title="Link to this heading"></a></h2>
 <p>Bug reports or feature requests to the kerchunk project can be submitted by opening up an <a class="reference external" href="https://github.com/fsspec/kerchunk/issues">Issue in the repository</a>.</p>
-</div>
-<div class="section" id="contributing-code">
-<h2>Contributing code<a class="headerlink" href="#contributing-code" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="contributing-code">
+<h2>Contributing code<a class="headerlink" href="#contributing-code" title="Link to this heading"></a></h2>
 <p>This project uses git for version control and github for issue tracking. If you need instructions on how to setup git, they can be found on <a class="reference external" href="https://help.github.com/set-up-git-redirect">GitHub</a>.</p>
-<div class="section" id="creating-a-fork">
-<span id="contributing-forking"></span><h3>Creating a Fork<a class="headerlink" href="#creating-a-fork" title="Permalink to this headline">¶</a></h3>
+<section id="creating-a-fork">
+<span id="contributing-forking"></span><h3>Creating a Fork<a class="headerlink" href="#creating-a-fork" title="Link to this heading"></a></h3>
 <p>Once you have your git credentials setup, the next step is to create a fork of the project to work off of.
 To fork the repo, navigate to the <a class="reference external" href="https://github.com/fsspec/kerchunk">kerchunk repository on github</a> and click the <em>Fork</em> button in the top right of the page.
 This will create a fork of the kerchunk project in your own repository.</p>
 <p>Next, you will want to clone this forked version of the repository onto the machine you are working on.
 In your terminal/command prompt run:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:&lt;yourusername&gt;/kerchunk.git
-<span class="nb">cd</span> kerchunk
-git remote add upstream git@github.com:fsspec/kerchunk.git
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:&lt;yourusername&gt;/kerchunk.git
+<span class="nb">cd</span><span class="w"> </span>kerchunk
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>git@github.com:fsspec/kerchunk.git
 </pre></div>
 </div>
 <p>This will create a directory from your fork of the repository on your local machine and connect it to the main repository.</p>
-</div>
-<div class="section" id="creating-a-development-environment">
-<span id="contributing-dev-env"></span><h3>Creating a development environment<a class="headerlink" href="#creating-a-development-environment" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="creating-a-development-environment">
+<span id="contributing-dev-env"></span><h3>Creating a development environment<a class="headerlink" href="#creating-a-development-environment" title="Link to this heading"></a></h3>
 <p>To test your code changes, you will need to build <em>kerchunk</em> from source, which
 requires a Python environment.</p>
-<div class="section" id="creating-a-python-environment">
-<span id="contributiong-dev-python"></span><h4>Creating a Python Environment<a class="headerlink" href="#creating-a-python-environment" title="Permalink to this headline">¶</a></h4>
+<section id="creating-a-python-environment">
+<span id="contributiong-dev-python"></span><h4>Creating a Python Environment<a class="headerlink" href="#creating-a-python-environment" title="Link to this heading"></a></h4>
 <p>To ensure that the python environment that you are using is the same one that everyone else is using,
 it is necessary to create a virtual environment.
 This will create an isolated development environment where you can install the kerchunk python dependencies.</p>
@@ -155,53 +160,53 @@ This will create an isolated development environment where you can install the k
 which is a mirror of conda written in c++`.</p>
 </div>
 <p>First we’ll create and activate the build environment:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda env create --name kerchunk --file ci/environment-py3&lt;*&gt;.yml
-conda activate kerchunk
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>kerchunk<span class="w"> </span>--file<span class="w"> </span>ci/environment-py3&lt;*&gt;.yml
+conda<span class="w"> </span>activate<span class="w"> </span>kerchunk
 </pre></div>
 </div>
 <p>Now that you have the correct dependencies installed in your environment,
 you should be able to install your development version of kerchunk locally.
 In the projects home directory run:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip install -e .
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
 <p>To test that the installation was successful run:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ python  <span class="c1"># start an interpreter</span>
-&gt;&gt;&gt; import kerchunk
-&gt;&gt;&gt; kerchunk.__version__
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>python<span class="w">  </span><span class="c1"># start an interpreter</span>
+&gt;&gt;&gt;<span class="w"> </span>import<span class="w"> </span>kerchunk
+&gt;&gt;&gt;<span class="w"> </span>kerchunk.__version__
 </pre></div>
 </div>
 <p>To view your environments</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda info --envs
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>info<span class="w"> </span>--envs
 </pre></div>
 </div>
 <p>To return to your base environment</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda deactivate
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>deactivate
 </pre></div>
 </div>
 <p>See the full conda docs <a class="reference external" href="http://conda.pydata.org/docs">here</a>.</p>
-</div>
-<div class="section" id="setting-up-pre-commit">
-<h4>Setting up pre-commit<a class="headerlink" href="#setting-up-pre-commit" title="Permalink to this headline">¶</a></h4>
+</section>
+<section id="setting-up-pre-commit">
+<h4>Setting up pre-commit<a class="headerlink" href="#setting-up-pre-commit" title="Link to this heading"></a></h4>
 <p>We use <a class="reference external" href="https://pre-commit.com/">pre-commit</a> to manage code linting and style.
 To set up pre-commit after activating your conda environment, run:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pre-commit install
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pre-commit<span class="w"> </span>install
 </pre></div>
 </div>
 <p>Now pre-commit will run whenever you create a git commit in the repository.
 You may need to edit files that pre-commit has issues with and re-add them to the commit.</p>
-</div>
-</div>
-<div class="section" id="creating-a-branch">
-<h3>Creating a branch<a class="headerlink" href="#creating-a-branch" title="Permalink to this headline">¶</a></h3>
+</section>
+</section>
+<section id="creating-a-branch">
+<h3>Creating a branch<a class="headerlink" href="#creating-a-branch" title="Link to this heading"></a></h3>
 <p>You want your <code class="docutils literal notranslate"><span class="pre">main</span></code> branch to reflect only production-ready code, so create a
 feature branch before making your changes. For example</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git branch shiny-new-feature
-git checkout shiny-new-feature
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>branch<span class="w"> </span>shiny-new-feature
+git<span class="w"> </span>checkout<span class="w"> </span>shiny-new-feature
 </pre></div>
 </div>
 <p>The above can be simplified to</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git checkout -b shiny-new-feature
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>shiny-new-feature
 </pre></div>
 </div>
 <p>This changes your working directory to the shiny-new-feature branch.  Keep any
@@ -209,8 +214,8 @@ changes in this branch specific to one bug or feature so it is clear
 what the branch brings to <em>kerchunk</em>. You can have many “shiny-new-features”
 and switch in between them using the <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span></code> command.</p>
 <p>To update this branch, you need to retrieve the changes from the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git fetch upstream
-git merge upstream/main
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>fetch<span class="w"> </span>upstream
+git<span class="w"> </span>merge<span class="w"> </span>upstream/main
 </pre></div>
 </div>
 <p>This will combine your commits with the latest <em>kerchunk</em> git <code class="docutils literal notranslate"><span class="pre">main</span></code>.  If this
@@ -218,63 +223,63 @@ leads to merge conflicts, you must resolve these before submitting your pull
 request.  If you have uncommitted changes, you will need to <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">stash</span></code> them
 prior to updating.  This will effectively store your changes, which can be
 reapplied after updating.</p>
-</div>
-<div class="section" id="running-the-test-suite">
-<h3>Running the test suite<a class="headerlink" href="#running-the-test-suite" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="running-the-test-suite">
+<h3>Running the test suite<a class="headerlink" href="#running-the-test-suite" title="Link to this heading"></a></h3>
 <p><em>kerchunk</em> uses the <a class="reference external" href="https://docs.pytest.org/en/latest/contents.html">pytest</a>
 framework for testing. You can run the test suite using:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pytest kerchunk
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pytest<span class="w"> </span>kerchunk
 </pre></div>
 </div>
 <p>Ideally any new feature added should have test coverage.</p>
-</div>
-</div>
-<div class="section" id="contributing-documentation">
-<h2>Contributing documentation<a class="headerlink" href="#contributing-documentation" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="contributing-documentation">
+<h2>Contributing documentation<a class="headerlink" href="#contributing-documentation" title="Link to this heading"></a></h2>
 <p>Documentation improvements are appreciated. The documentation is contained within the <code class="docutils literal notranslate"><span class="pre">docs</span></code> directory of the project.
 It is written in <code class="docutils literal notranslate"><span class="pre">ReStructured</span> <span class="pre">Text</span> <span class="pre">(.rst)</span></code>, which is similar to markdown, but features more functionality.
 These ReStructured text files are built into <code class="docutils literal notranslate"><span class="pre">html</span></code> using the python <cite>sphinx (https://www.sphinx-doc.org/en/master/)_</cite> package.</p>
 <p>You can create a virtual environment by running:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda create --name kerchunk-docs <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.8
-conda activate kerchunk-docs
-python -m pip install -r docs/requirements.txt
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>--name<span class="w"> </span>kerchunk-docs<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.8
+conda<span class="w"> </span>activate<span class="w"> </span>kerchunk-docs
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/requirements.txt
 </pre></div>
 </div>
 <p>Once you make changes to the docs, you can build them with:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> docs
-make html
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>docs
+make<span class="w"> </span>html
 </pre></div>
 </div>
-</div>
-<div class="section" id="contributing-changes">
-<h2>Contributing changes<a class="headerlink" href="#contributing-changes" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="contributing-changes">
+<h2>Contributing changes<a class="headerlink" href="#contributing-changes" title="Link to this heading"></a></h2>
 <p>Once you feel good about your changes you can see them by typing:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git status
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>status
 </pre></div>
 </div>
 <p>If you have created a new file, it is not being tracked by git. Add it by typing:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git add path/to/file-to-be-added.py
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>add<span class="w"> </span>path/to/file-to-be-added.py
 </pre></div>
 </div>
 <p>Now you can commit your changes in your local repository.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git commit -m <span class="s2">&quot;&lt;commit message&gt;&quot;</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;&lt;commit message&gt;&quot;</span>
 </pre></div>
 </div>
 <p>When you want your changes to appear publicly on your GitHub page, push your
 commits to a branch off your fork.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git push origin shiny-new-feature
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>shiny-new-feature
 </pre></div>
 </div>
 <p>Here <code class="docutils literal notranslate"><span class="pre">origin</span></code> is the default name given to your remote repository on GitHub.
 You can see the remote repositories.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git remote -v
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>remote<span class="w"> </span>-v
 </pre></div>
 </div>
 <p>If you navigate to your branch on GitHub, you should see a banner to submit a pull
 request to the <em>kerchunk</em> repository.</p>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script></div>
-</div>
+        async src="//gc.zgo.at/count.js"></script></section>
+</section>
 
 
            </div>

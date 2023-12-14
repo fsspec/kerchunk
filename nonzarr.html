@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Non-zarr uses &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Non-zarr uses &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -43,7 +48,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
@@ -86,14 +91,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="non-zarr-uses">
-<h1>Non-zarr uses<a class="headerlink" href="#non-zarr-uses" title="Permalink to this headline">¶</a></h1>
+  <section id="non-zarr-uses">
+<h1>Non-zarr uses<a class="headerlink" href="#non-zarr-uses" title="Link to this heading"></a></h1>
 <p>The majority of this documentation focuses on reading arrays via <code class="docutils literal notranslate"><span class="pre">zarr</span></code>. However,
 there are other applications where accessing files in a particular directory structure
 or reading binary pieces of large files at known offsets is very useful. Here descriptions
 of some use cases, yet to be developed.</p>
-<div class="section" id="tar-zstd">
-<h2>.tar.zstd<a class="headerlink" href="#tar-zstd" title="Permalink to this headline">¶</a></h2>
+<section id="tar-zstd">
+<h2>.tar.zstd<a class="headerlink" href="#tar-zstd" title="Link to this heading"></a></h2>
 <p>Often, files are stored for archival by first concatenating and then compressing them.
 This is done to save space and data transfer upon access. However, it makes direct
 access of the contents hard, and often means that access can only happen by downloading
@@ -103,9 +108,9 @@ and Zstd is a modern enough compressor that it can be read block-wise, so it sho
 be possible to get the best of both worlds: to only pull the parts of the data that
 are actually needed (in parallel!), but still achieve good compression for long-term
 cost saving.</p>
-</div>
-<div class="section" id="csv-json">
-<h2>.csv/.json<a class="headerlink" href="#csv-json" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="csv-json">
+<h2>.csv/.json<a class="headerlink" href="#csv-json" title="Link to this heading"></a></h2>
 <p>Binary formats are much more efficient at data storage, both in terms of space and
 performance. However, a whole lot of data is still sored in text formats like CSV, JSON
 and others. For these two, subsequent rows are indicated by a terminating newline character,
@@ -117,9 +122,9 @@ a record terminator, and any misidentification will lead to parsing failure.</p>
 <p>If we can scan the file just once, we can determine where the rows end, and which offsets
 are safe to use, allowing parallel/distributed processing of files with embedded
 newlines.</p>
-</div>
-<div class="section" id="parquet-orc-feather">
-<h2>parquet/orc/feather<a class="headerlink" href="#parquet-orc-feather" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="parquet-orc-feather">
+<h2>parquet/orc/feather<a class="headerlink" href="#parquet-orc-feather" title="Link to this heading"></a></h2>
 <p>Parquet is an efficient tabular data format. Sometimes, however, it is useful to
 <em>partition</em> the data on low-cardinality rows, so save on storage and make it easier
 to exclude unneeded files from processing. For instance, if one file in a dataset
@@ -134,8 +139,8 @@ concatenation without having to move/copy files around.</p>
 construct logical feather files out of buffer pieces (and serialised feather metadata)
 to present to the pyarrow API.</p>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script></div>
-</div>
+        async src="//gc.zgo.at/count.js"></script></section>
+</section>
 
 
            </div>

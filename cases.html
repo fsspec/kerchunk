@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Case studies &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Case studies &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -43,7 +48,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
@@ -88,8 +93,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="case-studies">
-<h1>Case studies<a class="headerlink" href="#case-studies" title="Permalink to this headline">¶</a></h1>
+  <section id="case-studies">
+<h1>Case studies<a class="headerlink" href="#case-studies" title="Link to this heading"></a></h1>
 <p>Here we list completed datasets, with the reproducible code that made them, link to the
 created references and possibly notebook/benchmark examples. This page is a work in progress.
 All datasets available here will also be listed in the repo Intake catalogue.</p>
@@ -97,42 +102,42 @@ All datasets available here will also be listed in the repo Intake catalogue.</p
 <p class="admonition-title">Note</p>
 <p>This page needs to be cleaned up and the cases standardized.</p>
 </div>
-<div class="section" id="sentinel-global-coherence">
-<h2>Sentinel Global coherence<a class="headerlink" href="#sentinel-global-coherence" title="Permalink to this headline">¶</a></h2>
+<section id="sentinel-global-coherence">
+<h2>Sentinel Global coherence<a class="headerlink" href="#sentinel-global-coherence" title="Link to this heading"></a></h2>
 <p>Native data format: GeoTIFF.</p>
 <p>Effective in-memory size: 400TB.</p>
 <p>Documentation: <a class="reference external" href="http://sentinel-1-global-coherence-earthbigdata.s3-website-us-west-2.amazonaws.com">http://sentinel-1-global-coherence-earthbigdata.s3-website-us-west-2.amazonaws.com</a></p>
 <p>Discussion: <a class="reference external" href="https://github.com/fsspec/kerchunk/issues/78">https://github.com/fsspec/kerchunk/issues/78</a></p>
 <p>Generator script: <a class="reference external" href="https://github.com/cgohlke/tifffile/blob/v2021.10.10/examples/earthbigdata.py">https://github.com/cgohlke/tifffile/blob/v2021.10.10/examples/earthbigdata.py</a></p>
 <p>Notebook: <a class="reference external" href="https://nbviewer.org/github/fsspec/kerchunk/blob/main/examples/earthbigdata.ipynb">https://nbviewer.org/github/fsspec/kerchunk/blob/main/examples/earthbigdata.ipynb</a></p>
-</div>
-<div class="section" id="solar-dynamics-observatory">
-<h2>Solar Dynamics Observatory<a class="headerlink" href="#solar-dynamics-observatory" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="solar-dynamics-observatory">
+<h2>Solar Dynamics Observatory<a class="headerlink" href="#solar-dynamics-observatory" title="Link to this heading"></a></h2>
 <p>Native data format: FITS.</p>
 <p>Effective in-memory data size: 400GB</p>
 <p>Notes: each wavelength filter is presented as a separate variable. The DATE-OBS of the nearest preceding 94A image
 is used for other filters to maintain a single time axis for all variables.</p>
 <p>Notebook: <a class="reference external" href="https://nbviewer.org/github/fsspec/kerchunk/blob/main/examples/SDO.ipynb">https://nbviewer.org/github/fsspec/kerchunk/blob/main/examples/SDO.ipynb</a></p>
-</div>
-<div class="section" id="national-water-model">
-<h2>National Water Model<a class="headerlink" href="#national-water-model" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="national-water-model">
+<h2>National Water Model<a class="headerlink" href="#national-water-model" title="Link to this heading"></a></h2>
 <p>Native data format: NetCDF4/HDF5.</p>
 <p>Effective in-memory size: 80TB</p>
 <p>Notes: there are so many files, that dask and a tee reduction were required to aggregate the
 metadata.</p>
 <p>Generator notebook: <a class="reference external" href="https://nbviewer.org/gist/rsignell-usgs/ef435a53ac530a2843ce7e1d59f96e22">https://nbviewer.org/gist/rsignell-usgs/ef435a53ac530a2843ce7e1d59f96e22</a></p>
 <p>Notebook: <a class="reference external" href="https://nbviewer.org/gist/rsignell-usgs/02da7d9257b4b26d84d053be1af2ceeb">https://nbviewer.org/gist/rsignell-usgs/02da7d9257b4b26d84d053be1af2ceeb</a></p>
-</div>
-<div class="section" id="mur-sst">
-<h2>MUR SST<a class="headerlink" href="#mur-sst" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="mur-sst">
+<h2>MUR SST<a class="headerlink" href="#mur-sst" title="Link to this heading"></a></h2>
 <p>Native data format: NetCDF4/HDF5. Effective in-memory size: 66TB. On disk size: 16TB</p>
 <p>Documentation: <a class="reference external" href="https://podaac.jpl.nasa.gov/dataset/MUR-JPL-L4-GLOB-v4.1">https://podaac.jpl.nasa.gov/dataset/MUR-JPL-L4-GLOB-v4.1</a></p>
 <p>Notebook: <a class="reference external" href="https://nbviewer.org/github/cgentemann/cloud_science/blob/master/zarr_meta/cloud_mur_v41_benchmark.ipynb">https://nbviewer.org/github/cgentemann/cloud_science/blob/master/zarr_meta/cloud_mur_v41_benchmark.ipynb</a></p>
 <p>Notes: Global sea surface temperature data.  The notebook includes benchmarks.
 See the notebook for how to establish NASA Earthdata credentials necessary for data access.</p>
-</div>
-<div class="section" id="hrrr">
-<h2>HRRR<a class="headerlink" href="#hrrr" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="hrrr">
+<h2>HRRR<a class="headerlink" href="#hrrr" title="Link to this heading"></a></h2>
 <p>Native format: GRIB2.</p>
 <p>Effective in-memory size: 1.5GB (11-file subset)</p>
 <p>Documentation: <a class="reference external" href="https://rapidrefresh.noaa.gov/hrrr/">https://rapidrefresh.noaa.gov/hrrr/</a></p>
@@ -140,8 +145,8 @@ See the notebook for how to establish NASA Earthdata credentials necessary for d
 <p>Notes: High-Resolution Rapid Refresh, real-time 3-km resolution, hourly updated, cloud-resolving,
 convection-allowing atmospheric model from NOAA.  Notebook extracts only sections matching the filter “heightAboveGround=2”.</p>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script></div>
-</div>
+        async src="//gc.zgo.at/count.js"></script></section>
+</section>
 
 
            </div>

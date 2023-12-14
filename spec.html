@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>References specification &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>References specification &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -43,7 +48,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
@@ -85,16 +90,16 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="references-specification">
-<h1>References specification<a class="headerlink" href="#references-specification" title="Permalink to this headline">¶</a></h1>
+  <section id="references-specification">
+<h1>References specification<a class="headerlink" href="#references-specification" title="Link to this heading"></a></h1>
 <p>The content of a reference set should match the given description here.
 <code class="docutils literal notranslate"><span class="pre">fsspec</span></code>’s <code class="docutils literal notranslate"><span class="pre">ReferenceFileSystem</span></code> expects this kind of input.</p>
-<div class="section" id="version-0">
-<h2>Version 0<a class="headerlink" href="#version-0" title="Permalink to this headline">¶</a></h2>
+<section id="version-0">
+<h2>Version 0<a class="headerlink" href="#version-0" title="Link to this heading"></a></h2>
 <p>Prototype spec for the structure required by ReferenceFileSystem:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-  <span class="nt">&quot;key0&quot;</span><span class="p">:</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;key1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;protocol://target_url&quot;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">100</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">&quot;key0&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;protocol://target_url&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -105,17 +110,17 @@
 </ul>
 <p>For example, Zarr data in this proposed spec might be represented as:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-  <span class="nt">&quot;.zgroup&quot;</span><span class="p">:</span> <span class="s2">&quot;{\n    \&quot;zarr_format\&quot;: 2\n}&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;.zattrs&quot;</span><span class="p">:</span> <span class="s2">&quot;{\n    \&quot;Conventions\&quot;: \&quot;UGRID-0.9.0\n\&quot;}&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;x/.zattrs&quot;</span><span class="p">:</span> <span class="s2">&quot;{\n    \&quot;_ARRAY_DIMENSIONS\&quot;: [\n        \&quot;node\&quot;\n ...&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;x/.zarray&quot;</span><span class="p">:</span> <span class="s2">&quot;{\n    \&quot;chunks\&quot;: [\n        9228245\n    ],\n    \&quot;compressor\&quot;: null,\n    \&quot;dtype\&quot;: \&quot;&lt;f8\&quot;,\n  ...&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;x/0&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;s3://bucket/path/file.nc&quot;</span><span class="p">,</span> <span class="mi">294094376</span><span class="p">,</span> <span class="mi">73825960</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">&quot;.zgroup&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\n    \&quot;zarr_format\&quot;: 2\n}&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;.zattrs&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\n    \&quot;Conventions\&quot;: \&quot;UGRID-0.9.0\n\&quot;}&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;x/.zattrs&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\n    \&quot;_ARRAY_DIMENSIONS\&quot;: [\n        \&quot;node\&quot;\n ...&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;x/.zarray&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\n    \&quot;chunks\&quot;: [\n        9228245\n    ],\n    \&quot;compressor\&quot;: null,\n    \&quot;dtype\&quot;: \&quot;&lt;f8\&quot;,\n  ...&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;x/0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;s3://bucket/path/file.nc&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">294094376</span><span class="p">,</span><span class="w"> </span><span class="mi">73825960</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="version-1">
-<h2>Version 1<a class="headerlink" href="#version-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-1">
+<h2>Version 1<a class="headerlink" href="#version-1" title="Link to this heading"></a></h2>
 <p>Metadata structure in JSON. We note, for future possible binary storage, that “version”, “gen” and “templates” should
 be considered attributes, and “refs” as the data that ought to dominate the storage size. The previous definition,
 Version 0, is compatible with the “refs” entry, but here we add features. It will also be possible to <em>expand</em>
@@ -163,29 +168,29 @@ a binary section of a url</p></li>
 </ul>
 <p>Here is an example</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="nt">&quot;templates&quot;</span><span class="p">:</span> <span class="p">{</span>
-        <span class="nt">&quot;u&quot;</span><span class="p">:</span> <span class="s2">&quot;server.domain/path&quot;</span><span class="p">,</span>
-        <span class="nt">&quot;f&quot;</span><span class="p">:</span> <span class="s2">&quot;{{c}}&quot;</span>
-    <span class="p">},</span>
-    <span class="nt">&quot;gen&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="p">{</span>
-            <span class="nt">&quot;key&quot;</span><span class="p">:</span> <span class="s2">&quot;gen_key{{i}}&quot;</span><span class="p">,</span>
-            <span class="nt">&quot;url&quot;</span><span class="p">:</span> <span class="s2">&quot;http://{{u}}_{{i}}&quot;</span><span class="p">,</span>
-            <span class="nt">&quot;offset&quot;</span><span class="p">:</span> <span class="s2">&quot;{{(i + 1) * 1000}}&quot;</span><span class="p">,</span>
-            <span class="nt">&quot;length&quot;</span><span class="p">:</span> <span class="s2">&quot;1000&quot;</span><span class="p">,</span>
-            <span class="nt">&quot;dimensions&quot;</span><span class="p">:</span>
-              <span class="p">{</span>
-                <span class="nt">&quot;i&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;stop&quot;</span><span class="p">:</span>  <span class="mi">5</span><span class="p">}</span>
-              <span class="p">}</span>
-        <span class="p">}</span>
-    <span class="p">],</span>
-    <span class="nt">&quot;refs&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;key0&quot;</span><span class="p">:</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-      <span class="nt">&quot;key1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://target_url&quot;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
-      <span class="nt">&quot;key2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://{{u}}&quot;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
-      <span class="nt">&quot;key3&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://{{f(c=&#39;text&#39;)}}&quot;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">100</span><span class="p">]</span>
-    <span class="p">}</span>
+<span class="w">    </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;templates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;u&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;server.domain/path&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;f&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{{c}}&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;gen&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gen_key{{i}}&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://{{u}}_{{i}}&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{{(i + 1) * 1000}}&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;length&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1000&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;dimensions&quot;</span><span class="p">:</span>
+<span class="w">              </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;i&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;stop&quot;</span><span class="p">:</span><span class="w">  </span><span class="mi">5</span><span class="p">}</span>
+<span class="w">              </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;refs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;key0&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://target_url&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://{{u}}&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;key3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://{{f(c=&#39;text&#39;)}}&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -193,23 +198,23 @@ a binary section of a url</p></li>
 is more than one variable, a cartesian product is formed.</p>
 <p>This example evaluates to the Version 0 equivalent</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-  <span class="nt">&quot;key0&quot;</span><span class="p">:</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;key1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://target_url&quot;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
-  <span class="nt">&quot;key2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://server.domain/path&quot;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
-  <span class="nt">&quot;key3&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://text&quot;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
-  <span class="nt">&quot;gen_key0&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://server.domain/path_0&quot;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">],</span>
-  <span class="nt">&quot;gen_key1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://server.domain/path_1&quot;</span><span class="p">,</span> <span class="mi">2000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">],</span>
-  <span class="nt">&quot;gen_key2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://server.domain/path_2&quot;</span><span class="p">,</span> <span class="mi">3000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">],</span>
-  <span class="nt">&quot;gen_key3&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://server.domain/path_3&quot;</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">],</span>
-  <span class="nt">&quot;gen_key4&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;http://server.domain/path_4&quot;</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">&quot;key0&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://target_url&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;key3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://text&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;gen_key0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_0&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;gen_key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_1&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">2000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;gen_key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_2&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;gen_key3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_3&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">4000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;gen_key4&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_4&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <p>such that accessing, for instance, “key0” returns <code class="docutils literal notranslate"><span class="pre">b&quot;data&quot;</span></code> and accessing “gen_key0” returns 1000 bytes
 from the given URL, at an offset of 1000.</p>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script></div>
-</div>
+        async src="//gc.zgo.at/count.js"></script></section>
+</section>
 
 
            </div>

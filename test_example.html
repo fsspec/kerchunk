@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quick Start &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Quick Start &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -43,7 +48,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quick Start</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#single-file-jsons">Single file JSONs</a></li>
@@ -87,13 +92,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="quick-start">
-<h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
+  <section id="quick-start">
+<h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h1>
 <p>This is a run-through example for how to use this package. We scan a set of netCDF4/HDF5 files,
 and create a single emsemble, virtual dataset, which can be read in parallel from remote
 using <code class="docutils literal notranslate"><span class="pre">zarr</span></code>.</p>
-<div class="section" id="single-file-jsons">
-<h2>Single file JSONs<a class="headerlink" href="#single-file-jsons" title="Permalink to this headline">¶</a></h2>
+<section id="single-file-jsons">
+<h2>Single file JSONs<a class="headerlink" href="#single-file-jsons" title="Link to this heading"></a></h2>
 <p>This will create a <code class="docutils literal notranslate"><span class="pre">.json</span></code> file for each of the files defined in <code class="docutils literal notranslate"><span class="pre">urllist</span></code>. In this case,
 we simply keep the resultant reference sets in memory, but we could have written them into
 JSON files. Writing to files is useful, so that we can access the individual datasets, or
@@ -123,9 +128,9 @@ redo the combine (which is the next step, below).</p>
         <span class="n">singles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h5chunks</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="multi-file-jsons">
-<h2>Multi-file JSONs<a class="headerlink" href="#multi-file-jsons" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="multi-file-jsons">
+<h2>Multi-file JSONs<a class="headerlink" href="#multi-file-jsons" title="Link to this heading"></a></h2>
 <p>This code uses the output generated above to create a single ensemble dataset, with
 one set of references pointing to all of the chunks in the individual files.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span>
@@ -142,9 +147,9 @@ one set of references pointing to all of the chunks in the individual files.</p>
 <p>Again, <code class="docutils literal notranslate"><span class="pre">out</span></code> could be written to a JSON file by providing arguments to
 <code class="docutils literal notranslate"><span class="pre">translate()</span></code>. Crucially, there is no restriction on where
 this lives, it can be anywhere that fsspec can read from.</p>
-</div>
-<div class="section" id="using-the-output">
-<h2>Using the output<a class="headerlink" href="#using-the-output" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="using-the-output">
+<h2>Using the output<a class="headerlink" href="#using-the-output" title="Link to this heading"></a></h2>
 <p>This is what a user of the generated dataset would do. This person does not need to have
 <code class="docutils literal notranslate"><span class="pre">kerchunk</span></code> installed, or even <code class="docutils literal notranslate"><span class="pre">h5py</span></code> (the library we used to initially scan the files).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
@@ -170,13 +175,13 @@ examples).</p>
 <p>Note that, if the combining was done previously and saved to a JSON file, then the path to
 it should replace <code class="docutils literal notranslate"><span class="pre">out</span></code>, above, along with a <code class="docutils literal notranslate"><span class="pre">target_options</span></code> for any additional
 arguments fsspec might to access it</p>
-</div>
-<div class="section" id="example-tutorial-notebook">
-<h2>Example/Tutorial Notebook<a class="headerlink" href="#example-tutorial-notebook" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="example-tutorial-notebook">
+<h2>Example/Tutorial Notebook<a class="headerlink" href="#example-tutorial-notebook" title="Link to this heading"></a></h2>
 <p>A set of tutorials notebooks, presented at the Earth Science Information Partners 2022 Winter Meeting, can be found at the following link, along with links to run the code on free cloud-based notebook environments: <a class="reference external" href="https://github.com/lsterzinger/2022-esip-kerchunk-tutorial">https://github.com/lsterzinger/2022-esip-kerchunk-tutorial</a></p>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script></div>
-</div>
+        async src="//gc.zgo.at/count.js"></script></section>
+</section>
 
 
            </div>

@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>kerchunk &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>kerchunk &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -42,7 +47,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
@@ -80,8 +85,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="kerchunk">
-<h1>kerchunk<a class="headerlink" href="#kerchunk" title="Permalink to this headline">¶</a></h1>
+  <section id="kerchunk">
+<h1>kerchunk<a class="headerlink" href="#kerchunk" title="Link to this heading"></a></h1>
 <p>Kerchunk is a library that provides a unified way to represent a variety of chunked, compressed data formats
 (e.g. NetCDF/HDF5, GRIB2, TIFF, …),
 allowing efficient access to the data from traditional file systems or cloud object storage.
@@ -107,8 +112,8 @@ single dataset, without a need to go via the specific driver (e.g., no need for 
 <li><p>logical datasets viewing many (&gt;~millions) data files, and direct access/subselection to them via coordinate
 indexing across an arbitrary number of dimensions</p></li>
 </ul>
-<div class="section" id="introduction">
-<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
 <p>This library was created to solve the problem of reading existing scientific datatypes as efficiently as possible in the cloud. The amount of observed and simulated data
 is now too large to be handled effectively via download and local processing.  In the cloud era, the answer is to move compute to the data in the Cloud, process in
 parallel, and access the data <em>in situ</em>, and only as much as needed to solve a problem or use case.</p>
@@ -124,7 +129,7 @@ so that blocks from one or more files can be arranged into aggregate datasets ac
 <a class="reference external" href="https://zarr.readthedocs.io/en/stable/">zarr</a> library and the power of <a class="reference external" href="https://filesystem-spec.readthedocs.io/en/latest/">fsspec</a>. To understand how this works, please read
 <a class="reference internal" href="detail.html"><span class="doc">Detailed description</span></a>. Or consider the PyData talk: <a class="reference external" href="https://www.youtube.com/watch?v=0bqpxX3Nn_A">All You Need Is Zarr</a>.</p>
 <div class="toctree-wrapper compound">
-<p class="caption"><span class="caption-text">Contents:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="test_example.html#single-file-jsons">Single file JSONs</a></li>
@@ -187,17 +192,17 @@ so that blocks from one or more files can be arranged into aggregate datasets ac
 </li>
 </ul>
 </div>
-</div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
 <li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
 </ul>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script></div>
+        async src="//gc.zgo.at/count.js"></script></section>
 
 
            </div>

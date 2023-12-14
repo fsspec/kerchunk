@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutorial &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Tutorial &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -43,7 +48,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
@@ -92,12 +97,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="tutorial">
-<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+  <section id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Link to this heading"></a></h1>
 <p>This run-through tutorial is intended to display a variety of methods for combining datasets using the <code class="docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrtoZarr</span></code> API.</p>
 <p>Initially we create a pair of single file jsons for two ERA5 variables using <code class="docutils literal notranslate"><span class="pre">Kerchunk.hdf.SingleHdf5ToZarr</span></code>. This ERA5 dataset is free to access and so it is possible to replicate this workflow on a local machine without credentials.</p>
-<div class="section" id="single-file-jsons">
-<h2>Single file JSONs<a class="headerlink" href="#single-file-jsons" title="Permalink to this headline">¶</a></h2>
+<section id="single-file-jsons">
+<h2>Single file JSONs<a class="headerlink" href="#single-file-jsons" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">Kerchunk.hdf.SingleHdf5ToZarr</span></code> method is used to create a single <code class="docutils literal notranslate"><span class="pre">.json</span></code> reference file for each file url passed to it. Here we use it to create a number of reference files for the ERA5 public dataset on <a class="reference external" href="https://registry.opendata.aws/ecmwf-era5/">AWS</a>. We will compute a number of different times and variables to demonstrate different methods of combining them.</p>
 <p>The Kerchunk package is still in a development phase and so changes frequently. Installing directly from the source code is recommended.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>!pip install git+https://github.com/fsspec/kerchunk
@@ -130,7 +135,7 @@
         <span class="c1"># a higher inline threshold can result in a larger json file but faster loading time</span>
         <span class="n">variable</span> <span class="o">=</span> <span class="n">file_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">month</span> <span class="o">=</span> <span class="n">file_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">outf</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{month}</span><span class="s1">_</span><span class="si">{variable}</span><span class="s1">.json&#39;</span> <span class="c1">#file name to save json to</span>
+        <span class="n">outf</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">month</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">variable</span><span class="si">}</span><span class="s1">.json&#39;</span> <span class="c1">#file name to save json to</span>
         <span class="k">with</span> <span class="n">fs2</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outf</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">h5chunks</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span><span class="o">.</span><span class="n">encode</span><span class="p">());</span>
 </pre></div>
@@ -172,9 +177,9 @@
 <span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mi">235</span> <span class="n">ms</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="combine-multiple-kerchunked-datasets-into-a-single-logical-aggregate-dataset">
-<h2>Combine multiple kerchunked datasets into a single logical aggregate dataset<a class="headerlink" href="#combine-multiple-kerchunked-datasets-into-a-single-logical-aggregate-dataset" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="combine-multiple-kerchunked-datasets-into-a-single-logical-aggregate-dataset">
+<h2>Combine multiple kerchunked datasets into a single logical aggregate dataset<a class="headerlink" href="#combine-multiple-kerchunked-datasets-into-a-single-logical-aggregate-dataset" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">Kerchunk.combine.MultiZarrtoZarr</span></code> method combines the <code class="docutils literal notranslate"><span class="pre">.json</span></code> reference files generated above to create a single virtual dataset, such that one reference file maps to all of the chunks in the individual files.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span>
 </pre></div>
@@ -216,8 +221,8 @@
 <span class="n">Wall</span> <span class="n">time</span><span class="p">:</span> <span class="mf">40.9</span> <span class="n">ms</span>
 </pre></div>
 </div>
-<div class="section" id="using-coo-map">
-<h3>Using coo_map<a class="headerlink" href="#using-coo-map" title="Permalink to this headline">¶</a></h3>
+<section id="using-coo-map">
+<h3>Using coo_map<a class="headerlink" href="#using-coo-map" title="Link to this heading"></a></h3>
 <p>When the dimension along which we would like to concatenate is not already in the dataset, or when considering datasets from across an ensemble we can use the <code class="docutils literal notranslate"><span class="pre">coo_map</span></code> argument to create a new dimension.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">new_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span> <span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">]</span>
 
@@ -415,9 +420,9 @@
 </pre></div>
 </div>
 <p>There are a number of other special characters for <code class="docutils literal notranslate"><span class="pre">coo_map</span></code> documented in the <a class="reference external" href="https://fsspec.github.io/kerchunk/reference.html#kerchunk.combine.MultiZarrToZarr">API reference</a></p>
-</div>
-<div class="section" id="merging-variables-across-jsons">
-<h3>Merging variables across jsons<a class="headerlink" href="#merging-variables-across-jsons" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="merging-variables-across-jsons">
+<h3>Merging variables across jsons<a class="headerlink" href="#merging-variables-across-jsons" title="Link to this heading"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">Kerchunk.combine.merge_vars</span></code> convenience function can be used to merge variables across datasets if we know the coordinates and global file attributes are identical.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">merge_vars</span>
 
@@ -444,9 +449,9 @@
     <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="preprocessing">
-<h3>Preprocessing<a class="headerlink" href="#preprocessing" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="preprocessing">
+<h3>Preprocessing<a class="headerlink" href="#preprocessing" title="Link to this heading"></a></h3>
 <p>Pre-process can be used to apply arbitrary functions to the refs item in the input jsons before combining. In this case we use preprocessing to drop the <code class="docutils literal notranslate"><span class="pre">air_pressure_at_mean_sea_level</span></code> variable before combining <code class="docutils literal notranslate"><span class="pre">sea_surface_temperature</span></code> with a json containing data for the following month.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">pre_process</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
@@ -486,9 +491,9 @@
     <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="postprocessing">
-<h3>Postprocessing<a class="headerlink" href="#postprocessing" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="postprocessing">
+<h3>Postprocessing<a class="headerlink" href="#postprocessing" title="Link to this heading"></a></h3>
 <p>Similarly post-process can be used to apply an arbitrary function to the final dictionary before returning. A known issue with this particular dataset is that no fill value has been assigned to the lat and lon coordinates and thus default to 0, here we use post process to change the zarr fill_value attribute by opening the final json as a zarr store.</p>
 <p>Changing the fill_values could also be achieved by editing the final json through string manipulations or even a simple find and replace through an IDE.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">zarr</span>
@@ -536,10 +541,10 @@
     <span class="n">title</span><span class="p">:</span>        <span class="n">ERA5</span> <span class="n">forecasts</span>
 </pre></div>
 </div>
-</div>
-</div>
-<div class="section" id="using-the-output">
-<h2>Using the output<a class="headerlink" href="#using-the-output" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="using-the-output">
+<h2>Using the output<a class="headerlink" href="#using-the-output" title="Link to this heading"></a></h2>
 <p>To open a previously computed referenced dataset it is not necessary to have kerchunk installed. Only <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> to generate the file mapping.</p>
 <p>Here we open a remotely stored reference file that maps to 10 ERA5 variables across a 43 year time span.</p>
 <p>The sidecar file has been compressed using zstd, from the original 1.8GB to 194MB. Opening this virtual dataset requires 7GB of free system memory.</p>
@@ -612,8 +617,8 @@ s3://esip-qhub-public/ecmwf/ERA5_2020_2022_multivar.json.zst</p>
 </pre></div>
 </div>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script></div>
-</div>
+        async src="//gc.zgo.at/count.js"></script></section>
+</section>
 
 
            </div>

@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Topics &mdash; kerchunk  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Advanced Topics &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -42,7 +47,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
@@ -89,17 +94,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="advanced-topics">
-<h1>Advanced Topics<a class="headerlink" href="#advanced-topics" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="using-dask">
-<h2>Using Dask<a class="headerlink" href="#using-dask" title="Permalink to this headline">¶</a></h2>
+  <section id="advanced-topics">
+<h1>Advanced Topics<a class="headerlink" href="#advanced-topics" title="Link to this heading"></a></h1>
+<section id="using-dask">
+<h2>Using Dask<a class="headerlink" href="#using-dask" title="Link to this heading"></a></h2>
 <p>Scanning and combining datasets can be computationally intensive and may
 require a lot of bandwidth for some data formats. Where the target data
 contains many input files, it makes sense to parallelise the job with
 dask and maybe distribute the workload on a cluster to get additional
 CPUs and network performance.</p>
-<div class="section" id="simple-parallel">
-<h3>Simple parallel<a class="headerlink" href="#simple-parallel" title="Permalink to this headline">¶</a></h3>
+<section id="simple-parallel">
+<h3>Simple parallel<a class="headerlink" href="#simple-parallel" title="Link to this heading"></a></h3>
 <p>The simplest case is for processing many individual files in parallel.
 Let’s say you have a list of input files; you will need to encapsulate
 the processing on each in a single function. In this mode, it is typical
@@ -120,27 +125,27 @@ storage options and any parameters needed for the transformer are in place.</p>
 <span class="n">dask</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="tree-reduction">
-<h3>Tree reduction<a class="headerlink" href="#tree-reduction" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="tree-reduction">
+<h3>Tree reduction<a class="headerlink" href="#tree-reduction" title="Link to this heading"></a></h3>
 <p>In some cases, the combine process can itself be slow or memory hungry.
 In such cases, it is useful to combine the single-file reference sets in
 batches (which reduce a lot of redundancy between them) and then
 combine the results of the batches. This technique is known as tree
 reduction. An example of doing this by hand can be seen <a class="reference external" href="https://gist.github.com/peterm790/5f901453ed7ac75ac28ed21a7138dcf8">here</a>.</p>
-<p>We also provide <a class="reference internal" href="reference.html#kerchunk.combine.auto_dask" title="kerchunk.combine.auto_dask"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code></a> as a convenience. This
+<p>We also provide <code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code> as a convenience. This
 function is a one-stop call to process the individual inputs, combine
 them in batches, and then combine the results of those batches into a
 final combined references set.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">auto_dask</span></code> function takes a number of dicts as arguments, and users
 should consult the docstrings of the specific class which decodes the
-input files, and also of <a class="reference internal" href="reference.html#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>. Note that
+input files, and also of <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code>. Note that
 any “preprocessing” for <code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr</span></code> will be performed <em>before</em> the
 batch stage, and any “postprocessing” only <em>after</em> the final combine.</p>
-</div>
-</div>
-<div class="section" id="archive-files">
-<h2>Archive Files<a class="headerlink" href="#archive-files" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+<section id="archive-files">
+<h2>Archive Files<a class="headerlink" href="#archive-files" title="Link to this heading"></a></h2>
 <p>It is often convenient to distribute datasets by wrapping multiple files
 into an archive, ZIP or TAR. If those files are of formats supported by
 <code class="docutils literal notranslate"><span class="pre">kerchunk</span></code>, they can be directly scanned with something like</p>
@@ -155,7 +160,7 @@ into an archive, ZIP or TAR. If those files are of formats supported by
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>We have turned off inlining here (it can be done
-later with <a class="reference internal" href="reference.html#kerchunk.utils.do_inline" title="kerchunk.utils.do_inline"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.utils.do_inline()</span></code></a>; support for this
+later with <code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.utils.do_inline()</span></code>; support for this
 will come later.</p>
 </div>
 <p>At this point, the
@@ -174,9 +179,9 @@ can be used directly or in combining.</p>
 <p class="admonition-title">Warning</p>
 <p>For ZIP archives, only uncompressed members can be accessed this way</p>
 </div>
-</div>
-<div class="section" id="parquet-storage">
-<h2>Parquet Storage<a class="headerlink" href="#parquet-storage" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="parquet-storage">
+<h2>Parquet Storage<a class="headerlink" href="#parquet-storage" title="Link to this heading"></a></h2>
 <p>JSON is very convenient as a storage format for references, because it is
 simple, human-readable and ubiquitously supported. However, it is not the most
 efficient in terms of storage size of parsing speed. For python, in particular,
@@ -201,13 +206,13 @@ URLs (many references per target file). In this format, each unique URL is only
 stored in memory once.</p></li>
 </ul>
 <p>The only access point to the new parquet storage is
-<a class="reference internal" href="reference.html#kerchunk.df.refs_to_dataframe" title="kerchunk.df.refs_to_dataframe"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.df.refs_to_dataframe()</span></code></a>, which transforms an existing kerchunk
+<code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.df.refs_to_dataframe()</span></code>, which transforms an existing kerchunk
 reference set (in memory as dicts or in a JSON file) to parquet. Careful reading
 of the docstring is recommended, to understand the options. More options may
 be added.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>For now, <a class="reference internal" href="reference.html#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a> only operates on JSON/dict
+<p>For now, <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code> only operates on JSON/dict
 input. Therefore, <code class="docutils literal notranslate"><span class="pre">refs_to_dataframe</span></code> can only be used on the final output
 reference set. For a very large merge of many/large inputs, this may mean
 that the combine step requires a lot of memory, as will converting the
@@ -215,7 +220,7 @@ output to parquet. However, the end-user should be able to access data via
 these references with much smaller  memory requirements.</p>
 </div>
 <p>A concrete workflow may be something like the following. Note that
-<a class="reference internal" href="reference.html#kerchunk.combine.auto_dask" title="kerchunk.combine.auto_dask"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code></a> can execute the first three stages in
+<code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code> can execute the first three stages in
 one go and may be faster, if you have a Dask cluster available.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk</span> <span class="kn">import</span> <span class="n">hdf</span><span class="p">,</span> <span class="n">combine</span><span class="p">,</span> <span class="n">df</span>
 <span class="kn">import</span> <span class="nn">fsspec.implementations.reference</span>
@@ -259,8 +264,8 @@ Even for a very large reference set, the memory use at this point should be &lt;
 <p>As you access the variables of <code class="docutils literal notranslate"><span class="pre">ds</span></code>, they will be loaded on demand and cached.
 If using <code class="docutils literal notranslate"><span class="pre">dask</span></code>, workers will also only load those references they need.</p>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script></div>
-</div>
+        async src="//gc.zgo.at/count.js"></script></section>
+</section>
 
 
            </div>
