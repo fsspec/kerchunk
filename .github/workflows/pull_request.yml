@@ -7,7 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: ammaraskar/sphinx-action@master
+    - uses: mamba-org/setup-micromamba@v1
       with:
-        docs-folder: "docs/"
-        path: docs/build/html/
+        environment-file: ci/environment-docs.yml
+    - name: make docs
+      shell: bash -l {0}
+      run: |
+        cd docs
+        make html

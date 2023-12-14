@@ -40,11 +40,11 @@ def single_zarr(
             refs[k] = mapper[k]
         else:
             refs[k] = [fsspec.utils._unstrip_protocol(mapper._key_to_str(k), mapper.fs)]
-    # from kerchunk.utils import do_inline
-    # inline_threshold = inline or inline_threshold
-    # if inline_threshold:
-    #     # this never does anything since we don't have the chunk sizes
-    #     refs = do_inline(refs, inline_threshold, remote_options=storage_options)
+    from kerchunk.utils import do_inline
+
+    inline_threshold = inline or inline_threshold
+    if inline_threshold:
+        refs = do_inline(refs, inline_threshold, remote_options=storage_options)
     if isinstance(refs, LazyReferenceMapper):
         refs.flush()
     return refs
