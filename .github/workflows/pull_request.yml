@@ -10,4 +10,5 @@ jobs:
     - uses: ammaraskar/sphinx-action@master
       with:
         docs-folder: "docs/"
+        pre-build-command: "pip install docutils>=0.18.1"
         path: docs/build/html/
