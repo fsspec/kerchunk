@@ -199,7 +199,7 @@ def _inline_array(group, threshold, names, prefix=""):
 
 
 def inline_array(store, threshold=1000, names=None, remote_options=None):
-    """Inline whole arrays by threshold or name, repace with a single metadata chunk
+    """Inline whole arrays by threshold or name, replace with a single metadata chunk
 
     Inlining whole arrays results in fewer keys. If the constituent keys were
     already inlined, this also results in a smaller file overall. No action is taken

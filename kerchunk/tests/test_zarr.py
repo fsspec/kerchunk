@@ -1,7 +1,8 @@
-import xarray as xr
+import fsspec
+import numpy as np
 import pandas as pd
 import pytest
-import numpy as np
+import xarray as xr
 
 import kerchunk.zarr
 import kerchunk.utils
@@ -51,15 +52,19 @@ def test_zarr_in_zip(zarr_in_zip, ds):
         url="zip://", storage_options={"fo": zarr_in_zip}
     ).translate()
     ds2 = xr.open_dataset(
-        "reference://",
-        engine="zarr",
+        out,
+        engine="kerchunk",
         backend_kwargs={
             "storage_options": {
-                "fo": out,
                 "remote_protocol": "zip",
                 "remote_options": {"fo": zarr_in_zip},
-            },
-            "consolidated": False,
+            }
         },
     )
     assert ds.equals(ds2)
+
+    # tests inlining of metadata
+    fs = fsspec.filesystem(
+        "reference", fo=out, remote_protocol="zip", remote_options={"fo": zarr_in_zip}
+    )
+    assert isinstance(fs.references["temp/.zarray"], (str, bytes))
