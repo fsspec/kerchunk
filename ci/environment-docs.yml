@@ -32,3 +32,4 @@ dependencies:
   - sphinx
   - numpydoc
   - sphinx-rtd-theme
+  - ujson
