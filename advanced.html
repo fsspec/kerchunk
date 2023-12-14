@@ -133,13 +133,13 @@ In such cases, it is useful to combine the single-file reference sets in
 batches (which reduce a lot of redundancy between them) and then
 combine the results of the batches. This technique is known as tree
 reduction. An example of doing this by hand can be seen <a class="reference external" href="https://gist.github.com/peterm790/5f901453ed7ac75ac28ed21a7138dcf8">here</a>.</p>
-<p>We also provide <code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code> as a convenience. This
+<p>We also provide <a class="reference internal" href="reference.html#kerchunk.combine.auto_dask" title="kerchunk.combine.auto_dask"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code></a> as a convenience. This
 function is a one-stop call to process the individual inputs, combine
 them in batches, and then combine the results of those batches into a
 final combined references set.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">auto_dask</span></code> function takes a number of dicts as arguments, and users
 should consult the docstrings of the specific class which decodes the
-input files, and also of <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code>. Note that
+input files, and also of <a class="reference internal" href="reference.html#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a>. Note that
 any “preprocessing” for <code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr</span></code> will be performed <em>before</em> the
 batch stage, and any “postprocessing” only <em>after</em> the final combine.</p>
 </section>
@@ -160,7 +160,7 @@ into an archive, ZIP or TAR. If those files are of formats supported by
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>We have turned off inlining here (it can be done
-later with <code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.utils.do_inline()</span></code>; support for this
+later with <a class="reference internal" href="reference.html#kerchunk.utils.do_inline" title="kerchunk.utils.do_inline"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.utils.do_inline()</span></code></a>; support for this
 will come later.</p>
 </div>
 <p>At this point, the
@@ -206,13 +206,13 @@ URLs (many references per target file). In this format, each unique URL is only
 stored in memory once.</p></li>
 </ul>
 <p>The only access point to the new parquet storage is
-<code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.df.refs_to_dataframe()</span></code>, which transforms an existing kerchunk
+<a class="reference internal" href="reference.html#kerchunk.df.refs_to_dataframe" title="kerchunk.df.refs_to_dataframe"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.df.refs_to_dataframe()</span></code></a>, which transforms an existing kerchunk
 reference set (in memory as dicts or in a JSON file) to parquet. Careful reading
 of the docstring is recommended, to understand the options. More options may
 be added.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>For now, <code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code> only operates on JSON/dict
+<p>For now, <a class="reference internal" href="reference.html#kerchunk.combine.MultiZarrToZarr" title="kerchunk.combine.MultiZarrToZarr"><code class="xref py py-class docutils literal notranslate"><span class="pre">kerchunk.combine.MultiZarrToZarr</span></code></a> only operates on JSON/dict
 input. Therefore, <code class="docutils literal notranslate"><span class="pre">refs_to_dataframe</span></code> can only be used on the final output
 reference set. For a very large merge of many/large inputs, this may mean
 that the combine step requires a lot of memory, as will converting the
@@ -220,7 +220,7 @@ output to parquet. However, the end-user should be able to access data via
 these references with much smaller  memory requirements.</p>
 </div>
 <p>A concrete workflow may be something like the following. Note that
-<code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code> can execute the first three stages in
+<a class="reference internal" href="reference.html#kerchunk.combine.auto_dask" title="kerchunk.combine.auto_dask"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code></a> can execute the first three stages in
 one go and may be faster, if you have a Dask cluster available.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk</span> <span class="kn">import</span> <span class="n">hdf</span><span class="p">,</span> <span class="n">combine</span><span class="p">,</span> <span class="n">df</span>
 <span class="kn">import</span> <span class="nn">fsspec.implementations.reference</span>

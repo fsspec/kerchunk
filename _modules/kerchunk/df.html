@@ -1,18 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>kerchunk.df &mdash; kerchunk  documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <title>kerchunk.df &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/language_data.js"></script>
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -41,7 +45,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../test_example.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
@@ -112,7 +116,7 @@
 
 
 <span class="k">def</span> <span class="nf">get_variables</span><span class="p">(</span><span class="n">refs</span><span class="p">,</span> <span class="n">consolidated</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Get list of variable names from references.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get list of variable names from references.</span>
 
 <span class="sd">    Finds the top-level prefixes in a reference set, corresponding to</span>
 <span class="sd">    the directory listing of the root for zarr.</span>
@@ -150,7 +154,7 @@
 
 
 <span class="k">def</span> <span class="nf">_normalize_json</span><span class="p">(</span><span class="n">json_obj</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Normalize json representation as bytes</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize json representation as bytes</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -165,7 +169,7 @@
 
 
 <span class="k">def</span> <span class="nf">_write_json</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">json_obj</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Write references into a parquet file.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write references into a parquet file.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -180,7 +184,9 @@
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json_obj</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="refs_to_dataframe"><a class="viewcode-back" href="../../reference.html#kerchunk.df.refs_to_dataframe">[docs]</a><span class="k">def</span> <span class="nf">refs_to_dataframe</span><span class="p">(</span>
+<div class="viewcode-block" id="refs_to_dataframe">
+<a class="viewcode-back" href="../../reference.html#kerchunk.df.refs_to_dataframe">[docs]</a>
+<span class="k">def</span> <span class="nf">refs_to_dataframe</span><span class="p">(</span>
     <span class="n">fo</span><span class="p">,</span>
     <span class="n">url</span><span class="p">,</span>
     <span class="n">target_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -189,7 +195,7 @@
     <span class="n">record_size</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
     <span class="n">categorical_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Write references as a parquet files store.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write references as a parquet files store.</span>
 
 <span class="sd">    The directory structure should mimic a normal zarr store but instead of standard chunk</span>
 <span class="sd">    keys, references are saved as parquet dataframes.</span>
@@ -243,6 +249,7 @@
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
         <span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
     <span class="n">out</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
 </pre></div>
 
            </div>

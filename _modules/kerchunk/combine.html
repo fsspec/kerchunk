@@ -1,18 +1,22 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>kerchunk.combine &mdash; kerchunk  documentation</title><link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <title>kerchunk.combine &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/jquery.js"></script>
-        <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/language_data.js"></script>
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -41,7 +45,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../test_example.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
@@ -98,8 +102,10 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;kerchunk.combine&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="drop"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.drop">[docs]</a><span class="k">def</span> <span class="nf">drop</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Generate example preprocessor removing given fields&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="drop">
+<a class="viewcode-back" href="../../reference.html#kerchunk.combine.drop">[docs]</a>
+<span class="k">def</span> <span class="nf">drop</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate example preprocessor removing given fields&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">preproc</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
@@ -110,8 +116,11 @@
     <span class="k">return</span> <span class="n">preproc</span></div>
 
 
-<div class="viewcode-block" id="MultiZarrToZarr"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr">[docs]</a><span class="k">class</span> <span class="nc">MultiZarrToZarr</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiZarrToZarr">
+<a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr">[docs]</a>
+<span class="k">class</span> <span class="nc">MultiZarrToZarr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Combine multiple kerchunk&#39;d datasets into a single logical aggregate dataset</span>
 
 <span class="sd">    :param path: str, list(str) or list(dict)</span>
@@ -174,7 +183,9 @@
 <span class="sd">        to customise how references get stored</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="MultiZarrToZarr.__init__"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<div class="viewcode-block" id="MultiZarrToZarr.__init__">
+<a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">,</span>
         <span class="n">indicts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -204,7 +215,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">coo_map</span> <span class="o">=</span> <span class="n">coo_map</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coo_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
             <span class="p">{</span>
-                <span class="n">c</span><span class="p">:</span> <span class="s2">&quot;VARNAME&quot;</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s2">&quot;var&quot;</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;data:</span><span class="si">{c}</span><span class="s2">&quot;</span>
+                <span class="n">c</span><span class="p">:</span> <span class="s2">&quot;VARNAME&quot;</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s2">&quot;var&quot;</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;data:</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_dims</span>
                 <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coo_map</span>
             <span class="p">}</span>
@@ -225,9 +236,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span></div>
 
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">fss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;filesystem instances being analysed, one per input dataset&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;filesystem instances being analysed, one per input dataset&quot;&quot;&quot;</span>
         <span class="kn">import</span> <span class="nn">collections.abc</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -265,7 +277,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fss</span>
 
     <span class="k">def</span> <span class="nf">_get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;derive coordinate value(s) for given input dataset</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;derive coordinate value(s) for given input dataset</span>
 
 <span class="sd">        How to map from input to</span>
 
@@ -324,7 +336,7 @@
         <span class="k">return</span> <span class="n">o</span>
 
     <span class="k">def</span> <span class="nf">first_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Accumulate the set of concat coords values across all inputs&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Accumulate the set of concat coords values across all inputs&quot;&quot;&quot;</span>
 
         <span class="n">coos</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="nb">set</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coo_map</span><span class="p">}</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fss</span><span class="p">):</span>
@@ -349,15 +361,15 @@
         <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coos</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Concatenated coordinate &#39;</span><span class="si">{c}</span><span class="s2">&#39; contains less than expected&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;number of values across the datasets: </span><span class="si">{v}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Concatenated coordinate &#39;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&#39; contains less than expected&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;number of values across the datasets: </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Created coordinates map&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">coos</span>
 
     <span class="k">def</span> <span class="nf">store_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Write coordinate arrays into the output</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
@@ -393,8 +405,13 @@
                         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">v</span>
                     <span class="p">]</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
-            <span class="k">if</span> <span class="s2">&quot;fill_value&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kw</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
-                <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;fill_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s2">&quot;fill_value&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kw</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;i&quot;</span><span class="p">:</span>
+                    <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;fill_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">z</span><span class="p">:</span>
+                    <span class="c1"># Fall back to existing fill value</span>
+                    <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;fill_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">fill_value</span>
+
             <span class="n">arr</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
                 <span class="n">name</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
@@ -423,7 +440,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">second_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;map every input chunk to the output&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;map every input chunk to the output&quot;&quot;&quot;</span>
         <span class="c1"># TODO: this stage cannot be rerun without clearing and rerunning store_coords too,</span>
         <span class="c1">#  because some code runs dependant on the current state f self.out</span>
         <span class="n">chunk_sizes</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1">#</span>
@@ -461,35 +478,35 @@
                     <span class="c1"># already made coordinate variables and metadata</span>
                     <span class="k">continue</span>
                 <span class="n">fns</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zgroup&quot;</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
+                <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zgroup&quot;</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
                     <span class="c1"># recurse into groups - copy meta, add to dirs to process and don&#39;t look</span>
                     <span class="c1"># for references in this dir</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zgroup&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zgroup&quot;</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zattrs&quot;</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zattrs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zattrs&quot;</span><span class="p">]</span>
-                    <span class="n">dirs</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fns</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.z&quot;</span><span class="p">)])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zgroup&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zgroup&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zattrs&quot;</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zattrs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zattrs&quot;</span><span class="p">]</span>
+                    <span class="n">dirs</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fns</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.z&quot;</span><span class="p">)])</span>
                     <span class="k">continue</span>
                 <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">identical_dims</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zarray&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zarray&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">:</span>
                         <span class="k">continue</span>
                     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-                        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/&quot;</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/&quot;</span><span class="p">):</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
                     <span class="k">continue</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Second pass: </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
-                <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zarray&quot;</span><span class="p">])</span>
+                <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zarray&quot;</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">chunk_sizes</span><span class="p">:</span>
                     <span class="n">chunk_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
                 <span class="k">elif</span> <span class="n">chunk_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">!=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Found chunk size mismatch:</span>
-<span class="s2">                        at prefix </span><span class="si">{v}</span><span class="s2"> in iteration </span><span class="si">{i}</span><span class="s2"> (file </span><span class="si">{self._paths[i]}</span><span class="s2">)</span>
-<span class="s2">                        new chunk: </span><span class="si">{chunk_sizes[v]}</span><span class="s2"></span>
-<span class="s2">                        chunks so far: </span><span class="si">{zarray[&quot;chunks&quot;]}</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                        at prefix </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2"> in iteration </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> (file </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                        new chunk: </span><span class="si">{</span><span class="n">chunk_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                        chunks so far: </span><span class="si">{</span><span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span>
                     <span class="p">)</span>
                 <span class="n">chunks</span> <span class="o">=</span> <span class="n">chunk_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
-                <span class="n">zattrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{v}</span><span class="s2">/.zattrs&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">))</span>
+                <span class="n">zattrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">/.zattrs&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">))</span>
                 <span class="n">coords</span> <span class="o">=</span> <span class="n">zattrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">,</span> <span class="p">[])</span>
                 <span class="k">if</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">coords</span><span class="p">:</span>
                     <span class="n">coords</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="s2">&quot;ikjlm&quot;</span><span class="p">)[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">])]</span>
@@ -509,7 +526,7 @@
                 <span class="p">]</span> <span class="o">+</span> <span class="n">coords</span>
 
                 <span class="c1"># create output array, accounting for shape, chunks and dim dependencies</span>
-                <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;{var or v}/.zarray&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">:</span>
+                <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">v</span><span class="si">}</span><span class="s2">/.zarray&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">:</span>
                     <span class="n">shape</span> <span class="o">=</span> <span class="p">[]</span>
                     <span class="n">ch</span> <span class="o">=</span> <span class="p">[]</span>
                     <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">coord_order</span><span class="p">:</span>
@@ -526,11 +543,11 @@
                     <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">shape</span>
                     <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ch</span>
                     <span class="n">zattrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">coord_order</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;{var or v}/.zarray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">zarray</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">v</span><span class="si">}</span><span class="s2">/.zarray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">zarray</span><span class="p">)</span>
                     <span class="c1"># other attributes copied as-is from first occurrence of this array</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;{var or v}/.zattrs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">zattrs</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">v</span><span class="si">}</span><span class="s2">/.zattrs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">zattrs</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;{var or v}/.zarray&quot;</span><span class="p">]</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">v</span><span class="si">}</span><span class="s2">/.zarray&quot;</span><span class="p">]</span>
                     <span class="n">ch</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">k</span><span class="p">)[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
 
                 <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">fns</span><span class="p">:</span>
@@ -538,7 +555,7 @@
                     <span class="k">if</span> <span class="s2">&quot;.z&quot;</span> <span class="ow">in</span> <span class="n">fn</span><span class="p">:</span>
                         <span class="k">continue</span>
                     <span class="n">key_parts</span> <span class="o">=</span> <span class="n">fn</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
-                    <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;{var or v}/&quot;</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">v</span><span class="si">}</span><span class="s2">/&quot;</span>
                     <span class="k">for</span> <span class="n">loc</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coord_order</span><span class="p">):</span>
                         <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coos</span><span class="p">:</span>
                             <span class="n">cv</span> <span class="o">=</span> <span class="n">cvalues</span><span class="p">[</span><span class="n">c</span><span class="p">]</span>
@@ -568,8 +585,10 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">bits</span><span class="p">[</span><span class="n">fn</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MultiZarrToZarr.translate"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Perform all stages and return the resultant references dict</span>
+<div class="viewcode-block" id="MultiZarrToZarr.translate">
+<a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.translate">[docs]</a>
+    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform all stages and return the resultant references dict</span>
 
 <span class="sd">        If filename and storage options are given, the output is written to this</span>
 <span class="sd">        file using ujson and fsspec instead of being returned.</span>
@@ -589,7 +608,9 @@
             <span class="k">return</span> <span class="n">out</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wt&quot;</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">ujson</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div></div>
+                <span class="n">ujson</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+</div>
+
 
 
 <span class="k">def</span> <span class="nf">_reorganise</span><span class="p">(</span><span class="n">coos</span><span class="p">):</span>
@@ -601,8 +622,10 @@
     <span class="k">return</span> <span class="n">out</span>
 
 
-<div class="viewcode-block" id="merge_vars"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.merge_vars">[docs]</a><span class="k">def</span> <span class="nf">merge_vars</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Merge variables across datasets with identical coordinates</span>
+<div class="viewcode-block" id="merge_vars">
+<a class="viewcode-back" href="../../reference.html#kerchunk.combine.merge_vars">[docs]</a>
+<span class="k">def</span> <span class="nf">merge_vars</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge variables across datasets with identical coordinates</span>
 
 <span class="sd">    :param files: list(dict), list(str) or list(fsspec.OpenFile)</span>
 <span class="sd">        List of reference dictionaries or list of paths to reference json files to be merged</span>
@@ -626,7 +649,10 @@
     <span class="k">return</span> <span class="n">merged</span></div>
 
 
-<div class="viewcode-block" id="concatenate_arrays"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.concatenate_arrays">[docs]</a><span class="k">def</span> <span class="nf">concatenate_arrays</span><span class="p">(</span>
+
+<div class="viewcode-block" id="concatenate_arrays">
+<a class="viewcode-back" href="../../reference.html#kerchunk.combine.concatenate_arrays">[docs]</a>
+<span class="k">def</span> <span class="nf">concatenate_arrays</span><span class="p">(</span>
     <span class="n">files</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -634,7 +660,7 @@
     <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">check_arrays</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Simple concatenate of one zarr array along an axis</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple concatenate of one zarr array along an axis</span>
 
 <span class="sd">    Assumes that each array is identical in shape/type.</span>
 
@@ -675,7 +701,7 @@
     <span class="n">chunks_offset</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
         <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span>
-        <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zarray&quot;</span><span class="p">))</span>
+        <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.zarray&quot;</span><span class="p">))</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span>
         <span class="n">chunks</span> <span class="o">=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
         <span class="n">n_chunks</span><span class="p">,</span> <span class="n">rem</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">],</span> <span class="n">chunks</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span>
@@ -687,7 +713,7 @@
             <span class="c1"># result_* are modified in-place</span>
             <span class="n">result_zarray</span> <span class="o">=</span> <span class="n">zarray</span>
             <span class="n">result_shape</span> <span class="o">=</span> <span class="n">shape</span>
-            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.zgroup&quot;</span><span class="p">,</span> <span class="s2">&quot;.zattrs&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zattrs&quot;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.zgroup&quot;</span><span class="p">,</span> <span class="s2">&quot;.zattrs&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.zattrs&quot;</span><span class="p">]:</span>
                 <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">:</span>
                     <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
@@ -697,24 +723,24 @@
         <span class="k">if</span> <span class="n">check_arrays</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">_replace</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="n">base_shape</span><span class="p">:</span>
                 <span class="n">expected_shape</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;[{&#39;, &#39;.join(map(str, _replace(base_shape, axis, &#39;*&#39;)))}]&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">_replace</span><span class="p">(</span><span class="n">base_shape</span><span class="p">,</span><span class="w"> </span><span class="n">axis</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="p">)))</span><span class="si">}</span><span class="s2">]&quot;</span>
                 <span class="p">)</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Incompatible array shape at index </span><span class="si">{i}</span><span class="s2">. Expected </span><span class="si">{expected_shape}</span><span class="s2">, got </span><span class="si">{shape}</span><span class="s2">.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Incompatible array shape at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. Expected </span><span class="si">{</span><span class="n">expected_shape</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
             <span class="k">if</span> <span class="n">chunks</span> <span class="o">!=</span> <span class="n">base_chunks</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Incompatible array chunks at index </span><span class="si">{i}</span><span class="s2">. Expected </span><span class="si">{base_chunks}</span><span class="s2">, got </span><span class="si">{chunks}</span><span class="s2">.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Incompatible array chunks at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. Expected </span><span class="si">{</span><span class="n">base_chunks</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">chunks</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">n_files</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rem</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Array at index </span><span class="si">{i}</span><span class="s2"> has irregular chunking at its boundary. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Array at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> has irregular chunking at its boundary. &quot;</span>
                     <span class="s2">&quot;This is only allowed for the final array.&quot;</span>
                 <span class="p">)</span>
 
         <span class="c1"># Referencing the offset chunks</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fs</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.z&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.z&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
                 <span class="k">continue</span>
             <span class="n">parts</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">key_seperator</span><span class="p">)</span>
             <span class="n">parts</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span> <span class="o">+</span> <span class="n">chunks_offset</span><span class="p">)</span>
@@ -723,12 +749,15 @@
 
         <span class="n">chunks_offset</span> <span class="o">+=</span> <span class="n">n_chunks</span>
 
-    <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{path}</span><span class="s2">.zarray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result_zarray</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">.zarray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result_zarray</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">consolidate</span><span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="auto_dask"><a class="viewcode-back" href="../../reference.html#kerchunk.combine.auto_dask">[docs]</a><span class="k">def</span> <span class="nf">auto_dask</span><span class="p">(</span>
+
+<div class="viewcode-block" id="auto_dask">
+<a class="viewcode-back" href="../../reference.html#kerchunk.combine.auto_dask">[docs]</a>
+<span class="k">def</span> <span class="nf">auto_dask</span><span class="p">(</span>
     <span class="n">urls</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">single_driver</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">single_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
@@ -739,7 +768,7 @@
     <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">output_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Batched tree combine using dask.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Batched tree combine using dask.</span>
 
 <span class="sd">    If you wish to run on a distributed cluster (recommended), create</span>
 <span class="sd">    a client before calling this function.</span>
@@ -814,8 +843,9 @@
     <span class="k">return</span> <span class="n">dask</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">final_task</span><span class="p">(</span><span class="n">tasks2</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
+
 <span class="k">class</span> <span class="nc">JustLoad</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;For auto_dask, in the case that single file references already exist&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For auto_dask, in the case that single file references already exist&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
