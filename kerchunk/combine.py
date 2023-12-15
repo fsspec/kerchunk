@@ -90,6 +90,9 @@ class MultiZarrToZarr:
         This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
         to write out parquet as the references get filled, or some other dictionary-like class
         to customise how references get stored
+    :param append: bool
+        If True, will load the references specified by out and add to them rather than starting
+        from scratch. Assumes the same coordinates are being concatenated.
     """
 
     def __init__(
@@ -141,7 +144,41 @@ class MultiZarrToZarr:
         self.preprocess = preprocess
         self.postprocess = postprocess
         self.out = out or {}
+        self.coos = None
         self.done = set()
+
+    @classmethod
+    def append(
+        cls,
+        path,
+        original_refs,
+        remote_protocol=None,
+        remote_options=None,
+        target_options=None,
+        **kwargs,
+    ):
+        import xarray as xr
+
+        fs = fsspec.filesystem(
+            "reference",
+            fo=original_refs,
+            remote_protocol=remote_protocol,
+            remote_options=remote_options,
+            target_options=target_options,
+        )
+        ds = xr.open_dataset(
+            fs.get_mapper(), engine="zarr", backend_kwargs={"consolidated": False}
+        )
+        mzz = MultiZarrToZarr(
+            path,
+            out=fs.references,  # dict or parquet/lazy
+            remote_protocol=remote_protocol,
+            remote_options=remote_options,
+            target_options=target_options,
+            **kwargs,
+        )
+        mzz.coos = {c: set(ds[c].values) for c in mzz.coo_map}
+        return mzz
 
     @property
     def fss(self):
@@ -244,7 +281,7 @@ class MultiZarrToZarr:
     def first_pass(self):
         """Accumulate the set of concat coords values across all inputs"""
 
-        coos = {c: set() for c in self.coo_map}
+        coos = self.coos or {c: set() for c in self.coo_map}
         for i, fs in enumerate(self.fss):
             if self.preprocess:
                 self.preprocess(fs.references)
@@ -278,7 +315,6 @@ class MultiZarrToZarr:
         """
         Write coordinate arrays into the output
         """
-        self.out.clear()
         group = zarr.open(self.out)
         m = self.fss[0].get_mapper("")
         z = zarr.open(m)
@@ -348,10 +384,11 @@ class MultiZarrToZarr:
     def second_pass(self):
         """map every input chunk to the output"""
         # TODO: this stage cannot be rerun without clearing and rerunning store_coords too,
-        #  because some code runs dependant on the current state f self.out
+        #  because some code runs dependant on the current state of self.out
         chunk_sizes = {}  #
         skip = set()
         dont_skip = set()
+        did_them = set()
         no_deps = None
 
         for i, fs in enumerate(self.fss):
@@ -432,7 +469,8 @@ class MultiZarrToZarr:
                 ] + coords
 
                 # create output array, accounting for shape, chunks and dim dependencies
-                if f"{var or v}/.zarray" not in self.out:
+                if (var or v) not in did_them:
+                    did_them.add(var or v)
                     shape = []
                     ch = []
                     for c in coord_order:
@@ -495,7 +533,7 @@ class MultiZarrToZarr:
         """Perform all stages and return the resultant references dict
 
         If filename and storage options are given, the output is written to this
-        file using ujson and fsspec instead of being returned.
+        file using ujson and fsspec.
         """
         if 1 not in self.done:
             self.first_pass()
@@ -507,12 +545,14 @@ class MultiZarrToZarr:
             if self.postprocess is not None:
                 self.out = self.postprocess(self.out)
             self.done.add(4)
-        out = consolidate(self.out)
-        if filename is None:
-            return out
+        if isinstance(self.out, dict):
+            out = consolidate(self.out)
         else:
+            self.out.flush()
+        if filename is not None:
             with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
                 ujson.dump(out, f)
+        return out
 
 
 def _reorganise(coos):

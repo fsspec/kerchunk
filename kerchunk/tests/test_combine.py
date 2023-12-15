@@ -65,6 +65,17 @@ xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr(
 )
 
 data = xr.DataArray(
+    data=arr,
+    coords={"time": np.array([3])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 4},
+)
+xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr(
+    "memory://single3.zarr"
+)
+
+data = xr.DataArray(
     data=np.vstack([arr] * 4),
     coords={"time": np.array([1, 2, 3, 4])},
     dims=["time", "x", "y"],
@@ -301,6 +312,37 @@ def test_single(refs):
     assert z.data.shape == (2, 10, 10)
     assert (z.data[0].values == arr).all()
     assert (z.data[1].values == arr).all()
+
+
+def test_single_append(refs):
+    mzz = MultiZarrToZarr(
+        [refs["single1"], refs["single2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+    )
+    out = mzz.translate()
+    mzz = MultiZarrToZarr.append(
+        [refs["single3"]],
+        out,
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+    )
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={
+            "storage_options": {"fo": out, "remote_protocol": "memory"},
+            "consolidated": False,
+        },
+        engine="zarr",
+        decode_cf=False,
+    )
+    assert z.data.shape == (3, 10, 10)
+    assert out["refs"]["data/1.0.0"] == ["memory:///single2.zarr/data/0.0.0"]
+    assert out["refs"]["data/2.0.0"] == ["memory:///single3.zarr/data/0.0.0"]
+    assert z.time.values.tolist() == [1, 2, 3]
 
 
 def test_lazy_filler(tmpdir, refs):
