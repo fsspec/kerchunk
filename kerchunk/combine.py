@@ -549,10 +549,11 @@ class MultiZarrToZarr:
             out = consolidate(self.out)
         else:
             self.out.flush()
+            out = self.out
         if filename is not None:
             with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
                 ujson.dump(out, f)
-        return self.out
+        return out
 
 
 def _reorganise(coos):
