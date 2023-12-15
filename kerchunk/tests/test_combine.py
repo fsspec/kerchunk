@@ -345,6 +345,45 @@ def test_single_append(refs):
     assert z.time.values.tolist() == [1, 2, 3]
 
 
+def test_single_append_parquet(refs):
+    from fsspec.implementations.reference import LazyReferenceMapper
+
+    m = fsspec.filesystem("memory")
+    out = LazyReferenceMapper.create("memory://refs/out.parquet", fs=m)
+    mzz = MultiZarrToZarr(
+        [refs["single1"], refs["single2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+        out=out,
+    )
+    mzz.translate()
+
+    # reload here due to unknown bug after flush
+    out = LazyReferenceMapper("memory://refs/out.parquet", fs=m)
+    mzz = MultiZarrToZarr.append(
+        [refs["single3"]],
+        out,
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+    )
+    out = mzz.translate()
+
+    z = xr.open_dataset(
+        out,
+        backend_kwargs={
+            "storage_options": {"remote_protocol": "memory"},
+        },
+        engine="kerchunk",
+        decode_cf=False,
+    )
+    assert z.data.shape == (3, 10, 10)
+    assert out["data/1.0.0"] == ["memory:///single2.zarr/data/0.0.0"]
+    assert out["data/2.0.0"] == ["memory:///single3.zarr/data/0.0.0"]
+    assert z.time.values.tolist() == [1, 2, 3]
+
+
 def test_lazy_filler(tmpdir, refs):
     pd = pytest.importorskip("pandas")
     pytest.importorskip("fastparquet")
