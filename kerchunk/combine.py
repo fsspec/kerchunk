@@ -459,7 +459,10 @@ class MultiZarrToZarr:
                     # a coordinate is any array appearing in its own or other array's _ARRAY_DIMENSIONS
                     skip.add(v)
                     for k in fs.ls(v, detail=False):
-                        self.out[k] = fs.references[k]
+                        if k.rsplit("/", 1)[-1].startswith(".z"):
+                            self.out[k] = fs.cat(k)
+                        else:
+                            self.out[k] = fs.references[k]
                     continue
 
                 dont_skip.add(v)  # don't check for coord or identical again
