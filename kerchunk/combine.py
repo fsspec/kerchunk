@@ -177,7 +177,33 @@ class MultiZarrToZarr:
             target_options=target_options,
             **kwargs,
         )
-        mzz.coos = {c: set(ds[c].values) for c in mzz.coo_map}
+        mzz.coos = {}
+        for var, selector in mzz.coo_map.items():
+            if selector.startswith("cf:") and "M" not in mzz.coo_dtypes.get(var, ""):
+                import cftime
+                import datetime
+
+                # undoing CF recoding in original input
+                mzz.coos[var] = set()
+                for c in ds[var].values:
+                    value = cftime.date2num(
+                        datetime.datetime.fromisoformat(str(c).split(".")[0]),
+                        calendar=ds[var].attrs.get(
+                            "calendar", ds[var].encoding.get("calendar", "standard")
+                        ),
+                        units=ds[var].attrs.get("units", ds[var].encoding["units"]),
+                    )
+                    value2 = cftime.num2date(
+                        value,
+                        calendar=ds[var].attrs.get(
+                            "calendar", ds[var].encoding.get("calendar", "standard")
+                        ),
+                        units=ds[var].attrs.get("units", ds[var].encoding["units"]),
+                    )
+                    mzz.coos[var].add(value2)
+
+            else:
+                mzz.coos[var] = set(ds[var].values)
         return mzz
 
     @property
@@ -269,10 +295,13 @@ class MultiZarrToZarr:
             units = datavar.attrs.get("units")
             calendar = datavar.attrs.get("calendar", "standard")
             o = cftime.num2date(o, units=units, calendar=calendar)
-            if self.cf_units is None:
-                self.cf_units = {}
-            if var not in self.cf_units:
-                self.cf_units[var] = dict(units=units, calendar=calendar)
+            if "M" in self.coo_dtypes.get(var, ""):
+                o = np.array([_.isoformat() for _ in o], dtype=self.coo_dtypes[var])
+            else:
+                if self.cf_units is None:
+                    self.cf_units = {}
+                if var not in self.cf_units:
+                    self.cf_units[var] = dict(units=units, calendar=calendar)
         else:
             o = selector  # must be a non-number constant - error?
         logger.debug("Decode: %s -> %s", (selector, index, var, fn), o)
@@ -326,12 +355,7 @@ class MultiZarrToZarr:
             compression = numcodecs.Zstd() if len(v) > 100 else None
             kw = {}
             if self.cf_units and k in self.cf_units:
-                if "M" in self.coo_dtypes.get(k, ""):
-                    # explicit time format
-                    data = np.array(
-                        [_.isoformat() for _ in v], dtype=self.coo_dtypes[k]
-                    )
-                else:
+                if "M" not in self.coo_dtypes.get(k, ""):
                     import cftime
 
                     data = cftime.date2num(v, **self.cf_units[k]).ravel()
