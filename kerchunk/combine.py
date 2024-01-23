@@ -440,7 +440,7 @@ class MultiZarrToZarr:
     def second_pass(self):
         """map every input chunk to the output"""
         # TODO: this stage cannot be rerun without clearing and rerunning store_coords too,
-        #  because some code runs dependant on the current state of self.out
+        #  because some code runs dependent on the current state of self.out
         chunk_sizes = {}  #
         skip = set()
         dont_skip = set()
