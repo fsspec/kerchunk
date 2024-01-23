@@ -157,6 +157,38 @@ class MultiZarrToZarr:
         target_options=None,
         **kwargs,
     ):
+        """
+        Update an existing combined reference set with new references
+
+        There are two main usage patterns:
+
+        - if the input ``original_refs`` is JSON, the combine happens in memory and the
+          output should be written to JSON. This could then be optionally converted to parquet in a
+          separate step
+        - if ``original_refs`` is a lazy parquet reference set, then it will be amended in-place
+
+        If you want to extend JSON references and output to parquet, you must first convert to
+        parquet in the location you would like the final product to live.
+
+        The other arguments should be the same as they were at the creation of the original combined
+        reference set.
+
+        NOTE: if the original combine used a postprocess function, it may be that this process
+        functions, as the combine is done "before" postprocessing. Functions that only add information
+        (as as setting attrs) would be OK.
+
+        Parameters
+        ----------
+        path: list of reference sets to add. If remote/target options would be different
+            to ``original_refs``, these can be as dicts or LazyReferenceMapper instances
+        original_refs: combined reference set to be extended
+        remote_protocol, remote_options, target_options: referring to ``original_refs```
+        kwargs: to MultiZarrToZarr
+
+        Returns
+        -------
+        MultiZarrToZarr
+        """
         import xarray as xr
 
         fs = fsspec.filesystem(
