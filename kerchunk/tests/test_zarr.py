@@ -3,7 +3,9 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+import fsspec.implementations.reference as reffs
 
+import kerchunk.combine
 import kerchunk.zarr
 import kerchunk.utils
 
@@ -68,3 +70,17 @@ def test_zarr_in_zip(zarr_in_zip, ds):
         "reference", fo=out, remote_protocol="zip", remote_options={"fo": zarr_in_zip}
     )
     assert isinstance(fs.references["temp/.zarray"], (str, bytes))
+
+
+def test_zarr_combine(tmpdir, ds):
+    fn1 = f"{tmpdir}/test1.zarr"
+    ds.to_zarr(fn1)
+
+    one = kerchunk.zarr.ZarrToZarr(fn1, inline_threshold=0).translate()
+    fn = f"{tmpdir}/out.parq"
+    out = reffs.LazyReferenceMapper.create(fn)
+    mzz = kerchunk.combine.MultiZarrToZarr([one], concat_dims=["time"], out=out)
+    mzz.translate()
+
+    ds2 = xr.open_dataset(fn, engine="kerchunk")
+    assert ds.equals(ds2)
