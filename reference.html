@@ -99,6 +99,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#combining">Combining</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr"><code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.__init__"><code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.append"><code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr.append()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate"><code class="docutils literal notranslate"><span class="pre">MultiZarrToZarr.translate()</span></code></a></li>
 </ul>
 </li>
@@ -584,13 +585,19 @@ postprocess(dict)-&gt; dict</p></li>
 This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
 to write out parquet as the references get filled, or some other dictionary-like class
 to customise how references get stored</p></li>
+<li><p><strong>append</strong> – bool
+If True, will load the references specified by out and add to them rather than starting
+from scratch. Assumes the same coordinates are being concatenated.</p></li>
 </ul>
 </dd>
 </dl>
 <p class="rubric">Methods</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([filename, storage_options])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.append" title="kerchunk.combine.MultiZarrToZarr.append"><code class="xref py py-obj docutils literal notranslate"><span class="pre">append</span></code></a>(path, original_refs[, ...])</p></td>
+<td><p>Update an existing combined reference set with new references</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.combine.MultiZarrToZarr.translate" title="kerchunk.combine.MultiZarrToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([filename, storage_options])</p></td>
 <td><p>Perform all stages and return the resultant references dict</p></td>
 </tr>
 </tbody>
@@ -601,11 +608,47 @@ to customise how references get stored</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="kerchunk.combine.MultiZarrToZarr.append">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_refs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_protocol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.append"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.append" title="Link to this definition"></a></dt>
+<dd><p>Update an existing combined reference set with new references</p>
+<p>There are two main usage patterns:</p>
+<ul class="simple">
+<li><p>if the input <code class="docutils literal notranslate"><span class="pre">original_refs</span></code> is JSON, the combine happens in memory and the
+output should be written to JSON. This could then be optionally converted to parquet in a
+separate step</p></li>
+<li><p>if <code class="docutils literal notranslate"><span class="pre">original_refs</span></code> is a lazy parquet reference set, then it will be amended in-place</p></li>
+</ul>
+<p>If you want to extend JSON references and output to parquet, you must first convert to
+parquet in the location you would like the final product to live.</p>
+<p>The other arguments should be the same as they were at the creation of the original combined
+reference set.</p>
+<p>NOTE: if the original combine used a postprocess function, it may be that this process
+functions, as the combine is done “before” postprocessing. Functions that only add information
+(as as setting attrs) would be OK.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>path: list of reference sets to add. If remote/target options would be different</strong></dt><dd><p>to <code class="docutils literal notranslate"><span class="pre">original_refs</span></code>, these can be as dicts or LazyReferenceMapper instances</p>
+</dd>
+<dt><strong>original_refs: combined reference set to be extended</strong></dt><dd></dd>
+<dt><strong>remote_protocol, remote_options, target_options: referring to ``original_refs```</strong></dt><dd></dd>
+<dt><strong>kwargs: to MultiZarrToZarr</strong></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>MultiZarrToZarr</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="kerchunk.combine.MultiZarrToZarr.translate">
 <span class="sig-name descname"><span class="pre">translate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/combine.html#MultiZarrToZarr.translate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.combine.MultiZarrToZarr.translate" title="Link to this definition"></a></dt>
 <dd><p>Perform all stages and return the resultant references dict</p>
 <p>If filename and storage options are given, the output is written to this
-file using ujson and fsspec instead of being returned.</p>
+file using ujson and fsspec.</p>
 </dd></dl>
 
 </dd></dl>

@@ -61,7 +61,7 @@ Combining
    kerchunk.combine.drop
 
 .. autoclass:: kerchunk.combine.MultiZarrToZarr
-    :members: __init__, translate
+    :members: __init__, append, translate
 
 .. autofunction:: kerchunk.combine.merge_vars
 
