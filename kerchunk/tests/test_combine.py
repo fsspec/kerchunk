@@ -365,13 +365,13 @@ def test_single_append_cf(refs):
         concat_dims=["time"],
     )
     out = mzz.translate()
-    # mzz = MultiZarrToZarr.append(
-    #     [refs["cfstdtime3"]],
-    #     out,
-    #     remote_protocol="memory",
-    #     concat_dims=["time"],
-    # )
-    # out = mzz.translate()
+    mzz = MultiZarrToZarr.append(
+        [refs["cfstdtime3"]],
+        out,
+        remote_protocol="memory",
+        concat_dims=["time"],
+    )
+    out = mzz.translate()
     z = xr.open_dataset(
         "reference://",
         backend_kwargs={
