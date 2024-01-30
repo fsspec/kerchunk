@@ -174,6 +174,19 @@ fs.pipe(
     b'1970-01-01T00:00:00"}',
 )
 
+tdata1 = xr.DataArray(
+    data=arr,
+    coords={"time": np.array([3])},
+    dims=["time", "x", "y"],
+    name="data",
+)
+xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime3.zarr")
+fs.pipe(
+    "cfstdtime3.zarr/time/.zattrs",
+    b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
+    b'1970-01-01T00:00:00"}',
+)
+
 # cftime arrays - non standard
 tdata1 = xr.DataArray(
     data=arr,
@@ -343,6 +356,45 @@ def test_single_append(refs):
     assert out["refs"]["data/1.0.0"] == ["memory:///single2.zarr/data/0.0.0"]
     assert out["refs"]["data/2.0.0"] == ["memory:///single3.zarr/data/0.0.0"]
     assert z.time.values.tolist() == [1, 2, 3]
+
+
+def test_single_append_cf(refs):
+    mzz = MultiZarrToZarr(
+        [refs["cfstdtime1"], refs["cfstdtime2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+    )
+    out = mzz.translate()
+    # mzz = MultiZarrToZarr.append(
+    #     [refs["cfstdtime3"]],
+    #     out,
+    #     remote_protocol="memory",
+    #     concat_dims=["time"],
+    # )
+    # out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={
+            "storage_options": {"fo": out, "remote_protocol": "memory"},
+            "consolidated": False,
+        },
+        engine="zarr",
+    )
+    assert z.data.shape == (3, 10, 10)
+    assert out["refs"]["data/0.0.0"] == ["memory:///cfstdtime1.zarr/data/0.0.0"]
+    assert out["refs"]["data/1.0.0"] == ["memory:///cfstdtime2.zarr/data/0.0.0"]
+    assert out["refs"]["data/3.0.0"] == ["memory:///cfstdtime3.zarr/data/0.0.0"]
+    np.testing.assert_equal(
+        z.time.values,
+        np.array(
+            [
+                "1970-01-01T00:00:01.000000000",
+                "1970-01-01T00:00:02.000000000",
+                "1970-01-01T00:00:03.000000000",
+            ],
+            dtype="datetime64[ns]",
+        ),
+    )
 
 
 def test_single_append_parquet(refs):
