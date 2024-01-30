@@ -337,6 +337,8 @@ class MultiZarrToZarr:
                     self.cf_units[var] = dict(units=units, calendar=calendar)
         else:
             o = selector  # must be a non-number constant - error?
+        if var in self.coo_dtypes:
+            o = np.array(o, dtype=self.coo_dtypes[var])
         logger.debug("Decode: %s -> %s", (selector, index, var, fn), o)
         return o
 

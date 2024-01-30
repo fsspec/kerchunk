@@ -358,11 +358,15 @@ def test_single_append(refs):
     assert z.time.values.tolist() == [1, 2, 3]
 
 
-def test_single_append_cf(refs):
+@pytest.mark.parametrize("mapper", [{}, {"time": "cf:time"}])
+@pytest.mark.parametrize("dtype", [{"time": "M8[s]"}, {}])
+def test_single_append_cf(refs, mapper, dtype):
     mzz = MultiZarrToZarr(
         [refs["cfstdtime1"], refs["cfstdtime2"]],
         remote_protocol="memory",
         concat_dims=["time"],
+        coo_map=mapper,
+        coo_dtypes=dtype,
     )
     out = mzz.translate()
     mzz = MultiZarrToZarr.append(
@@ -370,6 +374,8 @@ def test_single_append_cf(refs):
         out,
         remote_protocol="memory",
         concat_dims=["time"],
+        coo_map=mapper,
+        coo_dtypes=dtype,
     )
     out = mzz.translate()
     z = xr.open_dataset(
