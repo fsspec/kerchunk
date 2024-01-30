@@ -383,7 +383,7 @@ def test_single_append_cf(refs):
     assert z.data.shape == (3, 10, 10)
     assert out["refs"]["data/0.0.0"] == ["memory:///cfstdtime1.zarr/data/0.0.0"]
     assert out["refs"]["data/1.0.0"] == ["memory:///cfstdtime2.zarr/data/0.0.0"]
-    assert out["refs"]["data/3.0.0"] == ["memory:///cfstdtime3.zarr/data/0.0.0"]
+    assert out["refs"]["data/2.0.0"] == ["memory:///cfstdtime3.zarr/data/0.0.0"]
     np.testing.assert_equal(
         z.time.values,
         np.array(

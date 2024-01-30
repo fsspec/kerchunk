@@ -6,21 +6,14 @@ import fsspec
 
 class KerchunkBackend(BackendEntrypoint):
     def open_dataset(
-        self,
-        filename_or_obj,
-        *,
-        drop_variables=None,
-        storage_options=None,
-        open_dataset_options=None
+        self, filename_or_obj, *, storage_options=None, open_dataset_options=None, **kw
     ):
-
+        open_dataset_options = (open_dataset_options or {}) | kw
         ref_ds = open_reference_dataset(
             filename_or_obj,
             storage_options=storage_options,
             open_dataset_options=open_dataset_options,
         )
-        if drop_variables is not None:
-            ref_ds = ref_ds.drop_vars(drop_variables)
         return ref_ds
 
     open_dataset_parameters = [
