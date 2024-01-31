@@ -16,6 +16,8 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ci/environment-py${{matrix.python-version}}.yml
+          cache-downloads: false
+          cache-environment: true
       - name: Install kerchunk
         shell: bash -l {0}
         run: |
