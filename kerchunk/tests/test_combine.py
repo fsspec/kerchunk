@@ -65,6 +65,17 @@ xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr(
 )
 
 data = xr.DataArray(
+    data=arr,
+    coords={"time": np.array([3])},
+    dims=["time", "x", "y"],
+    name="data",
+    attrs={"attr0": 4},
+)
+xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr(
+    "memory://single3.zarr"
+)
+
+data = xr.DataArray(
     data=np.vstack([arr] * 4),
     coords={"time": np.array([1, 2, 3, 4])},
     dims=["time", "x", "y"],
@@ -159,6 +170,19 @@ tdata1 = xr.DataArray(
 xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime2.zarr")
 fs.pipe(
     "cfstdtime2.zarr/time/.zattrs",
+    b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
+    b'1970-01-01T00:00:00"}',
+)
+
+tdata1 = xr.DataArray(
+    data=arr,
+    coords={"time": np.array([3])},
+    dims=["time", "x", "y"],
+    name="data",
+)
+xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime3.zarr")
+fs.pipe(
+    "cfstdtime3.zarr/time/.zattrs",
     b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
     b'1970-01-01T00:00:00"}',
 )
@@ -301,6 +325,121 @@ def test_single(refs):
     assert z.data.shape == (2, 10, 10)
     assert (z.data[0].values == arr).all()
     assert (z.data[1].values == arr).all()
+
+
+def test_single_append(refs):
+    mzz = MultiZarrToZarr(
+        [refs["single1"], refs["single2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+    )
+    out = mzz.translate()
+    mzz = MultiZarrToZarr.append(
+        [refs["single3"]],
+        out,
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+    )
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={
+            "storage_options": {"fo": out, "remote_protocol": "memory"},
+            "consolidated": False,
+        },
+        engine="zarr",
+        decode_cf=False,
+    )
+    assert z.data.shape == (3, 10, 10)
+    assert out["refs"]["data/1.0.0"] == ["memory:///single2.zarr/data/0.0.0"]
+    assert out["refs"]["data/2.0.0"] == ["memory:///single3.zarr/data/0.0.0"]
+    assert z.time.values.tolist() == [1, 2, 3]
+
+
+@pytest.mark.parametrize("mapper", [{}, {"time": "cf:time"}])
+@pytest.mark.parametrize("dtype", [{"time": "M8[s]"}, {}])
+def test_single_append_cf(refs, mapper, dtype):
+    mzz = MultiZarrToZarr(
+        [refs["cfstdtime1"], refs["cfstdtime2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_map=mapper,
+        coo_dtypes=dtype,
+    )
+    out = mzz.translate()
+    mzz = MultiZarrToZarr.append(
+        [refs["cfstdtime3"]],
+        out,
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_map=mapper,
+        coo_dtypes=dtype,
+    )
+    out = mzz.translate()
+    z = xr.open_dataset(
+        "reference://",
+        backend_kwargs={
+            "storage_options": {"fo": out, "remote_protocol": "memory"},
+            "consolidated": False,
+        },
+        engine="zarr",
+    )
+    assert z.data.shape == (3, 10, 10)
+    assert out["refs"]["data/0.0.0"] == ["memory:///cfstdtime1.zarr/data/0.0.0"]
+    assert out["refs"]["data/1.0.0"] == ["memory:///cfstdtime2.zarr/data/0.0.0"]
+    assert out["refs"]["data/2.0.0"] == ["memory:///cfstdtime3.zarr/data/0.0.0"]
+    np.testing.assert_equal(
+        z.time.values,
+        np.array(
+            [
+                "1970-01-01T00:00:01.000000000",
+                "1970-01-01T00:00:02.000000000",
+                "1970-01-01T00:00:03.000000000",
+            ],
+            dtype="datetime64[ns]",
+        ),
+    )
+
+
+def test_single_append_parquet(refs):
+    from fsspec.implementations.reference import LazyReferenceMapper
+
+    m = fsspec.filesystem("memory")
+    out = LazyReferenceMapper.create("memory://refs/out.parquet", fs=m)
+    mzz = MultiZarrToZarr(
+        [refs["single1"], refs["single2"]],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+        out=out,
+    )
+    mzz.translate()
+
+    # reload here due to unknown bug after flush
+    out = LazyReferenceMapper("memory://refs/out.parquet", fs=m)
+    mzz = MultiZarrToZarr.append(
+        [refs["single3"]],
+        out,
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_dtypes={"time": "int16"},
+    )
+    out = mzz.translate()
+
+    z = xr.open_dataset(
+        out,
+        backend_kwargs={
+            "storage_options": {"remote_protocol": "memory"},
+        },
+        engine="kerchunk",
+        decode_cf=False,
+    )
+    assert z.data.shape == (3, 10, 10)
+    assert out["data/1.0.0"] == ["memory:///single2.zarr/data/0.0.0"]
+    assert out["data/2.0.0"] == ["memory:///single3.zarr/data/0.0.0"]
+    assert z.time.values.tolist() == [1, 2, 3]
 
 
 def test_lazy_filler(tmpdir, refs):

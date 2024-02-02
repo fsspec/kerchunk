@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [38, 39, 310]
+        python-version: [39, 310, 311]
 
     steps:
       - uses: actions/checkout@v4
@@ -16,6 +16,9 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ci/environment-py${{matrix.python-version}}.yml
+          cache-downloads: false
+          cache-environment: true
+          generate-run-shell: false
       - name: Install kerchunk
         shell: bash -l {0}
         run: |

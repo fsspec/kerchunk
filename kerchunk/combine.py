@@ -90,6 +90,9 @@ class MultiZarrToZarr:
         This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
         to write out parquet as the references get filled, or some other dictionary-like class
         to customise how references get stored
+    :param append: bool
+        If True, will load the references specified by out and add to them rather than starting
+        from scratch. Assumes the same coordinates are being concatenated.
     """
 
     def __init__(
@@ -141,7 +144,100 @@ class MultiZarrToZarr:
         self.preprocess = preprocess
         self.postprocess = postprocess
         self.out = out or {}
+        self.coos = None
         self.done = set()
+
+    @classmethod
+    def append(
+        cls,
+        path,
+        original_refs,
+        remote_protocol=None,
+        remote_options=None,
+        target_options=None,
+        **kwargs,
+    ):
+        """
+        Update an existing combined reference set with new references
+
+        There are two main usage patterns:
+
+        - if the input ``original_refs`` is JSON, the combine happens in memory and the
+          output should be written to JSON. This could then be optionally converted to parquet in a
+          separate step
+        - if ``original_refs`` is a lazy parquet reference set, then it will be amended in-place
+
+        If you want to extend JSON references and output to parquet, you must first convert to
+        parquet in the location you would like the final product to live.
+
+        The other arguments should be the same as they were at the creation of the original combined
+        reference set.
+
+        NOTE: if the original combine used a postprocess function, it may be that this process
+        functions, as the combine is done "before" postprocessing. Functions that only add information
+        (as as setting attrs) would be OK.
+
+        Parameters
+        ----------
+        path: list of reference sets to add. If remote/target options would be different
+            to ``original_refs``, these can be as dicts or LazyReferenceMapper instances
+        original_refs: combined reference set to be extended
+        remote_protocol, remote_options, target_options: referring to ``original_refs```
+        kwargs: to MultiZarrToZarr
+
+        Returns
+        -------
+        MultiZarrToZarr
+        """
+        import xarray as xr
+
+        fs = fsspec.filesystem(
+            "reference",
+            fo=original_refs,
+            remote_protocol=remote_protocol,
+            remote_options=remote_options,
+            target_options=target_options,
+        )
+        ds = xr.open_dataset(
+            fs.get_mapper(), engine="zarr", backend_kwargs={"consolidated": False}
+        )
+        z = zarr.open(fs.get_mapper())
+        mzz = MultiZarrToZarr(
+            path,
+            out=fs.references,  # dict or parquet/lazy
+            remote_protocol=remote_protocol,
+            remote_options=remote_options,
+            target_options=target_options,
+            **kwargs,
+        )
+        mzz.coos = {}
+        for var, selector in mzz.coo_map.items():
+            if selector.startswith("cf:") and "M" not in mzz.coo_dtypes.get(var, ""):
+                import cftime
+                import datetime
+
+                # undoing CF recoding in original input
+                mzz.coos[var] = set()
+                for c in ds[var].values:
+                    value = cftime.date2num(
+                        datetime.datetime.fromisoformat(str(c).split(".")[0]),
+                        calendar=ds[var].attrs.get(
+                            "calendar", ds[var].encoding.get("calendar", "standard")
+                        ),
+                        units=ds[var].attrs.get("units", ds[var].encoding["units"]),
+                    )
+                    value2 = cftime.num2date(
+                        value,
+                        calendar=ds[var].attrs.get(
+                            "calendar", ds[var].encoding.get("calendar", "standard")
+                        ),
+                        units=ds[var].attrs.get("units", ds[var].encoding["units"]),
+                    )
+                    mzz.coos[var].add(value2)
+
+            else:
+                mzz.coos[var] = set(z[var][:])
+        return mzz
 
     @property
     def fss(self):
@@ -232,19 +328,24 @@ class MultiZarrToZarr:
             units = datavar.attrs.get("units")
             calendar = datavar.attrs.get("calendar", "standard")
             o = cftime.num2date(o, units=units, calendar=calendar)
-            if self.cf_units is None:
-                self.cf_units = {}
-            if var not in self.cf_units:
-                self.cf_units[var] = dict(units=units, calendar=calendar)
+            if "M" in self.coo_dtypes.get(var, ""):
+                o = np.array([_.isoformat() for _ in o], dtype=self.coo_dtypes[var])
+            else:
+                if self.cf_units is None:
+                    self.cf_units = {}
+                if var not in self.cf_units:
+                    self.cf_units[var] = dict(units=units, calendar=calendar)
         else:
             o = selector  # must be a non-number constant - error?
+        if var in self.coo_dtypes:
+            o = np.array(o, dtype=self.coo_dtypes[var])
         logger.debug("Decode: %s -> %s", (selector, index, var, fn), o)
         return o
 
     def first_pass(self):
         """Accumulate the set of concat coords values across all inputs"""
 
-        coos = {c: set() for c in self.coo_map}
+        coos = self.coos or {c: set() for c in self.coo_map}
         for i, fs in enumerate(self.fss):
             if self.preprocess:
                 self.preprocess(fs.references)
@@ -278,7 +379,6 @@ class MultiZarrToZarr:
         """
         Write coordinate arrays into the output
         """
-        self.out.clear()
         group = zarr.open(self.out)
         m = self.fss[0].get_mapper("")
         z = zarr.open(m)
@@ -290,12 +390,7 @@ class MultiZarrToZarr:
             compression = numcodecs.Zstd() if len(v) > 100 else None
             kw = {}
             if self.cf_units and k in self.cf_units:
-                if "M" in self.coo_dtypes.get(k, ""):
-                    # explicit time format
-                    data = np.array(
-                        [_.isoformat() for _ in v], dtype=self.coo_dtypes[k]
-                    )
-                else:
+                if "M" not in self.coo_dtypes.get(k, ""):
                     import cftime
 
                     data = cftime.date2num(v, **self.cf_units[k]).ravel()
@@ -348,10 +443,11 @@ class MultiZarrToZarr:
     def second_pass(self):
         """map every input chunk to the output"""
         # TODO: this stage cannot be rerun without clearing and rerunning store_coords too,
-        #  because some code runs dependant on the current state f self.out
+        #  because some code runs dependent on the current state of self.out
         chunk_sizes = {}  #
         skip = set()
         dont_skip = set()
+        did_them = set()
         no_deps = None
 
         for i, fs in enumerate(self.fss):
@@ -422,7 +518,10 @@ class MultiZarrToZarr:
                     # a coordinate is any array appearing in its own or other array's _ARRAY_DIMENSIONS
                     skip.add(v)
                     for k in fs.ls(v, detail=False):
-                        self.out[k] = fs.references[k]
+                        if k.rsplit("/", 1)[-1].startswith(".z"):
+                            self.out[k] = fs.cat(k)
+                        else:
+                            self.out[k] = fs.references[k]
                     continue
 
                 dont_skip.add(v)  # don't check for coord or identical again
@@ -432,7 +531,8 @@ class MultiZarrToZarr:
                 ] + coords
 
                 # create output array, accounting for shape, chunks and dim dependencies
-                if f"{var or v}/.zarray" not in self.out:
+                if (var or v) not in did_them:
+                    did_them.add(var or v)
                     shape = []
                     ch = []
                     for c in coord_order:
@@ -495,7 +595,7 @@ class MultiZarrToZarr:
         """Perform all stages and return the resultant references dict
 
         If filename and storage options are given, the output is written to this
-        file using ujson and fsspec instead of being returned.
+        file using ujson and fsspec.
         """
         if 1 not in self.done:
             self.first_pass()
@@ -507,12 +607,15 @@ class MultiZarrToZarr:
             if self.postprocess is not None:
                 self.out = self.postprocess(self.out)
             self.done.add(4)
-        out = consolidate(self.out)
-        if filename is None:
-            return out
+        if isinstance(self.out, dict):
+            out = consolidate(self.out)
         else:
+            self.out.flush()
+            out = self.out
+        if filename is not None:
             with fsspec.open(filename, mode="wt", **(storage_options or {})) as f:
                 ujson.dump(out, f)
+        return out
 
 
 def _reorganise(coos):
