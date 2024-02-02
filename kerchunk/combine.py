@@ -201,6 +201,7 @@ class MultiZarrToZarr:
         ds = xr.open_dataset(
             fs.get_mapper(), engine="zarr", backend_kwargs={"consolidated": False}
         )
+        z = zarr.open(fs.get_mapper())
         mzz = MultiZarrToZarr(
             path,
             out=fs.references,  # dict or parquet/lazy
@@ -235,7 +236,7 @@ class MultiZarrToZarr:
                     mzz.coos[var].add(value2)
 
             else:
-                mzz.coos[var] = set(ds[var].values)
+                mzz.coos[var] = set(z[var][:])
         return mzz
 
     @property
@@ -336,6 +337,8 @@ class MultiZarrToZarr:
                     self.cf_units[var] = dict(units=units, calendar=calendar)
         else:
             o = selector  # must be a non-number constant - error?
+        if var in self.coo_dtypes:
+            o = np.array(o, dtype=self.coo_dtypes[var])
         logger.debug("Decode: %s -> %s", (selector, index, var, fn), o)
         return o
 
