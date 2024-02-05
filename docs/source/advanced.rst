@@ -167,16 +167,18 @@ one go and may be faster, if you have a Dask cluster available.
    fs = fsspec.filesystem("file")
 
    os.makedirs("combined.parq")
-   out = LazyReferenceMapper.create(1000, "combined.parq", fs)
+   out = LazyReferenceMapper.create(record_size=1000, root="combined.parq", fs=fs)
 
    # Create references from input files
    single_ref_sets = [hdf.SingleHdf5ToZarr(_).translate() for _ in files]
 
    out_dict = MultiZarrToZarr(
     single_ref_sets,
-    remote_protocol="memory",
+    remote_protocol="s3",
     concat_dims=["time"],
-    out=out).translate()
+    remote_options={"anon": True},
+    out=out
+    ).translate()
 
    out.flush()
 
