@@ -235,16 +235,18 @@ one go and may be faster, if you have a Dask cluster available.</p>
 <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">)</span>
 
 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">&quot;combined.parq&quot;</span><span class="p">)</span>
-<span class="n">out</span> <span class="o">=</span> <span class="n">LazyReferenceMapper</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="s2">&quot;combined.parq&quot;</span><span class="p">,</span> <span class="n">fs</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">LazyReferenceMapper</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">record_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="s2">&quot;combined.parq&quot;</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
 
 <span class="c1"># Create references from input files</span>
 <span class="n">single_ref_sets</span> <span class="o">=</span> <span class="p">[</span><span class="n">hdf</span><span class="o">.</span><span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
 
 <span class="n">out_dict</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span>
  <span class="n">single_ref_sets</span><span class="p">,</span>
- <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span>
+ <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span>
  <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span>
- <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+ <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+ <span class="n">out</span><span class="o">=</span><span class="n">out</span>
+ <span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
 
 <span class="n">out</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
