@@ -138,3 +138,69 @@ from the given URL, at an offset of 1000.
 
     <script data-goatcounter="https://kerchunk.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
+
+Parquet references
+------------------
+
+Since JSON is rather verbose, it is easy with enough chunks to make a references file
+that is too big: slow to load and heavy on memory. Although the former can be
+alleviated by compression (I recommend Zstd), the latter cannot. This can
+become particularly apparent during the combine phase when loading many reference sets.
+
+The class `fsspec.implementations.reference.LazyReferenceMapper`_ provides an
+alternative _implementation_, and its on-disk layout effectively is a new reference
+spec, and we describe it here. The class itself has a dict mapper interface, just
+like the rendered references from JSON files; except that it assumes that it is
+working on a zarr dataset. This is because the references are split into files, and
+an array's shape/chunk information is used to figure out which reference file
+to load.
+
+.. _fsspec.implementations.reference.LazyReferenceMapper: https://filesystem-spec.readthedocs.io/en/latest/api.html?highlight=lazyreference#fsspec.implementations.reference.LazyReferenceMapper
+
+The following code
+
+.. code-block:: python
+
+    lz = fsspec.implementations.reference.LazyReferenceMapper.create("ref.parquet")
+    z = zarr.open_group(lz, mode="w")
+    d = z.create_dataset("name", shape=(1,))
+    d[:] = 1
+    g2 = z.create_group("deep")
+    d = g2.create_dataset("name", shape=(1,))
+    d[:] = 1
+
+produces files
+
+.. code-block:: text
+
+    ref.parquet/deep/name/refs.0.parq
+    ref.parquet/name/refs.0.parq
+    ref.parquet/.zmetadata
+
+Here, .zmetadata is all of the metadata of all of all subgroups/arrays (similar to
+zarr "consolidated metadata", with two top-level fields: "metadata" (dict[str, str] all of the
+zarr metadata key/values) and "record_size", an integer set during ``.create()``.
+
+Each parquet file contains references within the corresponding path to where it is.
+For example, key "name/0" will be the zeroth reference in "./name/refs.0.parq". If
+there are multiple dimensions, normal C indexing is used to find the Nth reference,
+and there are up to "record_size" references (default 10000) in the first file;
+reference >10000,<=2000 would be in "./name/refs.2.parquet". Each file is (for now)
+padded to record_size, but they compress really well.
+
+Each row of the parquet data contains fields
+
+.. code-block::
+
+    path: optional str/categorical, remote location URL
+    offset: int, start location of block
+    size: int, number of bytes in block
+    raw: optional bytes, binary data
+
+If ``raw`` is populated, this is the data of the key. If ``path`` is
+populated but size is 0, it is the whole file indicated. Otherwise,
+it is a byte block in the indicated file. If both ``raw`` and ``path``
+are NULL, the key does not exist.
+
+We reserve the possibility to store small array data in .zmetadata instead
+of creating a small/mostly empty parquet file for each.
