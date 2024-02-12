@@ -1,3 +1,4 @@
+import io
 import os.path
 
 import fsspec
@@ -15,8 +16,57 @@ from kerchunk.grib2 import (
     correct_hrrr_subhf_step,
 )
 
+from random import randbytes
+from kerchunk.codecs import GRIBCodec
+
 cfgrib = pytest.importorskip("cfgrib")
 here = os.path.dirname(__file__)
+
+
+def test_codec():
+
+    instance = GRIBCodec("foo_var", dtype="float32")
+
+    buf = io.BytesIO(initial_bytes=randbytes(800))
+    result = instance.decode(buf)
+
+
+def test_grib_no_7777():
+    fn = os.path.join(here, "hrrr.t11z.wrfsfcf12.grib2")
+    out = dict(
+        version=1,
+        refs={
+            ".zgroup": '{"zarr_format":2}',
+            "t/.zarray": '{"chunks":[1,1059,1799],"compressor":null,"dtype":"<f8","fill_value":9999.0,"filters":[{"dtype":"float64","id":"grib","var":"t"}],"order":"C","shape":[1,1059,1799],"zarr_format":2}',
+            "t/.zattrs": '{"NV":0,"_ARRAY_DIMENSIONS":["valid_time","x","y"],"cfName":"air_temperature","cfVarName":"t","dataDate":20230914,"dataTime":1100,"dataType":"fc","endStep":12,"gridDefinitionDescription":"Lambert Conformal can be secant or tangent, conical or bipolar","gridType":"lambert","missingValue":9999,"name":"Temperature","numberOfPoints":1905141,"paramId":130,"shortName":"t","stepType":"instant","stepUnits":1,"typeOfLevel":"surface","units":"K"}',
+            "t/0.0.0": [fn, 44989928, 1341779],
+            "dswrf/.zarray": '{"chunks":[1,1059,1799],"compressor":null,"dtype":"<f8","fill_value":9999.0,"filters":[{"dtype":"float64","id":"grib","var":"dswrf"}],"order":"C","shape":[1,1059,1799],"zarr_format":2}',
+            "dswrf/.zattrs": '{"NV":0,"_ARRAY_DIMENSIONS":["valid_time","x","y"],"cfName":"unknown","cfVarName":"dswrf","dataDate":20230914,"dataTime":1100,"dataType":"fc","endStep":12,"gridDefinitionDescription":"Lambert Conformal can be secant or tangent, conical or bipolar","gridType":"lambert","missingValue":9999,"name":"Downward short-wave radiation flux","numberOfPoints":1905141,"paramId":260087,"shortName":"dswrf","stepType":"instant","stepUnits":1,"typeOfLevel":"surface","units":"W m**-2"}',
+            "dswrf/0.0.0": [fn, 95956391, 2124114],
+            ".zattrs": '{"centre":"kwbc","centreDescription":"US National Weather Service - NCEP ","edition":2,"subCentre":0}',
+            "vis/.zarray": '{"chunks":[1,1059,1799],"compressor":null,"dtype":"<f8","fill_value":9999.0,"filters":[{"dtype":"float64","id":"grib","var":"vis"}],"order":"C","shape":[1,1059,1799],"zarr_format":2}',
+            "vis/.zattrs": '{"NV":0,"_ARRAY_DIMENSIONS":["valid_time","x","y"],"cfName":"unknown","cfVarName":"vis","dataDate":20230914,"dataTime":1100,"dataType":"fc","endStep":12,"gridDefinitionDescription":"Lambert Conformal can be secant or tangent, conical or bipolar","gridType":"lambert","missingValue":9999,"name":"Visibility","numberOfPoints":1905141,"paramId":3020,"shortName":"vis","stepType":"instant","stepUnits":1,"typeOfLevel":"surface","units":"m"}',
+            "vis/0.0.0": [fn, 1971449, 1536979],
+        },
+    )
+
+    ds = xr.open_dataset(
+        "reference://",
+        engine="zarr",
+        backend_kwargs={
+            "consolidated": False,
+            "storage_options": {
+                "fo": out,
+            },
+        },
+    )
+
+    # # VIS raises 7777 KeyValueNotFoundError
+    ds.vis.values
+    np.testing.assert_almost_equal(ds.t.values, np.full((1, 1059, 1799), np.nan))
+
+    # # T raises InvalidGribError
+    np.testing.assert_almost_equal(ds.t.values, np.full((1, 1059, 1799), np.nan))
 
 
 def test_one():
