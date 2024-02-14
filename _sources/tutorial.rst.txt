@@ -3,6 +3,8 @@ Tutorial
 
 This run-through tutorial is intended to display a variety of methods for combining datasets using the ``kerchunk.combine.MultiZarrtoZarr`` API.
 
+You can find additional tutorial materials at the `project pythia kerchunk cookbook <https://github.com/ProjectPythia/kerchunk-cookbook>`_.
+
 Initially we create a pair of single file jsons for two ERA5 variables using ``Kerchunk.hdf.SingleHdf5ToZarr``. This ERA5 dataset is free to access and so it is possible to replicate this workflow on a local machine without credentials.
 
 Single file JSONs
