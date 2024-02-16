@@ -86,6 +86,7 @@
   <h1>Source code for kerchunk.grib2</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">base64</span>
 <span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span>
@@ -123,24 +124,25 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;grib2-to-zarr&quot;</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_split_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_split_file</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">io</span><span class="o">.</span><span class="n">FileIO</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">):</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">size</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">part</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">while</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;extract part </span><span class="si">{</span><span class="n">part</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
-        <span class="n">head</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
-        <span class="n">marker</span> <span class="o">=</span> <span class="n">head</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">marker</span><span class="p">:</span>
+        <span class="n">head</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">head</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1024</span><span class="p">:</span>
             <span class="k">break</span>  <span class="c1"># EOF</span>
-        <span class="k">assert</span> <span class="n">head</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;GRIB&quot;</span><span class="p">,</span> <span class="s2">&quot;Bad grib message start marker&quot;</span>
-        <span class="n">part_size</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="mi">12</span><span class="p">:],</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="sa">b</span><span class="s2">&quot;GRIB&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">head</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">head</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;GRIB&quot;</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1024</span> <span class="o">+</span> <span class="n">ind</span>
+        <span class="n">part_size</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="n">ind</span> <span class="o">+</span> <span class="mi">12</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="mi">16</span><span class="p">],</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
         <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
         <span class="k">yield</span> <span class="n">start</span><span class="p">,</span> <span class="n">part_size</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">part_size</span><span class="p">)</span>
         <span class="n">part</span> <span class="o">+=</span> <span class="mi">1</span>
