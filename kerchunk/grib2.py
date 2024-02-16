@@ -1,5 +1,6 @@
 import base64
 import copy
+import io
 import logging
 from collections import defaultdict
 from typing import Iterable, List, Dict, Set
@@ -37,24 +38,25 @@ ATTRS_TO_COPY_OVER = {
 logger = logging.getLogger("grib2-to-zarr")
 
 
-def _split_file(f, skip=0):
+def _split_file(f: io.FileIO, skip=0):
     if hasattr(f, "size"):
         size = f.size
     else:
-        f.seek(0, 2)
-        size = f.tell()
+        size = f.seek(0, 2)
         f.seek(0)
     part = 0
 
     while f.tell() < size:
         logger.debug(f"extract part {part + 1}")
-        start = f.tell()
-        head = f.read(16)
-        marker = head[:4]
-        if not marker:
+        head = f.read(1024)
+        if len(head) < 1024:
             break  # EOF
-        assert head[:4] == b"GRIB", "Bad grib message start marker"
-        part_size = int.from_bytes(head[12:], "big")
+        if b"GRIB" not in head:
+            f.seek(-4, 1)
+            continue
+        ind = head.index(b"GRIB")
+        start = f.tell() - 1024 + ind
+        part_size = int.from_bytes(head[ind + 12 : ind + 16], "big")
         f.seek(start)
         yield start, part_size, f.read(part_size)
         part += 1
