@@ -1,6 +1,6 @@
 import base64
 import logging
-import regex
+import re
 from typing import Union, BinaryIO
 
 import fsspec.core
@@ -248,8 +248,8 @@ class SingleHdf5ToZarr:
 
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
-        if self.var_pattern and not regex.findall(self.var_pattern, name):
-            # skipping if
+        if self.var_pattern and not re.findall(self.var_pattern, name):
+            # skipping if variable name fails pattern
             return
         try:  # method must not raise exception
             kwargs = {}
