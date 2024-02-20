@@ -1,5 +1,6 @@
 import base64
 import logging
+import regex
 from typing import Union, BinaryIO
 
 import fsspec.core
@@ -69,6 +70,10 @@ class SingleHdf5ToZarr:
         This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
         to write out parquet as the references get filled, or some other dictionary-like class
         to customise how references get stored
+    var_pattern: str or None
+        If set, only variables with names matching this pattern (as regex) will be scanned
+        and included in this output. It is on the caller to ensure that all the coordinates
+        needed to represent a data variable are included.
     """
 
     def __init__(
@@ -81,6 +86,7 @@ class SingleHdf5ToZarr:
         error="warn",
         vlen_encode="embed",
         out=None,
+        var_pattern=None,
     ):
 
         # Open HDF5 file in read mode...
@@ -103,6 +109,7 @@ class SingleHdf5ToZarr:
 
         self._uri = url
         self.error = error
+        self.var_pattern = var_pattern
         lggr.debug(f"HDF5 file URI: {self._uri}")
 
     def translate(self):
@@ -241,6 +248,9 @@ class SingleHdf5ToZarr:
 
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
+        if self.var_pattern and not regex.findall(self.var_pattern, name):
+            # skipping if
+            return
         try:  # method must not raise exception
             kwargs = {}
             if isinstance(h5obj, h5py.Dataset):
