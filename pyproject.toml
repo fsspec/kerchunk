@@ -21,7 +21,7 @@ classifiers = [
 
 dependencies = [
   "fsspec",
-  "numcodecs<=0.11",
+  "numcodecs",
   "numpy",
   "ujson",
   "zarr",
