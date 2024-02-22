@@ -1,6 +1,6 @@
 import base64
+import io
 import logging
-import re
 from typing import Union, BinaryIO
 
 import fsspec.core
@@ -48,7 +48,7 @@ class SingleHdf5ToZarr:
         to BinaryIO is optional), in which case must also provide url. If a str,
         file will be opened using fsspec and storage_options.
     url : string
-        URI of the HDF5 file, if passing a file-like object
+        URI of the HDF5 file, if passing a file-like object or h5py File/dataset
     spec : int
         The version of output to produce (see README of this repo)
     inline_threshold : int
@@ -78,7 +78,7 @@ class SingleHdf5ToZarr:
 
     def __init__(
         self,
-        h5f: "BinaryIO | str",
+        h5f: "BinaryIO | str | h5py.File",
         url: str = None,
         spec=1,
         inline_threshold=500,
@@ -86,7 +86,6 @@ class SingleHdf5ToZarr:
         error="warn",
         vlen_encode="embed",
         out=None,
-        var_pattern=None,
     ):
 
         # Open HDF5 file in read mode...
@@ -95,8 +94,15 @@ class SingleHdf5ToZarr:
             fs, path = fsspec.core.url_to_fs(h5f, **(storage_options or {}))
             self.input_file = fs.open(path, "rb")
             url = h5f
-        else:
+            self._h5f = h5py.File(self.input_file, mode="r")
+        elif isinstance(h5f, io.IOBase):
             self.input_file = h5f
+            self._h5f = h5py.File(self.input_file, mode="r")
+        else:
+            # assume h5py object (File or group/dataset)
+            self._h5f = h5f
+            fs, path = fsspec.core.url_to_fs(url, **(storage_options or {}))
+            self.input_file = fs.open(path, "rb")
         self.spec = spec
         self.inline = inline_threshold
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
@@ -109,7 +115,6 @@ class SingleHdf5ToZarr:
 
         self._uri = url
         self.error = error
-        self.var_pattern = var_pattern
         lggr.debug(f"HDF5 file URI: {self._uri}")
 
     def translate(self):
@@ -248,9 +253,6 @@ class SingleHdf5ToZarr:
 
     def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
-        if self.var_pattern and not re.findall(self.var_pattern, name):
-            # skipping if variable name fails pattern
-            return
         try:  # method must not raise exception
             kwargs = {}
             if isinstance(h5obj, h5py.Dataset):
