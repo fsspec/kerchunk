@@ -98,11 +98,19 @@ class SingleHdf5ToZarr:
         elif isinstance(h5f, io.IOBase):
             self.input_file = h5f
             self._h5f = h5py.File(self.input_file, mode="r")
-        else:
+        elif isinstance(h5f, (h5py.File, h5py.Group)):
             # assume h5py object (File or group/dataset)
             self._h5f = h5f
             fs, path = fsspec.core.url_to_fs(url, **(storage_options or {}))
             self.input_file = fs.open(path, "rb")
+        elif isinstance(h5f, h5py.Dataset):
+            group = h5f.file.create_group(f"{h5f.name} ")
+            group[h5f.name] = h5f
+            self._h5f = group
+            fs, path = fsspec.core.url_to_fs(url, **(storage_options or {}))
+            self.input_file = fs.open(path, "rb")
+        else:
+            raise ValueError("type of input `h5f` not recognised")
         self.spec = spec
         self.inline = inline_threshold
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
