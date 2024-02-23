@@ -104,8 +104,8 @@ class SingleHdf5ToZarr:
             fs, path = fsspec.core.url_to_fs(url, **(storage_options or {}))
             self.input_file = fs.open(path, "rb")
         elif isinstance(h5f, h5py.Dataset):
-            group = h5f.file.create_group(f"{h5f.name} ")
-            group[h5f.name] = h5f
+            group = h5f.file.create_group(f"{h5f.name}_")
+            group[f"{h5f.name}__"] = h5f
             self._h5f = group
             fs, path = fsspec.core.url_to_fs(url, **(storage_options or {}))
             self.input_file = fs.open(path, "rb")
