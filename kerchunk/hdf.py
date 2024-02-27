@@ -106,8 +106,6 @@ class SingleHdf5ToZarr:
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self._h5f = h5py.File(self.input_file, mode="r")
-
         self.store = out or {}
         self._zroot = zarr.group(store=self.store, overwrite=True)
 
