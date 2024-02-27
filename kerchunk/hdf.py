@@ -78,7 +78,7 @@ class SingleHdf5ToZarr:
 
     def __init__(
         self,
-        h5f: "BinaryIO | str | h5py.File",
+        h5f: "BinaryIO | str | h5py.File | h5py.Group",
         url: str = None,
         spec=1,
         inline_threshold=500,
