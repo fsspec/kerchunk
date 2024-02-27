@@ -70,10 +70,6 @@ class SingleHdf5ToZarr:
         This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
         to write out parquet as the references get filled, or some other dictionary-like class
         to customise how references get stored
-    var_pattern: str or None
-        If set, only variables with names matching this pattern (as regex) will be scanned
-        and included in this output. It is on the caller to ensure that all the coordinates
-        needed to represent a data variable are included.
     """
 
     def __init__(
