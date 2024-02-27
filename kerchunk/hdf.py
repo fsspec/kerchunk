@@ -48,7 +48,7 @@ class SingleHdf5ToZarr:
         to BinaryIO is optional), in which case must also provide url. If a str,
         file will be opened using fsspec and storage_options.
     url : string
-        URI of the HDF5 file, if passing a file-like object or h5py File/dataset
+        URI of the HDF5 file, if passing a file-like object or h5py File/Group
     spec : int
         The version of output to produce (see README of this repo)
     inline_threshold : int
