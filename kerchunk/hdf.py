@@ -1,4 +1,5 @@
 import base64
+import io
 import logging
 from typing import Union, BinaryIO
 
@@ -47,7 +48,7 @@ class SingleHdf5ToZarr:
         to BinaryIO is optional), in which case must also provide url. If a str,
         file will be opened using fsspec and storage_options.
     url : string
-        URI of the HDF5 file, if passing a file-like object
+        URI of the HDF5 file, if passing a file-like object or h5py File/Group
     spec : int
         The version of output to produce (see README of this repo)
     inline_threshold : int
@@ -73,7 +74,7 @@ class SingleHdf5ToZarr:
 
     def __init__(
         self,
-        h5f: "BinaryIO | str",
+        h5f: "BinaryIO | str | h5py.File | h5py.Group",
         url: str = None,
         spec=1,
         inline_threshold=500,
@@ -89,15 +90,22 @@ class SingleHdf5ToZarr:
             fs, path = fsspec.core.url_to_fs(h5f, **(storage_options or {}))
             self.input_file = fs.open(path, "rb")
             url = h5f
-        else:
+            self._h5f = h5py.File(self.input_file, mode="r")
+        elif isinstance(h5f, io.IOBase):
             self.input_file = h5f
+            self._h5f = h5py.File(self.input_file, mode="r")
+        elif isinstance(h5f, (h5py.File, h5py.Group)):
+            # assume h5py object (File or group/dataset)
+            self._h5f = h5f
+            fs, path = fsspec.core.url_to_fs(url, **(storage_options or {}))
+            self.input_file = fs.open(path, "rb")
+        else:
+            raise ValueError("type of input `h5f` not recognised")
         self.spec = spec
         self.inline = inline_threshold
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self._h5f = h5py.File(self.input_file, mode="r")
-
         self.store = out or {}
         self._zroot = zarr.group(store=self.store, overwrite=True)
 
