@@ -470,7 +470,7 @@ class SingleHdf5ToZarr:
                                 data.decode("ascii")
                             except UnicodeDecodeError:
                                 data = b"base64:" + base64.b64encode(data)
-                            self.store[k] = data
+                            self.store[za._chunk_key(k)] = data
                         else:
                             self.store[za._chunk_key(k)] = [
                                 self._uri,
