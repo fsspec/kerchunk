@@ -458,7 +458,11 @@ class SingleHdf5ToZarr:
                         if h5obj.fletcher32:
                             logging.info("Discarding fletcher32 checksum")
                             v["size"] -= 4
-                        if self.inline and isinstance(v, list) and v[2] < self.inline:
+                        if (
+                            self.inline
+                            and isinstance(v, dict)
+                            and v["size"] < self.inline
+                        ):
                             self.input_file.seek(v["offset"])
                             data = self.input_file.read(v["size"])
                             try:
