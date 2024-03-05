@@ -458,7 +458,11 @@ class SingleHdf5ToZarr:
                         if h5obj.fletcher32:
                             logging.info("Discarding fletcher32 checksum")
                             v["size"] -= 4
-                        if self.inline and isinstance(v, list) and v[2] < self.inline:
+                        if (
+                            self.inline
+                            and isinstance(v, dict)
+                            and v["size"] < self.inline
+                        ):
                             self.input_file.seek(v["offset"])
                             data = self.input_file.read(v["size"])
                             try:
@@ -466,7 +470,7 @@ class SingleHdf5ToZarr:
                                 data.decode("ascii")
                             except UnicodeDecodeError:
                                 data = b"base64:" + base64.b64encode(data)
-                            self.store[k] = data
+                            self.store[za._chunk_key(k)] = data
                         else:
                             self.store[za._chunk_key(k)] = [
                                 self._uri,
