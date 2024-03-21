@@ -796,11 +796,9 @@ def test_bad_coo_warning(refs):
 
 def test_chunk_error(refs):
     refs2 = refs["single1"].copy()
-    refs2.pop(".zmetadata")
+    refs2["refs"].pop(".zmetadata")
     fs = fsspec.filesystem("reference", fo=refs2, remote_protocol="memory")
-    refs2[
-        "data/.zarray"
-    ] = b"""
+    refs2["refs"]["data/.zarray"] = b"""
     {
     "chunks": [2, 3, 3],
     "zarr_format": 2,
