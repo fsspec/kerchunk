@@ -59,4 +59,4 @@ def single_zarr(
     return refs
 
 
-ZarrToZarr = kerchunk.utilsclass_factory(single_zarr)
+ZarrToZarr = kerchunk.utils.class_factory(single_zarr)
