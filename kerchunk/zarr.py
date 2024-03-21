@@ -1,7 +1,7 @@
 import fsspec
 from fsspec.implementations.reference import LazyReferenceMapper
 
-from kerchunk.utils import consolidate, class_factory
+import kerchunk.utils
 
 
 def single_zarr(
@@ -10,7 +10,7 @@ def single_zarr(
     inline_threshold=100,
     inline=None,
     out=None,
-    translate=False,
+    consolidate=False,
 ):
     """kerchunk-style view on zarr mapper
 
@@ -29,8 +29,8 @@ def single_zarr(
         This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
         to write out parquet as the references get filled, or some other dictionary-like class
         to customise how references get stored
-    translate: bool
-        if True, encode for JSON
+    consolidate: bool
+        if True, turn raw references into output
 
     Returns
     -------
@@ -54,9 +54,9 @@ def single_zarr(
         refs = do_inline(refs, inline_threshold, remote_options=storage_options)
     if isinstance(refs, LazyReferenceMapper):
         refs.flush()
-    if translate:
-        refs = consolidate(refs)
+    if consolidate:
+        refs = kerchunk.utils.consolidate(refs)
     return refs
 
 
-ZarrToZarr = class_factory(single_zarr)
+ZarrToZarr = kerchunk.utilsclass_factory(single_zarr)
