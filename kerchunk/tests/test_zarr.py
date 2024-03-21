@@ -87,18 +87,6 @@ def test_zarr_combine(tmpdir, ds):
     assert ds.equals(ds2)
 
 
-def test_zarr_json_dump_fails(tmpdir, ds):
-    fn1 = f"{tmpdir}/test1.zarr"
-    ds.to_zarr(fn1)
-
-    one = kerchunk.zarr.ZarrToZarr(
-        fn1,
-        inline_threshold=0,
-    ).translate()
-    with pytest.raises(TypeError):
-        ujson.dumps(one)
-
-
 def test_zarr_json_dump_succeeds(tmpdir, ds):
     fn1 = f"{tmpdir}/test1.zarr"
     ds.to_zarr(fn1)
@@ -106,6 +94,5 @@ def test_zarr_json_dump_succeeds(tmpdir, ds):
     one = kerchunk.zarr.ZarrToZarr(
         fn1,
         inline_threshold=0,
-        consolidate=True,
     ).translate()
     ujson.dumps(one)
