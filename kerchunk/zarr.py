@@ -1,11 +1,15 @@
 import fsspec
 from fsspec.implementations.reference import LazyReferenceMapper
 
-from kerchunk.utils import class_factory
+import kerchunk.utils
 
 
 def single_zarr(
-    uri_or_store, storage_options=None, inline_threshold=100, inline=None, out=None
+    uri_or_store,
+    storage_options=None,
+    inline_threshold=100,
+    inline=None,
+    out=None,
 ):
     """kerchunk-style view on zarr mapper
 
@@ -47,7 +51,8 @@ def single_zarr(
         refs = do_inline(refs, inline_threshold, remote_options=storage_options)
     if isinstance(refs, LazyReferenceMapper):
         refs.flush()
+    refs = kerchunk.utils.consolidate(refs)
     return refs
 
 
-ZarrToZarr = class_factory(single_zarr)
+ZarrToZarr = kerchunk.utils.class_factory(single_zarr)

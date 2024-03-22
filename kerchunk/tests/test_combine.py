@@ -795,7 +795,9 @@ def test_bad_coo_warning(refs):
 
 
 def test_chunk_error(refs):
-    refs2 = refs["single1"].copy()
+    # Work with the refs in the output of single_zarr
+    refs1 = refs["single1"]["refs"]
+    refs2 = refs1.copy()
     refs2.pop(".zmetadata")
     fs = fsspec.filesystem("reference", fo=refs2, remote_protocol="memory")
     refs2[
@@ -808,7 +810,7 @@ def test_chunk_error(refs):
     }
     """
     mzz = MultiZarrToZarr(
-        [refs["single1"], refs2],
+        [refs1, refs2],
         remote_protocol="memory",
         concat_dims=["time"],
     )

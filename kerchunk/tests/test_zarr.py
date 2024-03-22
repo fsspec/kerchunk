@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 import fsspec.implementations.reference as reffs
+import ujson
 
 import kerchunk.combine
 import kerchunk.zarr
@@ -84,3 +85,14 @@ def test_zarr_combine(tmpdir, ds):
 
     ds2 = xr.open_dataset(fn, engine="kerchunk")
     assert ds.equals(ds2)
+
+
+def test_zarr_json_dump_succeeds(tmpdir, ds):
+    fn1 = f"{tmpdir}/test1.zarr"
+    ds.to_zarr(fn1)
+
+    one = kerchunk.zarr.ZarrToZarr(
+        fn1,
+        inline_threshold=0,
+    ).translate()
+    ujson.dumps(one)
