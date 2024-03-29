@@ -1,4 +1,5 @@
 import fsspec
+import fsspec.implementations.reference as reffs
 import os.path as osp
 
 import kerchunk.hdf
@@ -322,3 +323,11 @@ def test_embed():
         "0.004609216572327277",
         "0.01298182345556785",
     ]
+
+
+def test_hdf_to_reference_file(tmpdir):
+    uri = "s3://wrf-se-ak-ar5/ccsm/rcp85/daily/2060/WRFDS_2060-01-01.nc"
+    so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
+    out = reffs.LazyReferenceMapper.create(f"{tmpdir}/out.parq", record_size=1)
+    with fsspec.open(uri, **so) as f:
+        _ = SingleHdf5ToZarr(f, uri, storage_options=so, out=out).translate()
