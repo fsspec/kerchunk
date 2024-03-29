@@ -96,3 +96,11 @@ def test_zarr_json_dump_succeeds(tmpdir, ds):
         inline_threshold=0,
     ).translate()
     ujson.dumps(one)
+
+
+def test_zarr_to_reference_file(tmpdir, ds):
+    fn1 = f"{tmpdir}/test1.zarr"
+    ds.to_zarr(fn1)
+
+    out = reffs.LazyReferenceMapper.create(f"{tmpdir}/out.parq", record_size=1)
+    kerchunk.zarr.ZarrToZarr(url=fn1, **{"out": out}).translate()

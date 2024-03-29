@@ -49,9 +49,9 @@ def single_zarr(
     inline_threshold = inline or inline_threshold
     if inline_threshold:
         refs = do_inline(refs, inline_threshold, remote_options=storage_options)
+    refs = kerchunk.utils.consolidate(refs)
     if isinstance(refs, LazyReferenceMapper):
         refs.flush()
-    refs = kerchunk.utils.consolidate(refs)
     return refs
 
 
