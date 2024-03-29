@@ -4,6 +4,7 @@ import os.path as osp
 
 import kerchunk.hdf
 import numpy as np
+import pandas as pd
 import pytest
 import xarray as xr
 import zarr
@@ -12,6 +13,24 @@ from kerchunk.hdf import SingleHdf5ToZarr
 from kerchunk.combine import MultiZarrToZarr, drop
 
 here = osp.dirname(__file__)
+
+
+@pytest.fixture(scope="module")
+def ds():
+    ds = xr.Dataset(
+        {
+            "x": xr.DataArray(np.linspace(-np.pi, np.pi, 10), dims=["x"]),
+            "y": xr.DataArray(np.linspace(-np.pi / 2, np.pi / 2, 10), dims=["y"]),
+            "time": xr.DataArray(pd.date_range("2020", "2021"), dims=["time"]),
+        },
+    )
+    ds["temp"] = (
+        np.cos(ds.x)
+        * np.sin(ds.y)
+        * xr.ones_like(ds.time).astype("float")
+        * np.random.random(ds.time.shape)
+    )
+    return ds
 
 
 def test_single():
@@ -325,9 +344,9 @@ def test_embed():
     ]
 
 
-def test_hdf_to_reference_file(tmpdir):
-    uri = "s3://wrf-se-ak-ar5/ccsm/rcp85/daily/2060/WRFDS_2060-01-01.nc"
-    so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
+def test_hdf_to_reference_file(tmpdir, ds):
+    fn1 = f"{tmpdir}/test1.nc"
+    ds.to_netcdf(fn1)
+
     out = reffs.LazyReferenceMapper.create(f"{tmpdir}/out.parq", record_size=1)
-    with fsspec.open(uri, **so) as f:
-        _ = SingleHdf5ToZarr(f, uri, storage_options=so, out=out).translate()
+    SingleHdf5ToZarr(h5f=fn1, out=out).translate()
