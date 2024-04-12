@@ -107,7 +107,7 @@ def test_grib_tree():
     assert isinstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
     assert (
         zg["vbdsf/avg/surface"].attrs["coordinates"]
-        == "surface latitude longitude time valid_time step"
+        == "surface latitude longitude step time valid_time"
     )
     assert (
         zg["refc/instant/atmosphere"].attrs["coordinates"]
