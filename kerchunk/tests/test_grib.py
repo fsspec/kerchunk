@@ -105,13 +105,11 @@ def test_grib_tree():
     zg = zarr.open_group(fs.get_mapper(""))
     assert isinstance(zg["refc/instant/atmosphere/refc"], zarr.Array)
     assert isinstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
-    assert (
-        zg["vbdsf/avg/surface"].attrs["coordinates"]
-        == "surface latitude longitude step time valid_time"
+    assert set(zg["vbdsf/avg/surface"].attrs["coordinates"].split()) == set(
+        "surface latitude longitude step time valid_time".split()
     )
-    assert (
-        zg["refc/instant/atmosphere"].attrs["coordinates"]
-        == "atmosphere latitude longitude step time valid_time"
+    assert set(zg["refc/instant/atmosphere"].attrs["coordinates"].split()) == set(
+        "atmosphere latitude longitude step time valid_time".split()
     )
     # Assert that the fill value is set correctly
     assert zg.refc.instant.atmosphere.step.fill_value is np.NaN
