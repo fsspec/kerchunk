@@ -49,13 +49,11 @@ def _split_file(f: io.FileIO, skip=0):
     while f.tell() < size:
         logger.debug(f"extract part {part + 1}")
         head = f.read(1024)
-        if len(head) < 1024:
-            break  # EOF
         if b"GRIB" not in head:
             f.seek(-4, 1)
             continue
         ind = head.index(b"GRIB")
-        start = f.tell() - 1024 + ind
+        start = f.tell() - len(head) + ind
         part_size = int.from_bytes(head[ind + 12 : ind + 16], "big")
         f.seek(start)
         yield start, part_size, f.read(part_size)

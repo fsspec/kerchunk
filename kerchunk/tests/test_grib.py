@@ -98,6 +98,12 @@ def test_subhourly():
     assert len(result) == 2, "Expected two grib messages"
 
 
+def test_tiny_grib():
+    fpath = os.path.join(here, "tinygrib.grb2")
+    result = scan_grib(fpath)
+    assert len(result) == 1, "Expected one grib message"
+
+
 def test_grib_tree():
     """
     End-to-end test from grib file to zarr hierarchy
