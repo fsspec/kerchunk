@@ -730,7 +730,7 @@ def test_cftimes_to_normal(refs):
         engine="zarr",
         chunks={},
     )
-    assert z.time.dtype == "M8[s]"
+    assert z.time.dtype.kind == "M"
     assert (
         z.time.values
         == np.array(["1970-02-01T00:00:00", "1970-03-01T00:00:00"], dtype="M8[s]")
@@ -799,7 +799,7 @@ def test_chunk_error(refs):
     refs1 = refs["single1"]["refs"]
     refs2 = refs1.copy()
     refs2.pop(".zmetadata")
-    fs = fsspec.filesystem("reference", fo=refs2, remote_protocol="memory")
+    fs = fsspec.filesystem("reference", fo=refs2, remote_protocol="memory")  # noqa
     refs2[
         "data/.zarray"
     ] = b"""

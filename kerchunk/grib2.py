@@ -252,9 +252,11 @@ def scan_grib(
             z[varName].attrs["_ARRAY_DIMENSIONS"] = dims
 
             for coord in cfgrib.dataset.COORD_ATTRS:
-                coord2 = {"latitude": "latitudes", "longitude": "longitudes"}.get(
-                    coord, coord
-                )
+                coord2 = {
+                    "latitude": "latitudes",
+                    "longitude": "longitudes",
+                    "step": "step:int",
+                }.get(coord, coord)
                 try:
                     x = m.get(coord2)
                 except eccodes.WrongStepUnitError as e:
