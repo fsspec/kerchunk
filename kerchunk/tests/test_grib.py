@@ -1,5 +1,6 @@
 import os.path
 
+import eccodes
 import fsspec
 import numpy as np
 import pytest
@@ -15,6 +16,7 @@ from kerchunk.grib2 import (
     correct_hrrr_subhf_step,
 )
 
+eccodes_ver = tuple(int(i) for i in eccodes.__version__.split("."))
 cfgrib = pytest.importorskip("cfgrib")
 here = os.path.dirname(__file__)
 
@@ -49,7 +51,10 @@ def _fetch_first(url):
 @pytest.mark.parametrize(
     "url",
     [
-        "s3://noaa-hrrr-bdp-pds/hrrr.20140730/conus/hrrr.t23z.wrfsubhf08.grib2",
+        pytest.param(
+            "s3://noaa-hrrr-bdp-pds/hrrr.20140730/conus/hrrr.t23z.wrfsubhf08.grib2",
+            marks=pytest.mark.skipif(eccodes_ver >= (2, 34), reason="eccodes too new"),
+        ),
         "s3://noaa-gefs-pds/gefs.20221011/00/atmos/pgrb2ap5/gep01.t00z.pgrb2a.0p50.f570",
         "s3://noaa-gefs-retrospective/GEFSv12/reforecast/2000/2000010100/c00/Days:10-16/acpcp_sfc_2000010100_c00.grib2",
     ],
@@ -111,13 +116,11 @@ def test_grib_tree():
     zg = zarr.open_group(fs.get_mapper(""))
     assert isinstance(zg["refc/instant/atmosphere/refc"], zarr.Array)
     assert isinstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
-    assert (
-        zg["vbdsf/avg/surface"].attrs["coordinates"]
-        == "surface latitude longitude time valid_time step"
+    assert set(zg["vbdsf/avg/surface"].attrs["coordinates"].split()) == set(
+        "surface latitude longitude step time valid_time".split()
     )
-    assert (
-        zg["refc/instant/atmosphere"].attrs["coordinates"]
-        == "atmosphere latitude longitude step time valid_time"
+    assert set(zg["refc/instant/atmosphere"].attrs["coordinates"].split()) == set(
+        "atmosphere latitude longitude step time valid_time".split()
     )
     # Assert that the fill value is set correctly
     assert zg.refc.instant.atmosphere.step.fill_value is np.NaN

@@ -9,7 +9,7 @@ dependencies:
   - xarray
   - xarray-datatree
   - h5netcdf
-  - h5py<3.9
+  - h5py
   - pandas
   - cfgrib
   - cftime
