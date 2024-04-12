@@ -340,9 +340,11 @@
             <span class="n">z</span><span class="p">[</span><span class="n">varName</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dims</span>
 
             <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">COORD_ATTRS</span><span class="p">:</span>
-                <span class="n">coord2</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;latitudes&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;longitudes&quot;</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                    <span class="n">coord</span><span class="p">,</span> <span class="n">coord</span>
-                <span class="p">)</span>
+                <span class="n">coord2</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;latitudes&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;longitudes&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="s2">&quot;step:int&quot;</span><span class="p">,</span>
+                <span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">coord</span><span class="p">)</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">x</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">coord2</span><span class="p">)</span>
                 <span class="k">except</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">WrongStepUnitError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
