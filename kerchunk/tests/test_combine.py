@@ -799,7 +799,7 @@ def test_chunk_error(refs):
     refs1 = refs["single1"]["refs"]
     refs2 = refs1.copy()
     refs2.pop(".zmetadata")
-    fs = fsspec.filesystem("reference", fo=refs2, remote_protocol="memory")
+    fs = fsspec.filesystem("reference", fo=refs2, remote_protocol="memory")  # noqa
     refs2[
         "data/.zarray"
     ] = b"""
