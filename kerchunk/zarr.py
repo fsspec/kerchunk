@@ -37,6 +37,8 @@ def single_zarr(
         mapper = fsspec.get_mapper(uri_or_store, **(storage_options or {}))
     else:
         mapper = uri_or_store
+        if isinstance(mapper, fsspec.FSMap) and storage_options is None:
+            storage_options = mapper.fs.storage_options
 
     refs = out or {}
     for k in mapper:

@@ -3,13 +3,13 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python=3.9
+  - python=3.12
   - dask
   - zarr
   - xarray
   - xarray-datatree
   - h5netcdf
-  - h5py<3.9
+  - h5py
   - pandas
   - cfgrib
   - cftime

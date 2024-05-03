@@ -756,7 +756,7 @@ def concatenate_arrays(
 
 def auto_dask(
     urls: List[str],
-    single_driver: str,
+    single_driver: type,
     single_kwargs: dict,
     mzz_kwargs: dict,
     n_batches: int,
