@@ -4,3 +4,4 @@ include LICENSE
 
 prune tests
 prune examples
+global-exclude *.hdf *.hdf5 *.h5 *.grib2 *.tiff *.tif *.json test*.py
