@@ -13,12 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup conda
-        uses: mamba-org/setup-micromamba@v1
+        uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: ci/environment-py${{matrix.python-version}}.yml
-          cache-downloads: false
-          cache-environment: true
-          generate-run-shell: false
       - name: Install kerchunk
         shell: bash -l {0}
         run: |
