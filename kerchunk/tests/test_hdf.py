@@ -322,3 +322,12 @@ def test_embed():
         "0.004609216572327277",
         "0.01298182345556785",
     ]
+
+
+def test_inline_threshold():
+    fn = osp.join(here, "air.nc")
+    inline_0 = kerchunk.hdf.SingleHdf5ToZarr(fn, inline_threshold=0).translate()
+    inline_1_million = kerchunk.hdf.SingleHdf5ToZarr(
+        fn, inline_threshold=1e9
+    ).translate()
+    assert inline_0 != inline_1_million
