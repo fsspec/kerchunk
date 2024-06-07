@@ -33,7 +33,7 @@ For example, Zarr data in this proposed spec might be represented as:
       "x/0": ["s3://bucket/path/file.nc", 294094376, 73825960]
     }
 
-Data can also be written in JSON, in which case the value is interpreted as a JSON file. For example, the above could equivalently be written as:
+Data can also be written as a JSON object instead of a string, in which case the value is interpreted as a JSON file. For example, the above could equivalently be written as:
 
 .. code-block:: json
 
