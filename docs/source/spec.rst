@@ -33,6 +33,18 @@ For example, Zarr data in this proposed spec might be represented as:
       "x/0": ["s3://bucket/path/file.nc", 294094376, 73825960]
     }
 
+Data can also be written as a JSON object instead of a string, in which case the value is interpreted as a JSON file. For example, the above could equivalently be written as:
+
+.. code-block:: json
+
+    {
+      ".zgroup": {"zarr_format": 2},
+      ".zattrs": {"Conventions": "UGRID-0.9.0\n"},
+      "x/.zattrs": {"_ARRAY_DIMENSIONS": ["node"]},
+      "x/.zarray": {"chunks": [9228245], "compressor": null, "dtype": "<f8"},
+      "x/0": ["s3://bucket/path/file.nc", 294094376, 73825960]
+    }
+
 Version 1
 ---------
 
