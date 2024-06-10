@@ -119,6 +119,16 @@
 <span class="p">}</span>
 </pre></div>
 </div>
+<p>Data can also be written as a JSON object instead of a string, in which case the value is interpreted as a JSON file. For example, the above could equivalently be written as:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;.zgroup&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;zarr_format&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;.zattrs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;Conventions&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UGRID-0.9.0\n&quot;</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;x/.zattrs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]},</span>
+<span class="w">  </span><span class="nt">&quot;x/.zarray&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;chunks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">9228245</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;compressor&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;dtype&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;f8&quot;</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;x/0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;s3://bucket/path/file.nc&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">294094376</span><span class="p">,</span><span class="w"> </span><span class="mi">73825960</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </section>
 <section id="version-1">
 <h2>Version 1<a class="headerlink" href="#version-1" title="Link to this heading"></a></h2>
