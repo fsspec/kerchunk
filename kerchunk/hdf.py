@@ -462,7 +462,7 @@ class SingleHdf5ToZarr:
                         )
 
                 # Create a Zarr array equivalent to this HDF5 dataset...
-                za = self._zroot.create_dataset(
+                za = self._zroot.require_dataset(
                     h5obj.name,
                     shape=h5obj.shape,
                     dtype=dt or h5obj.dtype,
@@ -510,7 +510,7 @@ class SingleHdf5ToZarr:
 
             elif isinstance(h5obj, h5py.Group):
                 lggr.debug(f"HDF5 group: {h5obj.name}")
-                zgrp = self._zroot.create_group(h5obj.name)
+                zgrp = self._zroot.require_group(h5obj.name)
                 self._transfer_attrs(h5obj, zgrp)
         except Exception as e:
             import traceback
