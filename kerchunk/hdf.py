@@ -141,7 +141,7 @@ class SingleHdf5ToZarr:
         if preserve_linked_dsets:
             if h5py.__version__ < "3.11.0":
                 raise RuntimeError(
-                    "preserve_links requires h5py 3.11.0 or later, "
+                    "preserve_linked_dsets requires h5py 3.11.0 or later, "
                     f"found {h5py.__version__}"
                 )
             self._h5f.visititems_links(self._translator)
