@@ -232,7 +232,8 @@ class NetCDF3ToZarr(netcdf_file):
             # native chunks version (no codec, no options)
             start, size, dt = self.chunks["record_array"][0]
             dt = np.dtype(dt)
-            outer_shape = size // dt.itemsize
+            itemsize = sum(dt[_].itemsize for _ in dt.names)
+            outer_shape = size // itemsize
             offset = start
             for name in dt.names:
                 dtype = dt[name]
