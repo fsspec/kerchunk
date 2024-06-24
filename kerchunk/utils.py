@@ -182,7 +182,7 @@ def _inline_array(group, threshold, names, prefix=""):
         if isinstance(thing, zarr.Group):
             _inline_array(thing, threshold=threshold, prefix=prefix1, names=names)
         else:
-            cond1 = threshold and thing.nbytes < threshold and thing.nchunks > 1
+            cond1 = threshold and thing.nbytes < threshold
             cond2 = prefix1 in names
             if cond1 or cond2:
                 original_attrs = dict(thing.attrs)
@@ -277,7 +277,7 @@ def subchunk(store, variable, factor):
     if multi:
         # TODO: this reloads the referenceFS; *maybe* reuses it
         return subchunk(store, variable, multi)
-    breakpoint()
+
     # execute
     meta["chunks"] = chunk_new
     store = copy.deepcopy(store)

@@ -1,4 +1,3 @@
-import base64
 from functools import reduce
 from operator import mul
 
@@ -6,7 +5,7 @@ import numpy as np
 from fsspec.implementations.reference import LazyReferenceMapper
 import fsspec
 
-from kerchunk.utils import _encode_for_JSON
+from kerchunk.utils import _encode_for_JSON, inline_array
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
@@ -202,21 +201,11 @@ class NetCDF3ToZarr(netcdf_file):
                 )
                 part = ".".join(["0"] * len(shape)) or "0"
                 k = f"{dim}/{part}"
-                if self.threshold and int(self.chunks[dim][1]) < self.threshold:
-                    self.fp.seek(int(self.chunks[dim][0]))
-                    data = self.fp.read(int(self.chunks[dim][1]))
-                    try:
-                        # easiest way to test if data is ascii
-                        data.decode("ascii")
-                    except UnicodeDecodeError:
-                        data = b"base64:" + base64.b64encode(data)
-                    out[k] = data
-                else:
-                    out[k] = [
-                        self.filename,
-                        int(self.chunks[dim][0]),
-                        int(self.chunks[dim][1]),
-                    ]
+                out[k] = [
+                    self.filename,
+                    int(self.chunks[dim][0]),
+                    int(self.chunks[dim][1]),
+                ]
             arr.attrs.update(
                 {
                     k: v.decode() if isinstance(v, bytes) else str(v)
@@ -295,6 +284,8 @@ class NetCDF3ToZarr(netcdf_file):
                 if k != "filename"  # special "attribute"
             }
         )
+        if self.threshold:
+            out = inline_array(out, self.threshold, remote_options=self.storage_options)
 
         if isinstance(out, LazyReferenceMapper):
             out.flush()
