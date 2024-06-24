@@ -194,6 +194,7 @@ def _inline_array(group, threshold, names, prefix=""):
                     chunks=thing.shape,
                     compression=None,
                     overwrite=True,
+                    fill_value=thing.fill_value,
                 )
                 arr.attrs.update(original_attrs)
 
