@@ -123,7 +123,7 @@ def test_grib_tree():
         "atmosphere latitude longitude step time valid_time".split()
     )
     # Assert that the fill value is set correctly
-    assert zg.refc.instant.atmosphere.step.fill_value is np.NaN
+    assert zg.refc.instant.atmosphere.step.fill_value is np.nan
 
 
 # The following two tests use json fixture data generated from calling scan grib

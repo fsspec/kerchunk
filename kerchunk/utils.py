@@ -182,7 +182,7 @@ def _inline_array(group, threshold, names, prefix=""):
         if isinstance(thing, zarr.Group):
             _inline_array(thing, threshold=threshold, prefix=prefix1, names=names)
         else:
-            cond1 = threshold and thing.nbytes < threshold and thing.nchunks > 1
+            cond1 = threshold and thing.nbytes < threshold
             cond2 = prefix1 in names
             if cond1 or cond2:
                 original_attrs = dict(thing.attrs)
@@ -194,6 +194,7 @@ def _inline_array(group, threshold, names, prefix=""):
                     chunks=thing.shape,
                     compression=None,
                     overwrite=True,
+                    fill_value=thing.fill_value,
                 )
                 arr.attrs.update(original_attrs)
 
@@ -249,18 +250,38 @@ def subchunk(store, variable, factor):
     modified store
     """
     fs = fsspec.filesystem("reference", fo=store)
-    store = copy.deepcopy(store)
+    store = fs.references
     meta_file = f"{variable}/.zarray"
     meta = ujson.loads(fs.cat(meta_file))
     if meta["compressor"] is not None:
         raise ValueError("Can only subchunk an uncompressed array")
     chunks_orig = meta["chunks"]
-    if chunks_orig[0] % factor == 0:
-        chunk_new = [chunks_orig[0] // factor] + chunks_orig[1:]
-    else:
-        raise ValueError("Must subchunk by exact integer factor")
+    chunk_new = []
+    # plan
+    multi = None
+    for ind, this_chunk in enumerate(chunks_orig):
+        if this_chunk == 1:
+            chunk_new.append(1)
+            continue
+        elif this_chunk % factor == 0:
+            chunk_new.extend([this_chunk // factor] + chunks_orig[ind + 1 :])
+            break
+        elif factor % this_chunk == 0:
+            # if factor // chunks_orig[0] > 1:
+            chunk_new.append(1)
+            if multi is None:
+                multi = this_chunk
+            factor //= this_chunk
+        else:
+            raise ValueError("Must subchunk by exact integer factor")
 
+    if multi:
+        # TODO: this reloads the referenceFS; *maybe* reuses it
+        return subchunk(store, variable, multi)
+
+    # execute
     meta["chunks"] = chunk_new
+    store = copy.deepcopy(store)
     store[meta_file] = ujson.dumps(meta)
 
     for k, v in store.copy().items():
@@ -268,8 +289,11 @@ def subchunk(store, variable, factor):
             kpart = k[len(variable) + 1 :]
             if kpart.startswith(".z"):
                 continue
-            sep = "." if "." in k else "/"
+            sep = "." if "." in kpart else "/"
             chunk_index = [int(_) for _ in kpart.split(sep)]
+            if isinstance(v, (str, bytes)):
+                # TODO: check this early, as some refs might have been edited already
+                raise ValueError("Refusing to sub-chunk inlined data")
             if len(v) > 1:
                 url, offset, size = v
             else:
@@ -277,7 +301,11 @@ def subchunk(store, variable, factor):
                 offset = 0
                 size = fs.size(k)
             for subpart in range(factor):
-                new_index = [chunk_index[0] * factor + subpart] + chunk_index[1:]
+                new_index = (
+                    chunk_index[:ind]
+                    + [chunk_index[ind] * factor + subpart]
+                    + chunk_index[ind + 1 :]
+                )
                 newpart = sep.join(str(_) for _ in new_index)
                 newv = [url, offset + subpart * size // factor, size // factor]
                 store[f"{variable}/{newpart}"] = newv

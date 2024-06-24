@@ -412,7 +412,6 @@ class MultiZarrToZarr:
                 elif k in z:
                     # Fall back to existing fill value
                     kw["fill_value"] = z[k].fill_value
-
             arr = group.create_dataset(
                 name=k,
                 data=data,
