@@ -24,7 +24,7 @@ dependencies = [
   "numcodecs",
   "numpy",
   "ujson",
-  "zarr",
+  "zarr @ git+https://github.com/martindurant/zarr.git@varchunk",
 ]
 
 [project.optional-dependencies]
