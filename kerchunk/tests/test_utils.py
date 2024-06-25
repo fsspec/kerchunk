@@ -1,6 +1,7 @@
 import io
 
 import fsspec
+import json
 import kerchunk.utils
 import kerchunk.zarr
 import numpy as np
@@ -72,16 +73,16 @@ def test_inline_array():
         "data/.zattrs": '{"foo": "bar"}',
     }
     fs = fsspec.filesystem("reference", fo=refs)
-    out1 = kerchunk.utils.inline_array(refs, threshold=1000)  # does nothing
+    out1 = kerchunk.utils.inline_array(refs, threshold=1)  # does nothing
     assert out1 == refs
-    out2 = kerchunk.utils.inline_array(refs, threshold=1000, names=["data"])  # explicit
+    out2 = kerchunk.utils.inline_array(refs, threshold=1, names=["data"])  # explicit
     assert "data/1" not in out2
-    assert out2["data/.zattrs"] == refs["data/.zattrs"]
+    assert json.loads(out2["data/.zattrs"]) == json.loads(refs["data/.zattrs"])
     fs = fsspec.filesystem("reference", fo=out2)
     g = zarr.open(fs.get_mapper())
     assert g.data[:].tolist() == [1, 2]
 
-    out3 = kerchunk.utils.inline_array(refs, threshold=1)  # inlines because of size
+    out3 = kerchunk.utils.inline_array(refs, threshold=1000)  # inlines because of size
     assert "data/1" not in out3
     fs = fsspec.filesystem("reference", fo=out3)
     g = zarr.open(fs.get_mapper())
