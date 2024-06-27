@@ -3,9 +3,11 @@ import copy
 import io
 import logging
 from collections import defaultdict
-from typing import Iterable, List, Dict, Set
-
+from typing import Iterable, List, Dict, Set, TYPE_CHECKING, Optional
 import ujson
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 try:
     import cfgrib
@@ -582,3 +584,68 @@ def correct_hrrr_subhf_step(group: Dict) -> Dict:
     group["refs"]["step/0"] = enocded_val
 
     return group
+
+
+def parse_grib_idx(
+    fs: fsspec.AbstractFileSystem,
+    *,
+    basename: str,
+    suffix: str = "idx",
+    tstamp: Optional["pd.Timestamp"] = None,
+    validate: bool = False,
+) -> "pd.DataFrame":
+    """
+    Standalone method used to extract metadata from a grib2 idx file(text) from NODD.
+
+    The function takes idx file, extracts the metadata known as attrs (variables with
+    level and forecast time) from each idx entry and converts it into pandas
+    DataFrame. The dataframe is later to build the one-to-one mapping to the grib file metadata.
+
+    Parameters
+    ----------
+    fs : fsspec.AbstractFileSystem
+        The file system to read from.
+    basename : str
+        The base name is the full path to the grib file.
+    suffix : str
+        The suffix is the ending for the idx file.
+    tstamp : Optional[pd.Timestamp]
+        The timestamp to use for when the data was indexed
+    validate : bool
+        The validation if the metadata table has duplicate attrs.
+
+    Returns
+    -------
+    pandas.DataFrame : The data frame containing the results.
+    """
+    import pandas as pd
+
+    fname = f"{basename}.{suffix}"
+
+    baseinfo = fs.info(basename)
+
+    result = None
+
+    try:
+        result = pd.read_csv(fname, sep=":", header=None).loc[:, :5]
+        result.columns = ["idx", "offset", "date", "attrs", "level", "forecast"]
+        result["attrs"] = (
+            result["attrs"] + ":" + result["level"] + ":" + result["forecast"]
+        )
+        result.drop(columns=["level", "forecast"], inplace=True)
+    except Exception as e:
+        raise ValueError(f"Could not parse {fname}") from e
+
+    result = result.assign(
+        length=(
+            result.offset.shift(periods=-1, fill_value=baseinfo["size"]) - result.offset
+        ),
+        idx_uri=fname,
+        grib_uri=basename,
+        indexed_at=tstamp if tstamp else pd.Timestamp.now(),
+    )
+
+    if validate and not result["attrs"].is_unique:
+        raise ValueError(f"Attribute mapping for grib file {basename} is not unique)")
+
+    return result.set_index("idx")
