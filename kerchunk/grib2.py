@@ -5,9 +5,6 @@ import logging
 from collections import defaultdict
 from typing import Iterable, List, Dict, Set, Optional
 import pandas as pd
-import gcsfs
-import s3fs
-
 
 import ujson
 
@@ -615,7 +612,14 @@ def parse_grib_idx(
         for line in f.readlines():
             try:
                 idx, offset, date, attrs = line.split(":", maxsplit=3)
-                splits.append([int(idx), int(offset), date, attrs])
+                splits.append(
+                    [
+                        int(idx),
+                        int(offset),
+                        f"{date[2:6]}-{date[6:8]}-{date[8:10]}-{date[10:]}",
+                        attrs,
+                    ]
+                )
             except ValueError:
                 # Wrap the ValueError in a new one that includes the bad line
                 # If building the mapping, pick a different forecast run where the idx file is not broken
@@ -638,7 +642,7 @@ def parse_grib_idx(
         tstamp = pd.Timestamp.now()
     result.loc[:, "indexed_at"] = tstamp
 
-    if isinstance(fs, gcsfs.GCSFileSystem):
+    if fs.protocol[0] == "gs":
         result.loc[:, "grib_crc32"] = baseinfo["crc32c"]
         result.loc[:, "grib_updated_at"] = pd.to_datetime(
             baseinfo["updated"]
@@ -649,7 +653,7 @@ def parse_grib_idx(
         result.loc[:, "idx_updated_at"] = pd.to_datetime(
             idxinfo["updated"]
         ).tz_localize(None)
-    elif isinstance(fs, s3fs.S3FileSystem):
+    elif fs.protocol[0] == "s3":
         result.loc[:, "grib_Etag"] = baseinfo["ETag"]
         result.loc[:, "grib_updated_at"] = pd.to_datetime(
             baseinfo["LastModified"]
