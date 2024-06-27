@@ -21,6 +21,7 @@ dependencies:
   - dask
   - scipy
   - s3fs
+  - gcsfs
   - python-blosc
   - flake8
   - black
