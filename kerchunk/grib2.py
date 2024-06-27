@@ -3,7 +3,11 @@ import copy
 import io
 import logging
 from collections import defaultdict
-from typing import Iterable, List, Dict, Set
+from typing import Iterable, List, Dict, Set, Optional
+import pandas as pd
+import gcsfs
+import s3fs
+
 
 import ujson
 
@@ -582,3 +586,87 @@ def correct_hrrr_subhf_step(group: Dict) -> Dict:
     group["refs"]["step/0"] = enocded_val
 
     return group
+
+
+def parse_grib_idx(
+    fs: fsspec.AbstractFileSystem,
+    basename: str,
+    suffix: str = "idx",
+    tstamp: Optional[pd.Timestamp] = None,
+    validate: bool = False,
+) -> pd.DataFrame:
+    """
+    Standalone method used to extract metadata from a grib2 idx file(text) from NODD
+    :param fs: the file system to read from
+    :param basename: the base name is the full path to the grib file
+    :param suffix: the suffix is the ending for the idx file
+    :param tstamp: the timestamp to record for this index process
+    :return: the data frame containing the results
+    """
+
+    fname = f"{basename}.{suffix}"
+    fs.invalidate_cache(fname)
+    fs.invalidate_cache(basename)
+
+    baseinfo = fs.info(basename)
+
+    with fs.open(fname, "r") as f:
+        splits = []
+        for line in f.readlines():
+            try:
+                idx, offset, date, attrs = line.split(":", maxsplit=3)
+                splits.append([int(idx), int(offset), date, attrs])
+            except ValueError:
+                # Wrap the ValueError in a new one that includes the bad line
+                # If building the mapping, pick a different forecast run where the idx file is not broken
+                # If indexing a forecast using the mapping, fall back to reading the grib file
+                raise ValueError(f"Could not parse line: {line}")
+
+    result = pd.DataFrame(
+        data=splits,
+        columns=["idx", "offset", "date", "attrs"],
+    )
+
+    # Subtract the next offset to get the length using the filesize for the last value
+    result.loc[:, "length"] = (
+        result.offset.shift(periods=-1, fill_value=baseinfo["size"]) - result.offset
+    )
+
+    result.loc[:, "idx_uri"] = fname
+    result.loc[:, "grib_uri"] = basename
+    if tstamp is None:
+        tstamp = pd.Timestamp.now()
+    result.loc[:, "indexed_at"] = tstamp
+
+    if isinstance(fs, gcsfs.GCSFileSystem):
+        result.loc[:, "grib_crc32"] = baseinfo["crc32c"]
+        result.loc[:, "grib_updated_at"] = pd.to_datetime(
+            baseinfo["updated"]
+        ).tz_localize(None)
+
+        idxinfo = fs.info(fname)
+        result.loc[:, "idx_crc32"] = idxinfo["crc32c"]
+        result.loc[:, "idx_updated_at"] = pd.to_datetime(
+            idxinfo["updated"]
+        ).tz_localize(None)
+    elif isinstance(fs, s3fs.S3FileSystem):
+        result.loc[:, "grib_Etag"] = baseinfo["ETag"]
+        result.loc[:, "grib_updated_at"] = pd.to_datetime(
+            baseinfo["LastModified"]
+        ).tz_localize(None)
+
+        idxinfo = fs.info(fname)
+        result.loc[:, "idx_ETag"] = idxinfo["ETag"]
+        result.loc[:, "idx_updated_at"] = pd.to_datetime(
+            idxinfo["LastModified"]
+        ).tz_localize(None)
+    else:
+        result.loc[:, "grib_crc32"] = None
+        result.loc[:, "grib_updated_at"] = None
+        result.loc[:, "idx_crc32"] = None
+        result.loc[:, "idx_updated_at"] = None
+
+    if validate and not result["attrs"].is_unique:
+        raise ValueError(f"Attribute mapping for grib file {basename} is not unique)")
+
+    return result.set_index("idx")
