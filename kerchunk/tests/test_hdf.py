@@ -25,9 +25,7 @@ def test_single():
     m = fsspec.get_mapper(
         "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
-    ds = xr.open_dataset(
-        m, engine="zarr", backend_kwargs=dict(consolidated=False)
-    )
+    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
 
     with fsspec.open(url, **so) as f:
         expected = xr.open_dataset(f, engine="h5netcdf")
@@ -86,9 +84,7 @@ def test_multizarr(generate_mzz):
     m = fsspec.get_mapper(
         "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
-    ds = xr.open_dataset(
-        m, engine="zarr", backend_kwargs=dict(consolidated=False)
-    )
+    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
 
     with fsspec.open_files(urls, **so) as fs:
         expts = [xr.open_dataset(f, engine="h5netcdf") for f in fs]
@@ -136,9 +132,9 @@ def times_data(tmpdir):
     lon = xr.DataArray(np.linspace(-90, 90, 10), dims=["lon"], name="lon")
     time_attrs = {"axis": "T", "long_name": "time", "standard_name": "time"}
     time1 = xr.DataArray(
-        np.arange(
-            -631108800000000000, -630158390000000000, 86400000000000
-        ).view("datetime64[ns]"),
+        np.arange(-631108800000000000, -630158390000000000, 86400000000000).view(
+            "datetime64[ns]"
+        ),
         dims=["time"],
         name="time",
         attrs=time_attrs,
@@ -166,9 +162,7 @@ def test_times(times_data):
         "reference://",
         fo=test_dict,
     )
-    result = xr.open_dataset(
-        m, engine="zarr", backend_kwargs=dict(consolidated=False)
-    )
+    result = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
     expected = x1.to_dataset()
     xr.testing.assert_equal(result, expected)
 
@@ -184,9 +178,7 @@ def test_times_str(times_data):
         "reference://",
         fo=test_dict,
     )
-    result = xr.open_dataset(
-        m, engine="zarr", backend_kwargs=dict(consolidated=False)
-    )
+    result = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
     expected = x1.to_dataset()
     xr.testing.assert_equal(result, expected)
 
@@ -209,9 +201,7 @@ def test_string_embed():
 
 def test_string_null():
     fn = osp.join(here, "vlen.h5")
-    h = kerchunk.hdf.SingleHdf5ToZarr(
-        fn, fn, vlen_encode="null", inline_threshold=0
-    )
+    h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="null", inline_threshold=0)
     out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     z = zarr.open(fs.get_mapper())
@@ -250,9 +240,7 @@ def test_string_decode():
 def test_compound_string_null():
     fn = osp.join(here, "vlen2.h5")
     with open(fn, "rb") as f:
-        h = kerchunk.hdf.SingleHdf5ToZarr(
-            f, fn, vlen_encode="null", inline_threshold=0
-        )
+        h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="null", inline_threshold=0)
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     z = zarr.open(fs.get_mapper())
