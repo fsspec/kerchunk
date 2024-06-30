@@ -2,6 +2,7 @@ import base64
 import io
 import logging
 from typing import Union, BinaryIO
+from importlib.metadata import version
 
 import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
@@ -139,10 +140,12 @@ class SingleHdf5ToZarr:
         self._h5f.visititems(self._translator)
 
         if preserve_linked_dsets:
-            if h5py.__version__ < "3.11.0":
+            try:
+                h5py.Group.visititems_links
+            except AttributeError:
                 raise RuntimeError(
-                    "preserve_linked_dsets requires h5py 3.11.0 or later, "
-                    f"found {h5py.__version__}"
+                    "'preserve_linked_dsets' kwarg requires h5py 3.11.0 or later "
+                    f"is installed, found {version("h5py")}"
                 )
             self._h5f.visititems_links(self._translator)
 
@@ -275,10 +278,11 @@ class SingleHdf5ToZarr:
         try:  # method must not raise exception
             kwargs = {}
 
-            if isinstance(h5obj, h5py.SoftLink) or isinstance(h5obj, h5py.HardLink):
+            if isinstance(h5obj, (h5py.SoftLink, h5py.HardLink)):
                 h5obj = self._h5f[name]
                 if isinstance(h5obj, h5py.Group):
                     # continues iteration of visititems_links
+                    lggr.debug(f"Skipping translation of HDF5 linked group: '{h5obj.name}'")
                     return None
 
             if isinstance(h5obj, h5py.Dataset):
