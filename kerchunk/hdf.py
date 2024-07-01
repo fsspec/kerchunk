@@ -143,7 +143,7 @@ class SingleHdf5ToZarr:
             if not has_visititems_links():
                 raise RuntimeError(
                     "'preserve_linked_dsets' kwarg requires h5py 3.11.0 or later "
-                    f"is installed, found {version("h5py")}"
+                    f"is installed, found {h5py.__version__)}"
                 )
             self._h5f.visititems_links(self._translator)
 
