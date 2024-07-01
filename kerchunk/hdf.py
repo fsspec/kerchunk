@@ -673,5 +673,6 @@ def _is_netcdf_datetime(dataset: h5py.Dataset):
 def _is_netcdf_variable(dataset: h5py.Dataset):
     return any("_Netcdf4" in _ for _ in dataset.attrs)
 
+
 def has_visititems_links():
     return hasattr(h5py.Group, "visititems_links")
