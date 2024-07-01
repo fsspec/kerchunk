@@ -6,8 +6,9 @@ import numpy as np
 import pytest
 import xarray as xr
 import zarr
+import h5py
 
-from kerchunk.hdf import SingleHdf5ToZarr
+from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
 from kerchunk.combine import MultiZarrToZarr, drop
 
 here = osp.dirname(__file__)
@@ -92,9 +93,11 @@ def test_multizarr(generate_mzz):
         assert set(ds) == set(expected)
         for name in ds:
             exp = {
-                k: (v.tolist() if v.size > 1 else v[0])
-                if isinstance(v, np.ndarray)
-                else v
+                k: (
+                    (v.tolist() if v.size > 1 else v[0])
+                    if isinstance(v, np.ndarray)
+                    else v
+                )
                 for k, v in expected[name].attrs.items()
             }
             assert dict(ds[name].attrs) == dict(exp)
@@ -331,3 +334,27 @@ def test_inline_threshold():
         fn, inline_threshold=1e9
     ).translate()
     assert inline_0 != inline_1_million
+
+
+@pytest.mark.skipif(
+    not has_visititems_links(),
+    reason="'h5py.Group.visititems_links' requires h5py 3.11.0 or later",
+)
+def test_translate_links():
+    fn = osp.join(here, "air_linked.nc")
+    # choose a threshold that will give both inline and non-inline
+    # datasets for maximum test coverage
+    out = kerchunk.hdf.SingleHdf5ToZarr(fn, inline_threshold=50).translate(
+        preserve_linked_dsets=True
+    )
+    fs = fsspec.filesystem("reference", fo=out)
+    z = zarr.open(fs.get_mapper())
+
+    # 1. Test the hard linked datasets were translated correctly
+    # 2. Test the soft linked datasets were translated correctly
+    for link in ("hard", "soft"):
+        for dset in ("lat", "time"):
+            np.testing.assert_allclose(z[dset], z[f"{dset}_{link}"])
+            for key in z[f"{dset}_{link}"].attrs.keys():
+                if key not in kerchunk.hdf._HIDDEN_ATTRS and key != "_ARRAY_DIMENSIONS":
+                    assert z[f"{dset}_{link}"].attrs[key] == z[dset].attrs[key]

@@ -113,13 +113,20 @@ class SingleHdf5ToZarr:
         self.error = error
         lggr.debug(f"HDF5 file URI: {self._uri}")
 
-    def translate(self):
+    def translate(self, preserve_linked_dsets=False):
         """Translate content of one HDF5 file into Zarr storage format.
 
         This method is the main entry point to execute the workflow, and
         returns a "reference" structure to be used with zarr/kerchunk
 
         No data is copied out of the HDF5 file.
+
+        Parameters
+        ----------
+        preserve_linked_dsets : bool (optional, default False)
+            If True, translate HDF5 soft and hard links for each `h5py.Dataset`
+            into the reference structure. Requires h5py version 3.11.0 or later.
+            Will not translate external links or links to `h5py.Group` objects.
 
         Returns
         -------
@@ -128,7 +135,17 @@ class SingleHdf5ToZarr:
         """
         lggr.debug("Translation begins")
         self._transfer_attrs(self._h5f, self._zroot)
+
         self._h5f.visititems(self._translator)
+
+        if preserve_linked_dsets:
+            if not has_visititems_links():
+                raise RuntimeError(
+                    "'preserve_linked_dsets' kwarg requires h5py 3.11.0 or later "
+                    f"is installed, found {h5py.__version__}"
+                )
+            self._h5f.visititems_links(self._translator)
+
         if self.spec < 1:
             return self.store
         elif isinstance(self.store, LazyReferenceMapper):
@@ -247,10 +264,26 @@ class SingleHdf5ToZarr:
                 )
         return filters
 
-    def _translator(self, name: str, h5obj: Union[h5py.Dataset, h5py.Group]):
+    def _translator(
+        self,
+        name: str,
+        h5obj: Union[
+            h5py.Dataset, h5py.Group, h5py.SoftLink, h5py.HardLink, h5py.ExternalLink
+        ],
+    ):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
         try:  # method must not raise exception
             kwargs = {}
+
+            if isinstance(h5obj, (h5py.SoftLink, h5py.HardLink)):
+                h5obj = self._h5f[name]
+                if isinstance(h5obj, h5py.Group):
+                    # continues iteration of visititems_links
+                    lggr.debug(
+                        f"Skipping translation of HDF5 linked group: '{h5obj.name}'"
+                    )
+                    return None
+
             if isinstance(h5obj, h5py.Dataset):
                 lggr.debug(f"HDF5 dataset: {h5obj.name}")
                 lggr.debug(f"HDF5 compression: {h5obj.compression}")
@@ -432,7 +465,7 @@ class SingleHdf5ToZarr:
                         )
 
                 # Create a Zarr array equivalent to this HDF5 dataset...
-                za = self._zroot.create_dataset(
+                za = self._zroot.require_dataset(
                     h5obj.name,
                     shape=h5obj.shape,
                     dtype=dt or h5obj.dtype,
@@ -480,7 +513,7 @@ class SingleHdf5ToZarr:
 
             elif isinstance(h5obj, h5py.Group):
                 lggr.debug(f"HDF5 group: {h5obj.name}")
-                zgrp = self._zroot.create_group(h5obj.name)
+                zgrp = self._zroot.require_group(h5obj.name)
                 self._transfer_attrs(h5obj, zgrp)
         except Exception as e:
             import traceback
@@ -639,3 +672,7 @@ def _is_netcdf_datetime(dataset: h5py.Dataset):
 
 def _is_netcdf_variable(dataset: h5py.Dataset):
     return any("_Netcdf4" in _ for _ in dataset.attrs)
+
+
+def has_visititems_links():
+    return hasattr(h5py.Group, "visititems_links")
