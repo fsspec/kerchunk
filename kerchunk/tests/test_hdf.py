@@ -356,8 +356,5 @@ def test_translate_links():
         for dset in ("lat", "time"):
             np.testing.assert_allclose(z[dset], z[f"{dset}_{link}"])
             for key in z[f"{dset}_{link}"].attrs.keys():
-                if (
-                    key not in kerchunk.hdf._HIDDEN_ATTRS
-                    and key != "_ARRAY_DIMENSIONS"
-                ):
+                if key not in kerchunk.hdf._HIDDEN_ATTRS and key != "_ARRAY_DIMENSIONS":
                     assert z[f"{dset}_{link}"].attrs[key] == z[dset].attrs[key]
