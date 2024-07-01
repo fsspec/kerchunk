@@ -2,7 +2,6 @@ import base64
 import io
 import logging
 from typing import Union, BinaryIO
-from importlib.metadata import version
 
 import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
