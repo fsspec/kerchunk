@@ -216,21 +216,29 @@ to customise how references get stored</p>
 <p class="rubric">Methods</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr.translate" title="kerchunk.hdf.SingleHdf5ToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr.translate" title="kerchunk.hdf.SingleHdf5ToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([preserve_linked_dsets])</p></td>
 <td><p>Translate content of one HDF5 file into Zarr storage format.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py method">
 <dt class="sig sig-object py" id="kerchunk.hdf.SingleHdf5ToZarr.translate">
-<span class="sig-name descname"><span class="pre">translate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr.translate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr.translate" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">translate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">preserve_linked_dsets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf.html#SingleHdf5ToZarr.translate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.hdf.SingleHdf5ToZarr.translate" title="Link to this definition"></a></dt>
 <dd><p>Translate content of one HDF5 file into Zarr storage format.</p>
 <p>This method is the main entry point to execute the workflow, and
 returns a “reference” structure to be used with zarr/kerchunk</p>
 <p>No data is copied out of the HDF5 file.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
+<dt><strong>preserve_linked_dsets</strong><span class="classifier">bool (optional, default False)</span></dt><dd><p>If True, translate HDF5 soft and hard links for each <cite>h5py.Dataset</cite>
+into the reference structure. Requires h5py version 3.11.0 or later.
+Will not translate external links or links to <cite>h5py.Group</cite> objects.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
 <dt>dict</dt><dd><p>Dictionary containing reference structure.</p>
 </dd>
 </dl>

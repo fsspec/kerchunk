@@ -203,13 +203,20 @@
 
 <div class="viewcode-block" id="SingleHdf5ToZarr.translate">
 <a class="viewcode-back" href="../../reference.html#kerchunk.hdf.SingleHdf5ToZarr.translate">[docs]</a>
-    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preserve_linked_dsets</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Translate content of one HDF5 file into Zarr storage format.</span>
 
 <span class="sd">        This method is the main entry point to execute the workflow, and</span>
 <span class="sd">        returns a &quot;reference&quot; structure to be used with zarr/kerchunk</span>
 
 <span class="sd">        No data is copied out of the HDF5 file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        preserve_linked_dsets : bool (optional, default False)</span>
+<span class="sd">            If True, translate HDF5 soft and hard links for each `h5py.Dataset`</span>
+<span class="sd">            into the reference structure. Requires h5py version 3.11.0 or later.</span>
+<span class="sd">            Will not translate external links or links to `h5py.Group` objects.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -218,7 +225,17 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Translation begins&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="o">.</span><span class="n">visititems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_translator</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">preserve_linked_dsets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">has_visititems_links</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;&#39;preserve_linked_dsets&#39; kwarg requires h5py 3.11.0 or later &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;is installed, found </span><span class="si">{</span><span class="n">h5py</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="o">.</span><span class="n">visititems_links</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_translator</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">,</span> <span class="n">LazyReferenceMapper</span><span class="p">):</span>
@@ -338,10 +355,26 @@
                 <span class="p">)</span>
         <span class="k">return</span> <span class="n">filters</span>
 
-    <span class="k">def</span> <span class="nf">_translator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">h5obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="nf">_translator</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">h5obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
+            <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">SoftLink</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">HardLink</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">ExternalLink</span>
+        <span class="p">],</span>
+    <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Produce Zarr metadata for all groups and datasets in the HDF5 file.&quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>  <span class="c1"># method must not raise exception</span>
             <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="p">(</span><span class="n">h5py</span><span class="o">.</span><span class="n">SoftLink</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">HardLink</span><span class="p">)):</span>
+                <span class="n">h5obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
+                    <span class="c1"># continues iteration of visititems_links</span>
+                    <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Skipping translation of HDF5 linked group: &#39;</span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">return</span> <span class="kc">None</span>
+
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
                 <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HDF5 dataset: </span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HDF5 compression: </span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -523,7 +556,7 @@
                         <span class="p">)</span>
 
                 <span class="c1"># Create a Zarr array equivalent to this HDF5 dataset...</span>
-                <span class="n">za</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                <span class="n">za</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">require_dataset</span><span class="p">(</span>
                     <span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                     <span class="n">shape</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
                     <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span> <span class="ow">or</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
@@ -571,7 +604,7 @@
 
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
                 <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HDF5 group: </span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">zgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">zgrp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">require_group</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_transfer_attrs</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="n">zgrp</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">traceback</span>
@@ -731,6 +764,10 @@
 
 <span class="k">def</span> <span class="nf">_is_netcdf_variable</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="s2">&quot;_Netcdf4&quot;</span> <span class="ow">in</span> <span class="n">_</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">has_visititems_links</span><span class="p">():</span>
+    <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">,</span> <span class="s2">&quot;visititems_links&quot;</span><span class="p">)</span>
 </pre></div>
 
            </div>
