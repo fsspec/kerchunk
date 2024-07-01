@@ -8,7 +8,7 @@ import xarray as xr
 import zarr
 import h5py
 
-from kerchunk.hdf import SingleHdf5ToZarr
+from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
 from kerchunk.combine import MultiZarrToZarr, drop
 
 here = osp.dirname(__file__)
@@ -334,14 +334,6 @@ def test_inline_threshold():
         fn, inline_threshold=1e9
     ).translate()
     assert inline_0 != inline_1_million
-
-
-def has_visititems_links():
-    try:
-        h5py.Group.visititems_links
-    except AttributeError:
-        return False
-    return True
 
 
 @pytest.mark.skipif(

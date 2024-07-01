@@ -140,9 +140,7 @@ class SingleHdf5ToZarr:
         self._h5f.visititems(self._translator)
 
         if preserve_linked_dsets:
-            try:
-                h5py.Group.visititems_links
-            except AttributeError:
+            if not has_visititems_links():
                 raise RuntimeError(
                     "'preserve_linked_dsets' kwarg requires h5py 3.11.0 or later "
                     f"is installed, found {version("h5py")}"
@@ -673,3 +671,6 @@ def _is_netcdf_datetime(dataset: h5py.Dataset):
 
 def _is_netcdf_variable(dataset: h5py.Dataset):
     return any("_Netcdf4" in _ for _ in dataset.attrs)
+
+def has_visititems_links():
+    return hasattr(h5py.Group, "visititems_links")
