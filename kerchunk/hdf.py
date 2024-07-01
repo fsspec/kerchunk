@@ -280,7 +280,9 @@ class SingleHdf5ToZarr:
                 h5obj = self._h5f[name]
                 if isinstance(h5obj, h5py.Group):
                     # continues iteration of visititems_links
-                    lggr.debug(f"Skipping translation of HDF5 linked group: '{h5obj.name}'")
+                    lggr.debug(
+                        f"Skipping translation of HDF5 linked group: '{h5obj.name}'"
+                    )
                     return None
 
             if isinstance(h5obj, h5py.Dataset):
