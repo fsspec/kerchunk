@@ -474,11 +474,11 @@
 <span class="sd">    message_groups: iterable[dict]</span>
 <span class="sd">        a collection of zarr store like dictionaries as produced by scan_grib</span>
 <span class="sd">    remote_options: dict</span>
-<span class="sd">        remote options to pass to ZarrToMultiZarr</span>
+<span class="sd">        remote options to pass to MultiZarrToZarr</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    list(dict): A new zarr store like dictionary for use as a reference filesystem mapper with zarr</span>
+<span class="sd">    dict: A new zarr store like dictionary for use as a reference filesystem mapper with zarr</span>
 <span class="sd">    or xarray datatree</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Hard code the filters in the correct order for the group hierarchy</span>
