@@ -385,11 +385,11 @@ def grib_tree(
     message_groups: iterable[dict]
         a collection of zarr store like dictionaries as produced by scan_grib
     remote_options: dict
-        remote options to pass to ZarrToMultiZarr
+        remote options to pass to MultiZarrToZarr
 
     Returns
     -------
-    list(dict): A new zarr store like dictionary for use as a reference filesystem mapper with zarr
+    dict: A new zarr store like dictionary for use as a reference filesystem mapper with zarr
     or xarray datatree
     """
     # Hard code the filters in the correct order for the group hierarchy
