@@ -3,9 +3,11 @@ import copy
 import io
 import logging
 from collections import defaultdict
-from typing import Iterable, List, Dict, Set
-
+from typing import Iterable, List, Dict, Set, TYPE_CHECKING, Optional
 import ujson
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 try:
     import cfgrib
@@ -582,3 +584,63 @@ def correct_hrrr_subhf_step(group: Dict) -> Dict:
     group["refs"]["step/0"] = enocded_val
 
     return group
+
+
+def parse_grib_idx(
+    basename: str,
+    suffix: str = "idx",
+    storage_options: Optional[Dict] = None,
+    validate: bool = False,
+) -> "pd.DataFrame":
+    """
+    Parses per-message metadata from a grib2.idx file (text-type) to a dataframe of attributes
+
+    The function uses the idx file, extracts the metadata known as attrs (variables with
+    level and forecast time) from each idx entry and converts it into pandas
+    DataFrame. The dataframe is later to build the one-to-one mapping to the grib file metadata.
+
+    Parameters
+    ----------
+    basename : str
+        The base name is the full path to the grib file.
+    suffix : str
+        The suffix is the ending for the idx file.
+    storage_options: dict
+        For accessing the data, passed to filesystem
+    validate : bool
+        The validation if the metadata table has duplicate attrs.
+
+    Returns
+    -------
+    pandas.DataFrame : The data frame containing the results.
+    """
+    import pandas as pd
+
+    fs, _ = fsspec.core.url_to_fs(basename, **(storage_options or {}))
+
+    fname = f"{basename}.{suffix}"
+
+    baseinfo = fs.info(basename)
+
+    with fs.open(fname) as f:
+        result = pd.read_csv(f, header=None, names=["raw_data"])
+        result[["idx", "offset", "date", "attrs"]] = result["raw_data"].str.split(
+            ":", expand=True, n=3
+        )
+        result["offset"] = result["offset"].astype(int)
+
+        # dropping the original single "raw_data" column after formatting
+        result.drop(columns=["raw_data"], inplace=True)
+
+    result = result.assign(
+        length=(
+            result.offset.shift(periods=-1, fill_value=baseinfo["size"]) - result.offset
+        ),
+        idx_uri=fname,
+        grib_uri=basename,
+    )
+
+    if validate and not result["attrs"].is_unique:
+        raise ValueError(f"Attribute mapping for grib file {basename} is not unique)")
+
+    return result.set_index("idx")
