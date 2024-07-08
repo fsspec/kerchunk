@@ -587,10 +587,9 @@ def correct_hrrr_subhf_step(group: Dict) -> Dict:
 
 
 def parse_grib_idx(
-    fs: fsspec.AbstractFileSystem,
-    *,
     basename: str,
     suffix: str = "idx",
+    storage_options: Dict = {},
     tstamp: Optional["pd.Timestamp"] = None,
     validate: bool = False,
 ) -> "pd.DataFrame":
@@ -603,12 +602,12 @@ def parse_grib_idx(
 
     Parameters
     ----------
-    fs : fsspec.AbstractFileSystem
-        The file system to read from.
     basename : str
         The base name is the full path to the grib file.
     suffix : str
         The suffix is the ending for the idx file.
+    storage_options: dict
+        For accessing the data, passed to filesystem
     tstamp : Optional[pd.Timestamp]
         The timestamp to use for when the data was indexed
     validate : bool
@@ -620,21 +619,20 @@ def parse_grib_idx(
     """
     import pandas as pd
 
+    fs, _ = fsspec.core.url_to_fs(basename, **storage_options)
+
     fname = f"{basename}.{suffix}"
 
     baseinfo = fs.info(basename)
 
-    result = None
+    result = pd.read_csv(fs.open(fname), header=None, names=["raw_data"])
+    result[["idx", "offset", "date", "attrs"]] = result["raw_data"].str.split(
+        ":", expand=True, n=3
+    )
+    result["offset"] = result["offset"].astype(int)
 
-    try:
-        result = pd.read_csv(fname, sep=":", header=None).loc[:, :5]
-        result.columns = ["idx", "offset", "date", "attrs", "level", "forecast"]
-        result["attrs"] = (
-            result["attrs"] + ":" + result["level"] + ":" + result["forecast"]
-        )
-        result.drop(columns=["level", "forecast"], inplace=True)
-    except Exception as e:
-        raise ValueError(f"Could not parse {fname}") from e
+    # dropping the original single "raw_data" column before the formatting
+    result.drop(columns=["raw_data"], inplace=True)
 
     result = result.assign(
         length=(
