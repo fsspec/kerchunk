@@ -93,7 +93,6 @@
 <span class="kn">from</span> <span class="nn">fsspec.implementations.reference</span> <span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">zarr</span>
-<span class="kn">from</span> <span class="nn">zarr.meta</span> <span class="kn">import</span> <span class="n">encode_fill_value</span>
 <span class="kn">import</span> <span class="nn">numcodecs</span>
 
 <span class="kn">from</span> <span class="nn">.codecs</span> <span class="kn">import</span> <span class="n">FillStringsCodec</span>
@@ -107,6 +106,12 @@
         <span class="s2">&quot;`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html &quot;</span>
         <span class="s2">&quot;for more details.&quot;</span>
     <span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">zarr.meta</span> <span class="kn">import</span> <span class="n">encode_fill_value</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="c1"># https://github.com/zarr-developers/zarr-python/issues/2021</span>
+    <span class="kn">from</span> <span class="nn">zarr.v2.meta</span> <span class="kn">import</span> <span class="n">encode_fill_value</span>
 
 <span class="n">lggr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;h5-to-zarr&quot;</span><span class="p">)</span>
 <span class="n">_HIDDEN_ATTRS</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># from h5netcdf.attrs</span>
