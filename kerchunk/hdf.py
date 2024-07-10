@@ -7,7 +7,6 @@ import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
 import numpy as np
 import zarr
-from zarr.meta import encode_fill_value
 import numcodecs
 
 from .codecs import FillStringsCodec
@@ -21,6 +20,12 @@ except ModuleNotFoundError:  # pragma: no cover
         "`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html "
         "for more details."
     )
+
+try:
+    from zarr.meta import encode_fill_value
+except ModuleNotFoundError:
+    # https://github.com/zarr-developers/zarr-python/issues/2021
+    from zarr.v2.meta import encode_fill_value
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
