@@ -3,12 +3,10 @@ import logging
 import numcodecs
 import numcodecs.abc
 import numpy as np
-import zarr
 
 from fsspec.implementations.reference import LazyReferenceMapper
 
-
-from kerchunk.utils import class_factory
+from kerchunk.utils import class_factory, zarr_open
 from kerchunk.codecs import AsciiTableCodec, VarArrCodec
 
 try:
@@ -40,6 +38,7 @@ def process_file(
     inline_threshold=100,
     primary_attr_to_group=False,
     out=None,
+    zarr_version=None
 ):
     """
     Create JSON references for a single FITS file as a zarr group
@@ -62,7 +61,9 @@ def process_file(
         This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
         to write out parquet as the references get filled, or some other dictionary-like class
         to customise how references get stored
-
+    zarr_version: int
+        The desired zarr spec version to target (currently 2 or 3). The default
+        of None will use the default zarr version.
 
     Returns
     -------
@@ -72,7 +73,7 @@ def process_file(
 
     storage_options = storage_options or {}
     out = out or {}
-    g = zarr.open(out)
+    g = zarr_open(out, zarr_version=zarr_version)
 
     with fsspec.open(url, mode="rb", **storage_options) as f:
         infile = fits.open(f, do_not_scale_image_data=True)
