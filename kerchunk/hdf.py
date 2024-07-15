@@ -10,7 +10,7 @@ import zarr
 import numcodecs
 
 from .codecs import FillStringsCodec
-from .utils import _encode_for_JSON
+from .utils import _encode_for_JSON, encode_fill_value, zarr_init_group_and_store
 
 try:
     import h5py
@@ -20,12 +20,6 @@ except ModuleNotFoundError:  # pragma: no cover
         "`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html "
         "for more details."
     )
-
-try:
-    from zarr.meta import encode_fill_value
-except ModuleNotFoundError:
-    # https://github.com/zarr-developers/zarr-python/issues/2021
-    from zarr.v2.meta import encode_fill_value
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -71,10 +65,10 @@ class SingleHdf5ToZarr:
         encode: save the ID-to-value mapping in a codec, to produce the real values at read
         time; requires this library to be available. Can be efficient storage where there
         are few unique values.
-    out: dict-like or None
+    out: dict-like, StoreLike, or None
         This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
-        to write out parquet as the references get filled, or some other dictionary-like class
-        to customise how references get stored
+        or a ZarrV3 StoreLike to write out parquet as the references get filled,
+        or some other dictionary-like class to customise how references get stored
     """
 
     def __init__(
@@ -111,9 +105,7 @@ class SingleHdf5ToZarr:
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self.store = out or {}
-        self._zroot = zarr.group(store=self.store, overwrite=True)
-
+        self._zroot, self.store = zarr_init_group_and_store(out)
         self._uri = url
         self.error = error
         lggr.debug(f"HDF5 file URI: {self._uri}")
