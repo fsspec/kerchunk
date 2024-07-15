@@ -81,6 +81,7 @@ class SingleHdf5ToZarr:
         error="warn",
         vlen_encode="embed",
         out=None,
+        zarr_version=None,
     ):
 
         # Open HDF5 file in read mode...
@@ -105,7 +106,9 @@ class SingleHdf5ToZarr:
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self._zroot, self.store = zarr_init_group_and_store(out)
+        self._zroot, self.store = zarr_init_group_and_store(
+            out, zarr_version=zarr_version or 2
+        )
         self._uri = url
         self.error = error
         lggr.debug(f"HDF5 file URI: {self._uri}")
