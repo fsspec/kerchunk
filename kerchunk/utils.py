@@ -10,6 +10,8 @@ import fsspec
 import zarr
 
 try:
+    from zarr.store import StorePath, MemoryStore
+    from zarr.v2.hierarchy import group
     import zarr.array
     _ZARR_VERSION = 3
 except:
@@ -133,20 +135,25 @@ def rename_target_files(
     with fsspec.open(url_out, mode="wt", **(storage_options_out or {})) as f:
         ujson.dump(new, f)
 
-def zarr_init_group_and_store(store=None, zarr_version=2):
+def zarr_init_group_and_store(store=None, zarr_version=None):
+    zarr_version = zarr_version or 2
     if _ZARR_VERSION == 3 and zarr_version == 2:
-        from zarr.v2.hierarchy import group
         store = store or {}
         return group(store, overwrite=True), store
     elif _ZARR_VERSION == 3 and zarr_version == 3:
-        from zarr.store import StorePath, MemoryStore
         store = store or StorePath(MemoryStore(mode="w"))
         return zarr.group(store, overwrite=True), store
-    elif _ZARR_VERSION == 2 and zarr_version == 2:
-        store = store or {}
-        return zarr.group(store, overwrite=True), store
     else:
-        raise ValueError("Initializing V3 stores requires zarr>=3")
+        store = store or {}
+        return zarr.group(store, overwrite=True, zarr_version=zarr_version), store
+
+def zarr_open(store, zarr_version=None):
+    if _ZARR_VERSION == 3:
+        store = store or StorePath(MemoryStore(mode="w"))
+        return zarr.open(store, zarr_format=zarr_version)
+    else:
+        store = store or {}
+        return zarr.open(store, zarr_version=zarr_version)
 
 def _encode_for_JSON(store, zarr_version=2):
     """Make store JSON encodable"""
