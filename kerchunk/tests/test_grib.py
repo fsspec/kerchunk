@@ -21,14 +21,19 @@ cfgrib = pytest.importorskip("cfgrib")
 here = os.path.dirname(__file__)
 
 
-def test_one():
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_one(zarr_version):
     # from https://dd.weather.gc.ca/model_gem_regional/10km/grib2/00/000
     fn = os.path.join(here, "CMC_reg_DEPR_ISBL_10_ps10km_2022072000_P000.grib2")
-    out = scan_grib(fn)
+    out = scan_grib(fn, zarr_version=zarr_version)
     ds = xr.open_dataset(
         "reference://",
         engine="zarr",
-        backend_kwargs={"consolidated": False, "storage_options": {"fo": out[0]}},
+        backend_kwargs={
+            "consolidated": False,
+            "zarr_version": zarr_version,
+            "storage_options": {"fo": out[0]},
+        },
     )
 
     assert ds.attrs["GRIB_centre"] == "cwao"
