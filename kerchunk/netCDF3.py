@@ -5,7 +5,7 @@ import numpy as np
 from fsspec.implementations.reference import LazyReferenceMapper
 import fsspec
 
-from kerchunk.utils import _encode_for_JSON, inline_array
+from kerchunk.utils import _encode_for_JSON, inline_array, zarr_init_group_and_store
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
@@ -31,6 +31,7 @@ class NetCDF3ToZarr(netcdf_file):
         inline_threshold=100,
         max_chunk_size=0,
         out=None,
+        zarr_version=None,
         **kwargs,
     ):
         """
@@ -52,6 +53,9 @@ class NetCDF3ToZarr(netcdf_file):
             This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
             to write out parquet as the references get filled, or some other dictionary-like class
             to customise how references get stored
+        zarr_version: int
+            The desired zarr spec version to target (currently 2 or 3). The default
+            of None will use the default zarr version.
         args, kwargs: passed to scipy superclass ``scipy.io.netcdf.netcdf_file``
         """
         assert kwargs.pop("mmap", False) is False
@@ -63,6 +67,7 @@ class NetCDF3ToZarr(netcdf_file):
         self.chunks = {}
         self.threshold = inline_threshold
         self.max_chunk_size = max_chunk_size
+        self.zarr_version = zarr_version
         self.out = out or {}
         self.storage_options = storage_options
         self.fp = fsspec.open(filename, **(storage_options or {})).open()
@@ -164,10 +169,9 @@ class NetCDF3ToZarr(netcdf_file):
         Parameters
         ----------
         """
-        import zarr
 
         out = self.out
-        z = zarr.open(out, mode="w")
+        zroot, out = zarr_init_group_and_store(out, self.zarr_version)
         for dim, var in self.variables.items():
             if dim in self.chunks:
                 shape = self.chunks[dim][-1]
@@ -191,17 +195,25 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and var.data.dtype.kind == "i":
                     fill = int(fill)
-                arr = z.create_dataset(
+                arr = zroot.create_dataset(
                     name=dim,
                     shape=shape,
                     dtype=var.data.dtype,
                     fill_value=fill,
                     chunks=shape,
                     compression=None,
+                    overwrite=True,
                 )
-                part = ".".join(["0"] * len(shape)) or "0"
-                k = f"{dim}/{part}"
-                out[k] = [
+
+                if self.zarr_version == 3:
+                    part = "/".join(["0"] * len(shape)) or "0"
+                    key = f"data/root/{dim}/c{part}"
+                else:
+                    part = ".".join(["0"] * len(shape)) or "0"
+
+                    key = f"{dim}/{part}"
+
+                self.out[key] = [self.filename] + [
                     self.filename,
                     int(self.chunks[dim][0]),
                     int(self.chunks[dim][1]),
@@ -245,13 +257,14 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and base.kind == "i":
                     fill = int(fill)
-                arr = z.create_dataset(
+                arr = zroot.create_dataset(
                     name=name,
                     shape=shape,
                     dtype=base,
                     fill_value=fill,
                     chunks=(1,) + dtype.shape,
                     compression=None,
+                    overwrite=True,
                 )
                 arr.attrs.update(
                     {
@@ -266,18 +279,33 @@ class NetCDF3ToZarr(netcdf_file):
 
                 arr.attrs["_ARRAY_DIMENSIONS"] = list(var.dimensions)
 
-                suffix = (
-                    ("." + ".".join("0" for _ in dtype.shape)) if dtype.shape else ""
-                )
+                if self.zarr_version == 3:
+                    suffix = (
+                        ("/" + "/".join("0" for _ in dtype.shape))
+                        if dtype.shape
+                        else ""
+                    )
+                else:
+                    suffix = (
+                        ("." + ".".join("0" for _ in dtype.shape))
+                        if dtype.shape
+                        else ""
+                    )
+
                 for i in range(outer_shape):
-                    out[f"{name}/{i}{suffix}"] = [
+                    if self.zarr_version == 3:
+                        key = f"data/root/{name}/c{i}{suffix}"
+                    else:
+                        key = f"{name}/{i}{suffix}"
+
+                    self.out[key] = [
                         self.filename,
                         int(offset + i * dt.itemsize),
                         int(dtype.itemsize),
                     ]
 
                 offset += dtype.itemsize
-        z.attrs.update(
+        zroot.attrs.update(
             {
                 k: v.decode() if isinstance(v, bytes) else str(v)
                 for k, v in self._attributes.items()
