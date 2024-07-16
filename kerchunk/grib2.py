@@ -20,7 +20,6 @@ except ModuleNotFoundError as err:  # pragma: no cover
         )
 
 import fsspec
-import zarr
 import xarray
 import numpy as np
 
@@ -403,7 +402,7 @@ def grib_tree(
 
     # TODO allow passing a LazyReferenceMapper as output?
     zarr_store = {}
-    zroot = zarr.open_group(store=zarr_store)
+    zroot, zarr_store = zarr_init_group_and_store(zarr_store, overwrite=False)
 
     aggregations: Dict[str, List] = defaultdict(list)
     aggregation_dims: Dict[str, Set] = defaultdict(set)
