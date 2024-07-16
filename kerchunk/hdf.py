@@ -107,7 +107,7 @@ class SingleHdf5ToZarr:
             raise NotImplementedError
         self.vlen = vlen_encode
         self._zroot, self.store = zarr_init_group_and_store(
-            out, zarr_version=zarr_version or 2
+            out or {}, zarr_version=zarr_version or 2
         )
         self._uri = url
         self.error = error

@@ -5,7 +5,11 @@ import numpy as np
 from fsspec.implementations.reference import LazyReferenceMapper
 import fsspec
 
-from kerchunk.utils import _encode_for_JSON, inline_array, zarr_init_group_and_store
+from kerchunk.utils import (
+    _encode_for_JSON,
+    inline_array,
+    zarr_open,
+)
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
@@ -171,7 +175,7 @@ class NetCDF3ToZarr(netcdf_file):
         """
 
         out = self.out
-        zroot, out = zarr_init_group_and_store(out, self.zarr_version)
+        zroot = zarr_open(out, mode="w")
         for dim, var in self.variables.items():
             if dim in self.chunks:
                 shape = self.chunks[dim][-1]
@@ -214,7 +218,6 @@ class NetCDF3ToZarr(netcdf_file):
                     key = f"{dim}/{part}"
 
                 self.out[key] = [self.filename] + [
-                    self.filename,
                     int(self.chunks[dim][0]),
                     int(self.chunks[dim][1]),
                 ]

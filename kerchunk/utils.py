@@ -143,23 +143,20 @@ def rename_target_files(
 def zarr_init_group_and_store(store=None, zarr_version=None):
     zarr_version = zarr_version or 2
     if _ZARR_VERSION == 3 and zarr_version == 2:
-        store = store or {}
         return group(store, overwrite=True), store
     elif _ZARR_VERSION == 3 and zarr_version == 3:
         store = store or StorePath(MemoryStore(mode="w"))
         return zarr.group(store, overwrite=True), store
     else:
-        store = store or {}
         return zarr.group(store, overwrite=True, zarr_version=zarr_version), store
 
 
-def zarr_open(store, zarr_version=None):
+def zarr_open(store, zarr_version=None, mode=None):
     if _ZARR_VERSION == 3:
-        store = store or StorePath(MemoryStore(mode="w"))
+        store = store or StorePath(MemoryStore(mode=mode or "w"))
         return zarr.open(store, zarr_format=zarr_version)
     else:
-        store = store or {}
-        return zarr.open(store, zarr_version=zarr_version)
+        return zarr.open(store, zarr_version=zarr_version, mode=mode or "a")
 
 
 def _encode_for_JSON(store, zarr_version=2):
