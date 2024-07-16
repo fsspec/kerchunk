@@ -38,7 +38,7 @@ def process_file(
     inline_threshold=100,
     primary_attr_to_group=False,
     out=None,
-    zarr_version=None
+    zarr_version=None,
 ):
     """
     Create JSON references for a single FITS file as a zarr group

@@ -13,10 +13,10 @@ try:
     from zarr.store import StorePath, MemoryStore
     from zarr.v2.hierarchy import group
     import zarr.array
-    _ZARR_VERSION = 3
-except:
-    _ZARR_VERSION = 2
 
+    _ZARR_VERSION = 3
+except ModuleNotFoundError:
+    _ZARR_VERSION = 2
 
 
 def class_factory(func):
@@ -62,16 +62,20 @@ def consolidate(refs):
             out[k] = v
     return {"version": 1, "refs": out}
 
+
 def encode_fill_value(v, dtype, object_codec=None):
     if _ZARR_VERSION == 3:
         # Precarious use of this function
         # https://github.com/zarr-developers/zarr-python/issues/2021
         # https://github.com/zarr-developers/VirtualiZarr/pull/182#discussion_r1673096418
         from zarr.v2.meta import Metadata2
+
         return Metadata2.encode_fill_value(v, dtype, object_codec)
     else:
         from zarr.meta import encode_fill_value as _encode_fill_value
+
         return _encode_fill_value(v, dtype, object_codec)
+
 
 def rename_target(refs, renames):
     """Utility to change URLs in a reference set in a predictable way
@@ -135,6 +139,7 @@ def rename_target_files(
     with fsspec.open(url_out, mode="wt", **(storage_options_out or {})) as f:
         ujson.dump(new, f)
 
+
 def zarr_init_group_and_store(store=None, zarr_version=None):
     zarr_version = zarr_version or 2
     if _ZARR_VERSION == 3 and zarr_version == 2:
@@ -147,6 +152,7 @@ def zarr_init_group_and_store(store=None, zarr_version=None):
         store = store or {}
         return zarr.group(store, overwrite=True, zarr_version=zarr_version), store
 
+
 def zarr_open(store, zarr_version=None):
     if _ZARR_VERSION == 3:
         store = store or StorePath(MemoryStore(mode="w"))
@@ -154,6 +160,7 @@ def zarr_open(store, zarr_version=None):
     else:
         store = store or {}
         return zarr.open(store, zarr_version=zarr_version)
+
 
 def _encode_for_JSON(store, zarr_version=2):
     """Make store JSON encodable"""

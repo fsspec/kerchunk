@@ -12,6 +12,7 @@ btable = os.path.join(testdir, "btable.fits")
 range_im = os.path.join(testdir, "arange.fits")
 var = os.path.join(testdir, "variable_length_table.fits")
 
+
 @pytest.mark.parametrize("zarr_version", [2, 3])
 def test_ascii_table(zarr_version):
     # this one directly hits a remote server - should cache?
@@ -57,6 +58,7 @@ def test_cube(zarr_version):
         expected = hdul[0].data
     assert (arr[:] == expected).all()
 
+
 @pytest.mark.parametrize("zarr_version", [2, 3])
 def test_with_class(zarr_version):
     ftz = kerchunk.fits.FitsToZarr(range_im)
@@ -69,6 +71,7 @@ def test_with_class(zarr_version):
         hdul = fits.open(f)
         expected = hdul[0].data
     assert (arr[:] == expected).all()
+
 
 @pytest.mark.parametrize("zarr_version", [2, 3])
 def test_var(zarr_version):

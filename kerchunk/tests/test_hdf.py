@@ -13,6 +13,7 @@ from kerchunk.combine import MultiZarrToZarr, drop
 
 here = osp.dirname(__file__)
 
+
 @pytest.mark.parametrize("zarr_version", [2, 3])
 def test_single(zarr_version):
     """Test creating references for a single HDF file"""
