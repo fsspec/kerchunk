@@ -2,6 +2,7 @@ import io
 
 import fsspec
 import json
+
 import kerchunk.utils
 import kerchunk.zarr
 import numpy as np
@@ -170,3 +171,21 @@ def test_deflate_zip_archive(m):
 
     fs = fsspec.filesystem("reference", fo=refs2)
     assert dec.decode(fs.cat("b")) == data
+
+
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_zarr_open(zarr_version):
+    zarr_store = kerchunk.utils._zarr_open({}, zarr_version=zarr_version, mode="w")
+    assert isinstance(zarr_store, zarr.hierarchy.Group)
+    zarr_store = kerchunk.utils._zarr_open({}, zarr_version=zarr_version, mode="a")
+    assert isinstance(zarr_store, zarr.hierarchy.Group)
+
+
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_init_group_and_store(zarr_version):
+    store = {}
+    zroot, store_returned = kerchunk.utils._zarr_init_group_and_store(
+        store, zarr_version=zarr_version
+    )
+    assert isinstance(zroot, zarr.hierarchy.Group)
+    assert store_returned is store

@@ -13,6 +13,7 @@ try:
     from zarr.store import StorePath, MemoryStore
     from zarr.v2.hierarchy import group
     import zarr.array
+    from zarr.buffer import default_buffer_prototype
 
     _ZARR_VERSION = 3
 except ModuleNotFoundError:
@@ -141,7 +142,8 @@ def rename_target_files(
 
 
 def _zarr_init_group_and_store(store=None, zarr_version=None, overwrite=True):
-    zarr_version = zarr_version or 2
+    """ """
+    zarr_version = _default_zarr_version(zarr_version)
     if _ZARR_VERSION == 3 and zarr_version == 2:
         return group(store, overwrite=True), store
     elif _ZARR_VERSION == 3 and zarr_version == 3:
@@ -152,6 +154,7 @@ def _zarr_init_group_and_store(store=None, zarr_version=None, overwrite=True):
 
 
 def _zarr_open(store, zarr_version=None, mode=None):
+    zarr_version = _default_zarr_version(zarr_version)
     if _ZARR_VERSION == 3:
         store = store or StorePath(MemoryStore(mode=mode or "w"))
         return zarr.open(store, zarr_format=zarr_version)
@@ -159,12 +162,15 @@ def _zarr_open(store, zarr_version=None, mode=None):
         return zarr.open(store, zarr_version=zarr_version, mode=mode or "a")
 
 
-def _encode_for_JSON(store, zarr_version=2):
+def _encode_for_JSON(store, zarr_version=None):
     """Make store JSON encodable"""
+    zarr_version = _default_zarr_version(zarr_version)
     if _ZARR_VERSION == 2 or zarr_version == 2:
         store = store.copy()
     else:
-        store = fsspec.asyn.sync(fsspec.asyn.get_loop(), store.store.to_dict_with_copy)
+        store = fsspec.asyn.sync(
+            fsspec.asyn.get_loop(), _store_to_dict_with_copy(store.store)
+        )
     for k, v in store.items():
         if isinstance(v, list):
             continue
@@ -179,6 +185,18 @@ def _encode_for_JSON(store, zarr_version=2):
             except UnicodeDecodeError:
                 store[k] = "base64:" + base64.b64encode(v).decode()
     return store
+
+
+async def _store_to_dict_with_copy(store):
+    """Only works for ZarrV3 stores."""
+    result = {}
+    async for k in store.list():
+        result[k] = await store.get(k, default_buffer_prototype)
+    return result
+
+
+def _default_zarr_version(zarr_version=None):
+    return zarr_version or 2
 
 
 def do_inline(store, threshold, remote_options=None, remote_protocol=None):
