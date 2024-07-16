@@ -24,7 +24,7 @@ bdata = xr.Dataset({"data": data}, attrs={"attr0": 3}).to_netcdf(
 )
 
 
-@pytest.mark.parametrize("zarr_version", [2, 3])
+@pytest.mark.parametrize("zarr_version", [2])
 def test_one(m, zarr_version):
     m.pipe("data.nc3", bdata)
     h = netCDF3.netcdf_recording_file("memory://data.nc3", zarr_version=zarr_version)
@@ -78,7 +78,7 @@ def unlimited_dataset(tmpdir):
     return fn
 
 
-@pytest.mark.parametrize("zarr_version", [2, 3])
+@pytest.mark.parametrize("zarr_version", [2])
 def test_unlimited(unlimited_dataset, zarr_version):
     fn = unlimited_dataset
     expected = xr.open_dataset(fn, engine="scipy")

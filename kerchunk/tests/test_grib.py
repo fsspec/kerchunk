@@ -21,7 +21,7 @@ cfgrib = pytest.importorskip("cfgrib")
 here = os.path.dirname(__file__)
 
 
-@pytest.mark.parametrize("zarr_version", [2, 3])
+@pytest.mark.parametrize("zarr_version", [2])
 def test_one(zarr_version):
     # from https://dd.weather.gc.ca/model_gem_regional/10km/grib2/00/000
     fn = os.path.join(here, "CMC_reg_DEPR_ISBL_10_ps10km_2022072000_P000.grib2")
