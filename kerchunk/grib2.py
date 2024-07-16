@@ -23,7 +23,7 @@ import fsspec
 import xarray
 import numpy as np
 
-from kerchunk.utils import class_factory, _encode_for_JSON, zarr_init_group_and_store
+from kerchunk.utils import class_factory, _encode_for_JSON, _zarr_init_group_and_store
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
 
@@ -195,7 +195,7 @@ def scan_grib(
             if good is False:
                 continue
 
-            z, store = zarr_init_group_and_store(store, zarr_version=zarr_version)
+            z, store = _zarr_init_group_and_store(store, zarr_version=zarr_version)
             global_attrs = {
                 f"GRIB_{k}": m[k]
                 for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS
@@ -402,7 +402,7 @@ def grib_tree(
 
     # TODO allow passing a LazyReferenceMapper as output?
     zarr_store = {}
-    zroot, zarr_store = zarr_init_group_and_store(zarr_store, overwrite=False)
+    zroot, zarr_store = _zarr_init_group_and_store(zarr_store, overwrite=False)
 
     aggregations: Dict[str, List] = defaultdict(list)
     aggregation_dims: Dict[str, Set] = defaultdict(set)

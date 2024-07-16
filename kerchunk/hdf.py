@@ -10,7 +10,7 @@ import zarr
 import numcodecs
 
 from .codecs import FillStringsCodec
-from .utils import _encode_for_JSON, encode_fill_value, zarr_init_group_and_store
+from .utils import _encode_for_JSON, encode_fill_value, _zarr_init_group_and_store
 
 try:
     import h5py
@@ -106,7 +106,7 @@ class SingleHdf5ToZarr:
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self._zroot, self.store = zarr_init_group_and_store(
+        self._zroot, self.store = _zarr_init_group_and_store(
             out or {}, zarr_version=zarr_version or 2
         )
         self._uri = url

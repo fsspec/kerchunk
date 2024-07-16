@@ -140,7 +140,7 @@ def rename_target_files(
         ujson.dump(new, f)
 
 
-def zarr_init_group_and_store(store=None, zarr_version=None, overwrite=True):
+def _zarr_init_group_and_store(store=None, zarr_version=None, overwrite=True):
     zarr_version = zarr_version or 2
     if _ZARR_VERSION == 3 and zarr_version == 2:
         return group(store, overwrite=True), store
@@ -151,7 +151,7 @@ def zarr_init_group_and_store(store=None, zarr_version=None, overwrite=True):
         return zarr.group(store, overwrite=overwrite, zarr_version=zarr_version), store
 
 
-def zarr_open(store, zarr_version=None, mode=None):
+def _zarr_open(store, zarr_version=None, mode=None):
     if _ZARR_VERSION == 3:
         store = store or StorePath(MemoryStore(mode=mode or "w"))
         return zarr.open(store, zarr_format=zarr_version)

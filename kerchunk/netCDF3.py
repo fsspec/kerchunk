@@ -8,7 +8,7 @@ import fsspec
 from kerchunk.utils import (
     _encode_for_JSON,
     inline_array,
-    zarr_open,
+    _zarr_open,
 )
 
 try:
@@ -175,7 +175,7 @@ class NetCDF3ToZarr(netcdf_file):
         """
 
         out = self.out
-        zroot = zarr_open(out, mode="w")
+        zroot = _zarr_open(out, mode="w")
         for dim, var in self.variables.items():
             if dim in self.chunks:
                 shape = self.chunks[dim][-1]

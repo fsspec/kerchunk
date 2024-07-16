@@ -6,7 +6,7 @@ import numpy as np
 
 from fsspec.implementations.reference import LazyReferenceMapper
 
-from kerchunk.utils import class_factory, zarr_open
+from kerchunk.utils import class_factory, _zarr_open
 from kerchunk.codecs import AsciiTableCodec, VarArrCodec
 
 try:
@@ -73,7 +73,7 @@ def process_file(
 
     storage_options = storage_options or {}
     out = out or {}
-    g = zarr_open(out, zarr_version=zarr_version)
+    g = _zarr_open(out, zarr_version=zarr_version)
 
     with fsspec.open(url, mode="rb", **storage_options) as f:
         infile = fits.open(f, do_not_scale_image_data=True)
