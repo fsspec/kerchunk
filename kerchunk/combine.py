@@ -212,7 +212,11 @@ class MultiZarrToZarr:
         )
         mzz.coos = {}
         for var, selector in mzz.coo_map.items():
-            if selector.startswith("cf:") and "M" not in mzz.coo_dtypes.get(var, ""):
+            if (
+                isinstance(selector, str)
+                and selector.startswith("cf:")
+                and "M" not in mzz.coo_dtypes.get(var, "")
+            ):
                 import cftime
                 import datetime
 
