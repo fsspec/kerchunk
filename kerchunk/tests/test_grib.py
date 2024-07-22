@@ -3,10 +3,12 @@ import os.path
 import eccodes
 import fsspec
 import numpy as np
+import pandas as pd
 import pytest
 import xarray as xr
 import datatree
 import zarr
+import unittest.mock as mock
 import ujson
 from kerchunk.grib2 import (
     scan_grib,
@@ -14,6 +16,7 @@ from kerchunk.grib2 import (
     GribToZarr,
     grib_tree,
     correct_hrrr_subhf_step,
+    parse_grib_idx,
 )
 
 eccodes_ver = tuple(int(i) for i in eccodes.__version__.split("."))
@@ -276,3 +279,83 @@ def test_hrrr_sfcf_grib_datatree():
         np.array([0, 3600 * 10**9], dtype="timedelta64[ns]"),
     )
     assert dt.u.attrs == dict(name="U component of wind")
+
+
+def test_parse_grib_idx_invalid_url():
+    with pytest.raises(ValueError):
+        # a random protocol is used
+        parse_grib_idx(
+            "ds://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001"
+        )
+
+
+def test_parse_grib_idx_no_file():
+    with pytest.raises(FileNotFoundError):
+        # the url is spelled wrong
+        parse_grib_idx(
+            "gs://gobal-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001"
+        )
+
+
+@mock.patch("fsspec.core.url_to_fs")
+def test_parse_grib_idx_duplicate_attrs(mock_url_to_fs):
+    # the "hrrr.t08z.wrfsfcf01.grib2" is not present inside the repo
+    fn = os.path.join(here, "hrrr.t08z.wrfsfcf01.grib2")
+
+    mock_fs = mock.Mock()
+    mock_url_to_fs.return_value = (mock_fs, None)
+
+    mock_fs.info.return_value = {
+        "name": fn,
+        "size": 144042467,
+        "type": "file",
+        "created": 1721642470.573112,
+        "islink": False,
+        "mode": 33204,
+        "uid": 1000,
+        "gid": 1000,
+        "mtime": 1720700631.014667,
+        "ino": 1588920,
+        "nlink": 1,
+    }
+
+    mock_file_content = """
+    160:0:d=2022080408:REFC:entire atmosphere:1 hour fcst:\n
+    161:132979329:d=2022080408:CANGLE:0-500 m above ground:1 hour fcst:\n
+    162:135104059:d=2022080408:LAYTH:261 K level - 256 K level:1 hour fcst:\n
+    163:136287189:d=2022080408:ESP:0-3000 m above ground:1 hour fcst:\n
+    164:137063628:d=2022080408:RHPW:entire atmosphere:1 hour fcst:\n
+    165:138191528:d=2022080408:LAND:surface:1 hour fcst:\n
+    166:138242004:d=2022080408:ICEC:surface:1 hour fcst:\n
+    167:138242237:d=2022080408:SBT123:top of atmosphere:1 hour fcst:\n
+    168:139708527:d=2022080408:SBT124:top of atmosphere:1 hour fcst:\n
+    169:141234178:d=2022080408:SBT113:top of atmosphere:1 hour fcst:\n
+    170:142608629:d=2022080408:SBT114:top of atmosphere:1 hour fcst:\n
+    171:142608633:d=2022080408:REFC:entire atmosphere:1 hour fcst:\n
+    """
+
+    mock_open = mock.mock_open(read_data=mock_file_content)
+    mock_fs.open = mock_open
+
+    with pytest.raises(
+        ValueError, match=f"Attribute mapping for grib file {fn} is not unique"
+    ):
+        parse_grib_idx(fn, validate=True)
+
+
+@pytest.mark.parametrize(
+    "idx_url, storage_options",
+    [
+        (
+            "gs://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001",
+            dict(),
+        ),
+        (
+            "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
+            dict(anon=True),
+        ),
+    ],
+)
+def test_parse_grib_idx(idx_url, storage_options):
+    output = parse_grib_idx(idx_url, storage_options=storage_options)
+    assert isinstance(output, pd.DataFrame)
