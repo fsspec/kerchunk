@@ -293,8 +293,8 @@ def test_parse_grib_idx_no_file():
     with pytest.raises(FileNotFoundError):
         # the url is spelled wrong
         parse_grib_idx(
-            "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
-            dict(anon=True),
+            "s3://noaahrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
+            storage_options=dict(anon=True),
         )
 
 
