@@ -293,7 +293,8 @@ def test_parse_grib_idx_no_file():
     with pytest.raises(FileNotFoundError):
         # the url is spelled wrong
         parse_grib_idx(
-            "gs://gobal-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001"
+            "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
+            dict(anon=True)
         )
 
 
@@ -346,14 +347,14 @@ def test_parse_grib_idx_duplicate_attrs(mock_url_to_fs):
 @pytest.mark.parametrize(
     "idx_url, storage_options",
     [
-        (
-            "gs://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001",
-            dict(),
-        ),
         # (
-        #     "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
-        #     dict(anon=True),
+        #     "gs://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001",
+        #     dict(),
         # ),
+        (
+            "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
+            dict(anon=True),
+        ),
     ],
 )
 def test_parse_grib_idx(idx_url, storage_options):
