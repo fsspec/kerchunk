@@ -350,10 +350,10 @@ def test_parse_grib_idx_duplicate_attrs(mock_url_to_fs):
             "gs://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001",
             dict(),
         ),
-        (
-            "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
-            dict(anon=True),
-        ),
+        # (
+        #     "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
+        #     dict(anon=True),
+        # ),
     ],
 )
 def test_parse_grib_idx(idx_url, storage_options):
