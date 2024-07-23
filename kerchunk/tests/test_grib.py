@@ -298,16 +298,13 @@ def test_parse_grib_idx_no_file():
         )
 
 
-@mock.patch("fsspec.core.url_to_fs")
-def test_parse_grib_idx_duplicate_attrs(mock_url_to_fs):
-    # the "hrrr.t08z.wrfsfcf01.grib2" is not present inside the repo
-    fn = os.path.join(here, "hrrr.t08z.wrfsfcf01.grib2")
+def test_parse_grib_idx_duplicate_attrs(m):
+    # test is defined with a file object in the memory filesystem
 
-    mock_fs = mock.Mock()
-    mock_url_to_fs.return_value = (mock_fs, None)
+    base_name = "memory://hrrr.t08z.wrfsfcf01.grib2"
 
-    mock_fs.info.return_value = {
-        "name": fn,
+    fsspec.implementations.memory.MemoryFileSystem.info.return_value = {
+        "name": base_name,
         "size": 144042467,
         "type": "file",
         "created": 1721642470.573112,
@@ -320,7 +317,7 @@ def test_parse_grib_idx_duplicate_attrs(mock_url_to_fs):
         "nlink": 1,
     }
 
-    mock_file_content = """
+    content = b"""
     160:0:d=2022080408:REFC:entire atmosphere:1 hour fcst:\n
     161:132979329:d=2022080408:CANGLE:0-500 m above ground:1 hour fcst:\n
     162:135104059:d=2022080408:LAYTH:261 K level - 256 K level:1 hour fcst:\n
@@ -335,28 +332,56 @@ def test_parse_grib_idx_duplicate_attrs(mock_url_to_fs):
     171:142608633:d=2022080408:REFC:entire atmosphere:1 hour fcst:\n
     """
 
-    mock_open = mock.mock_open(read_data=mock_file_content)
-    mock_fs.open = mock_open
+    m.pipe(base_name, b"data")
+    m.pipe(f"{base_name}.idx", content)
 
     with pytest.raises(
-        ValueError, match=f"Attribute mapping for grib file {fn} is not unique"
+        ValueError, match=f"Attribute mapping for grib file {base_name} is not unique"
     ):
-        parse_grib_idx(fn, validate=True)
+        parse_grib_idx(base_name, validate=True)
 
 
 @pytest.mark.parametrize(
     "idx_url, storage_options",
     [
-        # (
-        #     "gs://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001",
-        #     dict(),
-        # ),
+        (
+            "gs://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001",
+            dict(),
+        ),
         (
             "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
             dict(anon=True),
         ),
     ],
 )
-def test_parse_grib_idx(idx_url, storage_options):
-    output = parse_grib_idx(idx_url, storage_options=storage_options)
-    assert isinstance(output, pd.DataFrame)
+def test_parse_grib_idx_content(idx_url, storage_options):
+    import re
+
+    if re.match(r"gs://|gcs://", idx_url):
+        pytest.importorskip("gcsfs", reason="gcsfs is not installed on the system")
+
+    idx_df = parse_grib_idx(idx_url, storage_options=storage_options)
+
+    assert isinstance(idx_df, pd.DataFrame)
+
+    message_no = 0
+
+    output = scan_grib(idx_url, skip=15, storage_options=storage_options)
+
+    assert idx_df.iloc[message_no]["grib_uri"] == output[message_no]["templates"]["u"]
+    assert (
+        idx_df.iloc[message_no]["offset"]
+        == output[message_no]["refs"]["latitude/0.0"][1]
+    )
+    assert (
+        idx_df.iloc[message_no]["offset"]
+        == output[message_no]["refs"]["longitude/0.0"][1]
+    )
+    assert (
+        idx_df.iloc[message_no]["length"]
+        == output[message_no]["refs"]["latitude/0.0"][2]
+    )
+    assert (
+        idx_df.iloc[message_no]["length"]
+        == output[message_no]["refs"]["longitude/0.0"][2]
+    )
