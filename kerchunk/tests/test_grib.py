@@ -299,8 +299,8 @@ def test_parse_grib_idx_no_file():
 
 
 def test_parse_grib_idx_duplicate_attrs(m):
-    # test is defined with a file object in the memory filesystem
 
+    # test is defined with a file object in the memory filesystem
     base_name = "memory://hrrr.t08z.wrfsfcf01.grib2"
 
     fsspec.implementations.memory.MemoryFileSystem.info.return_value = {
@@ -354,6 +354,7 @@ def test_parse_grib_idx_duplicate_attrs(m):
         ),
     ],
 )
+# the test will fail in case the network goes down or the file is moved
 def test_parse_grib_idx_content(idx_url, storage_options):
     import re
 
