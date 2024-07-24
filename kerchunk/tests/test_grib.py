@@ -8,7 +8,6 @@ import pytest
 import xarray as xr
 import datatree
 import zarr
-import unittest.mock as mock
 import ujson
 from kerchunk.grib2 import (
     scan_grib,
