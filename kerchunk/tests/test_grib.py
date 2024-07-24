@@ -299,11 +299,11 @@ def test_parse_grib_idx_no_file():
 
 
 def test_parse_grib_idx_duplicate_attrs():
-    base_name = "gfs.t00z.pgrb2.0p25.f006.test-limit-100"
+    fn = os.path.join(here, "gfs.t00z.pgrb2.0p25.f006.test-limit-100")
     with pytest.raises(
-        ValueError, match=f"Attribute mapping for grib file {base_name} is not unique"
+        ValueError, match=f"Attribute mapping for grib file {fn} is not unique"
     ):
-        parse_grib_idx(base_name, validate=True)
+        parse_grib_idx(fn, validate=True)
 
 
 @pytest.mark.parametrize(
