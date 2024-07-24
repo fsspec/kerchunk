@@ -14,18 +14,29 @@ from kerchunk.combine import MultiZarrToZarr, drop
 here = osp.dirname(__file__)
 
 
-def test_single():
+@pytest.mark.parametrize("zarr_version", [2, 3])
+def test_single(zarr_version):
     """Test creating references for a single HDF file"""
     url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
     so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
     with fsspec.open(url, **so) as f:
-        h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
+        h5chunks = SingleHdf5ToZarr(
+            f, url, storage_options=so, zarr_version=zarr_version
+        )
         test_dict = h5chunks.translate()
 
     m = fsspec.get_mapper(
         "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
-    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    if zarr_version == 2:
+        assert ".zgroup" in test_dict["refs"]
+    elif zarr_version == 3:
+        assert "zarr.json" in test_dict["refs"]
+        assert "meta/root.group.json" in test_dict["refs"]
+
+    backend_kwargs = {"zarr_version": zarr_version, "consolidated": False}
+    # TODO: drop consolidated kwarg for v3 stores
+    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=backend_kwargs)
 
     with fsspec.open(url, **so) as f:
         expected = xr.open_dataset(f, engine="h5netcdf")

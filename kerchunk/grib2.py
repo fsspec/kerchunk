@@ -20,11 +20,10 @@ except ModuleNotFoundError as err:  # pragma: no cover
         )
 
 import fsspec
-import zarr
 import xarray
 import numpy as np
 
-from kerchunk.utils import class_factory, _encode_for_JSON
+from kerchunk.utils import class_factory, _encode_for_JSON, _zarr_init_group_and_store
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
 
@@ -113,6 +112,7 @@ def scan_grib(
     inline_threshold=100,
     skip=0,
     filter={},
+    zarr_version=None,
 ):
     """
     Generate references for a GRIB2 file
@@ -134,6 +134,9 @@ def scan_grib(
         the exact value or is in the given set, are processed.
         E.g., the cf-style filter ``{'typeOfLevel': 'heightAboveGround', 'level': 2}``
         only keeps messages where heightAboveGround==2.
+    zarr_version: int
+        The desired zarr spec version to target (currently 2 or 3). The default
+        of None will use the default zarr version.
 
     Returns
     -------
@@ -192,7 +195,7 @@ def scan_grib(
             if good is False:
                 continue
 
-            z = zarr.open_group(store)
+            z, store = _zarr_init_group_and_store(store, zarr_version=zarr_version)
             global_attrs = {
                 f"GRIB_{k}": m[k]
                 for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS
@@ -399,7 +402,7 @@ def grib_tree(
 
     # TODO allow passing a LazyReferenceMapper as output?
     zarr_store = {}
-    zroot = zarr.open_group(store=zarr_store)
+    zroot, zarr_store = _zarr_init_group_and_store(zarr_store, overwrite=False)
 
     aggregations: Dict[str, List] = defaultdict(list)
     aggregation_dims: Dict[str, Set] = defaultdict(set)

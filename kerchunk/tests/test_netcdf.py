@@ -24,15 +24,17 @@ bdata = xr.Dataset({"data": data}, attrs={"attr0": 3}).to_netcdf(
 )
 
 
-def test_one(m):
+@pytest.mark.parametrize("zarr_version", [2])
+def test_one(m, zarr_version):
     m.pipe("data.nc3", bdata)
-    h = netCDF3.netcdf_recording_file("memory://data.nc3")
+    h = netCDF3.netcdf_recording_file("memory://data.nc3", zarr_version=zarr_version)
     out = h.translate()
     ds = xr.open_dataset(
         "reference://",
         engine="zarr",
         backend_kwargs={
             "consolidated": False,
+            "zarr_version": zarr_version,
             "storage_options": {"fo": out, "remote_protocol": "memory"},
         },
     )
@@ -76,16 +78,18 @@ def unlimited_dataset(tmpdir):
     return fn
 
 
-def test_unlimited(unlimited_dataset):
+@pytest.mark.parametrize("zarr_version", [2])
+def test_unlimited(unlimited_dataset, zarr_version):
     fn = unlimited_dataset
     expected = xr.open_dataset(fn, engine="scipy")
-    h = netCDF3.NetCDF3ToZarr(fn)
+    h = netCDF3.NetCDF3ToZarr(fn, zarr_version=zarr_version)
     out = h.translate()
     ds = xr.open_dataset(
         "reference://",
         engine="zarr",
         backend_kwargs={
             "consolidated": False,
+            "zarr_version": zarr_version,
             "storage_options": {"fo": out},
         },
     )

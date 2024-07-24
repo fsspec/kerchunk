@@ -3,10 +3,21 @@ import copy
 import itertools
 import warnings
 
+import fsspec.asyn
 import ujson
 
 import fsspec
 import zarr
+
+try:
+    from zarr.store import StorePath, MemoryStore
+    from zarr.v2.hierarchy import group
+    import zarr.array
+    from zarr.buffer import default_buffer_prototype
+
+    _ZARR_VERSION = 3
+except ModuleNotFoundError:
+    _ZARR_VERSION = 2
 
 
 def class_factory(func):
@@ -51,6 +62,20 @@ def consolidate(refs):
         else:
             out[k] = v
     return {"version": 1, "refs": out}
+
+
+def encode_fill_value(v, dtype, object_codec=None):
+    if _ZARR_VERSION == 3:
+        # Precarious use of this function
+        # https://github.com/zarr-developers/zarr-python/issues/2021
+        # https://github.com/zarr-developers/VirtualiZarr/pull/182#discussion_r1673096418
+        from zarr.v2.meta import Metadata2
+
+        return Metadata2.encode_fill_value(v, dtype, object_codec)
+    else:
+        from zarr.meta import encode_fill_value as _encode_fill_value
+
+        return _encode_fill_value(v, dtype, object_codec)
 
 
 def rename_target(refs, renames):
@@ -116,9 +141,37 @@ def rename_target_files(
         ujson.dump(new, f)
 
 
-def _encode_for_JSON(store):
+def _zarr_init_group_and_store(store=None, zarr_version=None, overwrite=True):
+    """ """
+    zarr_version = _default_zarr_version(zarr_version)
+    if _ZARR_VERSION == 3 and zarr_version == 2:
+        return group(store, overwrite=True), store
+    elif _ZARR_VERSION == 3 and zarr_version == 3:
+        store = store or StorePath(MemoryStore(mode="w"))
+        return zarr.group(store, overwrite=True), store
+    else:
+        return zarr.group(store, overwrite=overwrite, zarr_version=zarr_version), store
+
+
+def _zarr_open(store, zarr_version=None, mode=None):
+    zarr_version = _default_zarr_version(zarr_version)
+    if _ZARR_VERSION == 3:
+        store = store or StorePath(MemoryStore(mode=mode or "w"))
+        return zarr.open(store, zarr_format=zarr_version)
+    else:
+        return zarr.open(store, zarr_version=zarr_version, mode=mode or "a")
+
+
+def _encode_for_JSON(store, zarr_version=None):
     """Make store JSON encodable"""
-    for k, v in store.copy().items():
+    zarr_version = _default_zarr_version(zarr_version)
+    if _ZARR_VERSION == 2 or zarr_version == 2:
+        store = store.copy()
+    else:
+        store = fsspec.asyn.sync(
+            fsspec.asyn.get_loop(), _store_to_dict_with_copy(store.store)
+        )
+    for k, v in store.items():
         if isinstance(v, list):
             continue
         else:
@@ -132,6 +185,18 @@ def _encode_for_JSON(store):
             except UnicodeDecodeError:
                 store[k] = "base64:" + base64.b64encode(v).decode()
     return store
+
+
+async def _store_to_dict_with_copy(store):
+    """Only works for ZarrV3 stores."""
+    result = {}
+    async for k in store.list():
+        result[k] = await store.get(k, default_buffer_prototype)
+    return result
+
+
+def _default_zarr_version(zarr_version=None):
+    return zarr_version or 2
 
 
 def do_inline(store, threshold, remote_options=None, remote_protocol=None):

@@ -14,7 +14,9 @@ except ModuleNotFoundError:  # pragma: no cover
 import kerchunk.utils
 
 
-def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None):
+def tiff_to_zarr(
+    urlpath, remote_options=None, target=None, target_options=None, zarr_version=None
+):
     """Wraps TIFFFile's fsspec writer to extract metadata as attributes
 
     Parameters
@@ -27,11 +29,15 @@ def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None)
         Write JSON to this location. If not given, no file is output
     target_options: dict
         pass these to fsspec when opening target
+    zarr_version: int
 
     Returns
     -------
     references dict
     """
+
+    if zarr_version not in [2, None]:
+        raise ValueError("zarr_version not implemented for tiff_to_zarr")
 
     with fsspec.open(urlpath, **(remote_options or {})) as of:
         url, name = urlpath.rsplit("/", 1)
