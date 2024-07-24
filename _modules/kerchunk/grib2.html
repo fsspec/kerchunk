@@ -730,7 +730,7 @@
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">validate</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;attrs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">is_unique</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attribute mapping for grib file </span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2"> is not unique)&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attribute mapping for grib file </span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2"> is not unique&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;idx&quot;</span><span class="p">)</span>
 </pre></div>
