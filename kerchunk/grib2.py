@@ -641,6 +641,6 @@ def parse_grib_idx(
     )
 
     if validate and not result["attrs"].is_unique:
-        raise ValueError(f"Attribute mapping for grib file {basename} is not unique)")
+        raise ValueError(f"Attribute mapping for grib file {basename} is not unique")
 
     return result.set_index("idx")

@@ -3,6 +3,7 @@ import os.path
 import eccodes
 import fsspec
 import numpy as np
+import pandas as pd
 import pytest
 import xarray as xr
 import datatree
@@ -14,6 +15,7 @@ from kerchunk.grib2 import (
     GribToZarr,
     grib_tree,
     correct_hrrr_subhf_step,
+    parse_grib_idx,
 )
 
 eccodes_ver = tuple(int(i) for i in eccodes.__version__.split("."))
@@ -276,3 +278,71 @@ def test_hrrr_sfcf_grib_datatree():
         np.array([0, 3600 * 10**9], dtype="timedelta64[ns]"),
     )
     assert dt.u.attrs == dict(name="U component of wind")
+
+
+def test_parse_grib_idx_invalid_url():
+    with pytest.raises(ValueError):
+        # a random protocol is used
+        parse_grib_idx(
+            "ds://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001"
+        )
+
+
+def test_parse_grib_idx_no_file():
+    with pytest.raises(FileNotFoundError):
+        # the url is spelled wrong
+        parse_grib_idx(
+            "s3://noaahrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
+            storage_options=dict(anon=True),
+        )
+
+
+def test_parse_grib_idx_duplicate_attrs():
+    fn = os.path.join(here, "gfs.t00z.pgrb2.0p25.f006.test-limit-100")
+    with pytest.raises(
+        ValueError, match=f"Attribute mapping for grib file {fn} is not unique"
+    ):
+        parse_grib_idx(fn, validate=True)
+
+
+@pytest.mark.parametrize(
+    "idx_url, storage_options",
+    [
+        (
+            "gs://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f001",
+            dict(),
+        ),
+        (
+            "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
+            dict(anon=True),
+        ),
+    ],
+)
+# the test will fail in case the network goes down or the file is moved
+def test_parse_grib_idx_content(idx_url, storage_options):
+    import re
+
+    if re.match(r"gs://|gcs://", idx_url):
+        pytest.importorskip("gcsfs", reason="gcsfs is not installed on the system")
+
+    idx_df = parse_grib_idx(idx_url, storage_options=storage_options)
+    assert isinstance(idx_df, pd.DataFrame)
+    message_no = 0
+    output = scan_grib(idx_url, skip=15, storage_options=storage_options)
+    assert idx_df.iloc[message_no]["grib_uri"] == output[message_no]["templates"]["u"]
+    assert (
+        idx_df.iloc[message_no]["offset"]
+        == output[message_no]["refs"]["latitude/0.0"][1]
+    )
+    assert (
+        idx_df.iloc[message_no]["offset"]
+        == output[message_no]["refs"]["longitude/0.0"][1]
+    )
+    assert (
+        idx_df.iloc[message_no]["length"]
+        == output[message_no]["refs"]["latitude/0.0"][2]
+    )
+    assert (
+        idx_df.iloc[message_no]["length"]
+        == output[message_no]["refs"]["longitude/0.0"][2]
+    )
