@@ -298,43 +298,8 @@ def test_parse_grib_idx_no_file():
         )
 
 
-def test_parse_grib_idx_duplicate_attrs(m):
-
-    # test is defined with a file object in the memory filesystem
-    base_name = "memory://hrrr.t08z.wrfsfcf01.grib2"
-
-    fsspec.implementations.memory.MemoryFileSystem.info.return_value = {
-        "name": base_name,
-        "size": 144042467,
-        "type": "file",
-        "created": 1721642470.573112,
-        "islink": False,
-        "mode": 33204,
-        "uid": 1000,
-        "gid": 1000,
-        "mtime": 1720700631.014667,
-        "ino": 1588920,
-        "nlink": 1,
-    }
-
-    content = b"""
-    160:0:d=2022080408:REFC:entire atmosphere:1 hour fcst:\n
-    161:132979329:d=2022080408:CANGLE:0-500 m above ground:1 hour fcst:\n
-    162:135104059:d=2022080408:LAYTH:261 K level - 256 K level:1 hour fcst:\n
-    163:136287189:d=2022080408:ESP:0-3000 m above ground:1 hour fcst:\n
-    164:137063628:d=2022080408:RHPW:entire atmosphere:1 hour fcst:\n
-    165:138191528:d=2022080408:LAND:surface:1 hour fcst:\n
-    166:138242004:d=2022080408:ICEC:surface:1 hour fcst:\n
-    167:138242237:d=2022080408:SBT123:top of atmosphere:1 hour fcst:\n
-    168:139708527:d=2022080408:SBT124:top of atmosphere:1 hour fcst:\n
-    169:141234178:d=2022080408:SBT113:top of atmosphere:1 hour fcst:\n
-    170:142608629:d=2022080408:SBT114:top of atmosphere:1 hour fcst:\n
-    171:142608633:d=2022080408:REFC:entire atmosphere:1 hour fcst:\n
-    """
-
-    m.pipe(base_name, b"data")
-    m.pipe(f"{base_name}.idx", content)
-
+def test_parse_grib_idx_duplicate_attrs():
+    base_name = "gfs.t00z.pgrb2.0p25.f006.test-limit-100"
     with pytest.raises(
         ValueError, match=f"Attribute mapping for grib file {base_name} is not unique"
     ):
@@ -362,13 +327,9 @@ def test_parse_grib_idx_content(idx_url, storage_options):
         pytest.importorskip("gcsfs", reason="gcsfs is not installed on the system")
 
     idx_df = parse_grib_idx(idx_url, storage_options=storage_options)
-
     assert isinstance(idx_df, pd.DataFrame)
-
     message_no = 0
-
     output = scan_grib(idx_url, skip=15, storage_options=storage_options)
-
     assert idx_df.iloc[message_no]["grib_uri"] == output[message_no]["templates"]["u"]
     assert (
         idx_df.iloc[message_no]["offset"]
