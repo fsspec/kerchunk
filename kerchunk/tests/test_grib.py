@@ -16,6 +16,8 @@ from kerchunk.grib2 import (
     grib_tree,
     correct_hrrr_subhf_step,
     parse_grib_idx,
+    extract_dataset_chunk_index,
+    extract_datatree_chunk_index,
 )
 
 eccodes_ver = tuple(int(i) for i in eccodes.__version__.split("."))
@@ -346,3 +348,62 @@ def test_parse_grib_idx_content(idx_url, storage_options):
         idx_df.iloc[message_no]["length"]
         == output[message_no]["refs"]["longitude/0.0"][2]
     )
+
+
+@pytest.fixture
+def zarr_tree_and_datatree_instance():
+    fn = os.path.join(here, "gfs.t00z.pgrb2.0p25.f006.test-limit-100")
+    tree_store = tree_store = grib_tree(scan_grib(fn))
+    dt_instance = datatree.open_datatree(
+        fsspec.filesystem("reference", fo=tree_store).get_mapper(""),
+        engine="zarr",
+        consolidated=False,
+    )
+
+    return tree_store, dt_instance
+
+
+def test_extract_dataset_chunk_index(zarr_tree_and_datatree_instance):
+    tree_store, dt_instance = zarr_tree_and_datatree_instance
+
+    # extracting the metadata from a single datatree node with key "t/instant/isobaricInhPa" and comparing it.
+    idx_metadata = extract_dataset_chunk_index(
+        dt_instance["t/instant/isobaricInhPa"], tree_store["refs"]
+    )
+
+    # comparing the first metadata generated from the datatree zarr store
+    assert (
+        idx_metadata[0]["uri"]
+        == tree_store["refs"]["t/instant/isobaricInhPa/t/0.0.0.0.0"][0]
+    )
+    assert (
+        idx_metadata[0]["offset"]
+        == tree_store["refs"]["t/instant/isobaricInhPa/t/0.0.0.0.0"][1]
+    )
+    assert (
+        idx_metadata[0]["length"]
+        == tree_store["refs"]["t/instant/isobaricInhPa/t/0.0.0.0.0"][2]
+    )
+
+    # comparing the first metadata with the datatree instance
+    assert (
+        idx_metadata[0]["valid_time"]
+        == dt_instance["t/instant/isobaricInhPa"]
+        .coords["valid_time"][0][0][0]
+        .to_numpy()
+    )
+    assert (
+        idx_metadata[0]["isobaricInhPa"]
+        == dt_instance["t/instant/isobaricInhPa"].coords["isobaricInhPa"][0].to_numpy()
+    )
+    assert (
+        idx_metadata[0]["step"]
+        == dt_instance["t/instant/isobaricInhPa"].coords["step"][0].to_numpy()
+    )
+
+
+def test_extract_datatree_chunk_index(zarr_tree_and_datatree_instance):
+    tree_store, dt_instance = zarr_tree_and_datatree_instance
+
+    idx_df = extract_datatree_chunk_index(dt_instance, tree_store)
+    assert isinstance(idx_df, pd.DataFrame)
