@@ -385,7 +385,7 @@ def test_make_test_grib_idx_files_local(basename, local, storage_options, grib_f
         assert test_file in fs.ls(path=".")
         assert idx_file in fs.ls(path=".")
     finally:
-        if os.path.isfile(test_file):
+        if test_file in fs.ls(path="."):
             os.remove(test_file)
-        if os.path.isfile(idx_file):
+        if idx_file in fs.ls(path="."):
             os.remove(idx_file)
