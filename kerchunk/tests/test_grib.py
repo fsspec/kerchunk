@@ -376,16 +376,14 @@ def test_make_test_grib_idx_files_local(basename, local, storage_options, grib_f
         basename=basename, local=local, storage_options=storage_options
     )
 
-    fs = fsspec.filesystem("")
-
     test_file = os.path.join(here, grib_file)
     idx_file = os.path.join(here, f"{grib_file}.idx")
 
     try:
-        assert test_file in fs.ls(path=".")
-        assert idx_file in fs.ls(path=".")
+        assert os.path.exists(test_file)
+        assert os.path.exists(idx_file)
     finally:
-        if test_file in fs.ls(path="."):
+        if os.path.exists(test_file):
             os.remove(test_file)
-        if idx_file in fs.ls(path="."):
+        if os.path.exists(idx_file):
             os.remove(idx_file)
