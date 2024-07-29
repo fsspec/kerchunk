@@ -685,7 +685,7 @@ def extract_dataset_chunk_index(
 
     Parameters
     ----------
-    dset : Union["datatree.DataTree", "xr.Dataset"]
+    dset : datatree.DataTree
         The datatree node from the datatree instance
     ref_store : Dict
         The zarr store dictionary backed by the gribtree
