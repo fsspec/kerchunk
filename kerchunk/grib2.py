@@ -723,6 +723,7 @@ def extract_dataset_chunk_index(
                 # Must be able to get a single coordinate value for each chunk to index it.
                 raise ValueError(
                     "Can not extract chunk index for %s with non singleton chunk dimensions"
+                    % ddim_nane
                 )
             # Drop the dim where each chunk covers the whole dimension - no indexing needed!
 
