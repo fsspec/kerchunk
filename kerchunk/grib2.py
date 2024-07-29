@@ -3,7 +3,7 @@ import copy
 import io
 import logging
 from collections import defaultdict
-from typing import Iterable, List, Dict, Set, TYPE_CHECKING, Optional, Union
+from typing import Iterable, List, Dict, Set, TYPE_CHECKING, Optional
 import ujson
 import itertools
 
@@ -672,7 +672,7 @@ def build_path(path: Iterable[str | None], suffix: Optional[str] = None) -> str:
 
 
 def extract_dataset_chunk_index(
-    dset: Union["datatree.DataTree", "xarray.Dataset"],
+    dset: "datatree.DataTree",
     ref_store: Dict,
     grib: bool = False,
 ) -> list[dict]:
@@ -686,9 +686,9 @@ def extract_dataset_chunk_index(
     Parameters
     ----------
     dset : Union["datatree.DataTree", "xr.Dataset"]
-        The datatree node from the
+        The datatree node from the datatree instance
     ref_store : Dict
-        The zarr store dictionary backed by the gribtree(datatree/dataset)
+        The zarr store dictionary backed by the gribtree
     grib : bool
         boolean for treating coordinates as grib levels
 
