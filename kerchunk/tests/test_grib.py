@@ -379,11 +379,5 @@ def test_make_test_grib_idx_files_local(basename, local, storage_options, grib_f
     test_file = os.path.join(here, grib_file)
     idx_file = os.path.join(here, f"{grib_file}.idx")
 
-    try:
-        assert os.path.exists(test_file)
-        assert os.path.exists(idx_file)
-    finally:
-        if os.path.exists(test_file):
-            os.remove(test_file)
-        if os.path.exists(idx_file):
-            os.remove(idx_file)
+    assert os.path.exists(test_file)
+    assert os.path.exists(idx_file)
