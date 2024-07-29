@@ -17,6 +17,7 @@ from kerchunk.grib2 import (
     correct_hrrr_subhf_step,
     parse_grib_idx,
 )
+from kerchunk.tests.gen_grib2 import make_test_grib_idx_files
 
 eccodes_ver = tuple(int(i) for i in eccodes.__version__.split("."))
 cfgrib = pytest.importorskip("cfgrib")
@@ -346,3 +347,43 @@ def test_parse_grib_idx_content(idx_url, storage_options):
         idx_df.iloc[message_no]["length"]
         == output[message_no]["refs"]["longitude/0.0"][2]
     )
+
+
+@pytest.mark.parametrize(
+    "basename, local, storage_options, grib_file",
+    [
+        (
+            "gs://global-forecast-system/gfs.20230928/00/atmos/gfs.t00z.pgrb2.0p25.f000",
+            True,
+            {},
+            "gfs.t00z.pgrb2.0p25.f000.test-limit-10",
+        ),
+        (
+            "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t00z.wrfsfcf01.grib2",
+            True,
+            dict(anon=True),
+            "hrrr.t00z.wrfsfcf01.grib2.test-limit-10",
+        ),
+    ],
+)
+def test_make_test_grib_idx_files_local(basename, local, storage_options, grib_file):
+    import re
+
+    if re.match(r"gs://|gcs://", basename):
+        pytest.importorskip("gcsfs", reason="gcsfs is not installed on the system")
+
+    make_test_grib_idx_files(
+        basename=basename, local=local, storage_options=storage_options
+    )
+
+    test_file = os.path.join(here, grib_file)
+    idx_file = os.path.join(here, f"{grib_file}.idx")
+
+    try:
+        assert os.path.isfile(test_file)
+        assert os.path.isfile(idx_file)
+    finally:
+        if os.path.isfile(test_file):
+            os.remove(test_file)
+        if os.path.isfile(idx_file):
+            os.remove(idx_file)
