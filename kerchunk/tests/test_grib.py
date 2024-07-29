@@ -444,3 +444,18 @@ def test_extract_datatree_chunk_index(zarr_tree_and_datatree_instance):
     assert (
         idx_df["length"][[12, 34, 78, 80]] == [722563, 576527, 947435, 1176904]
     ).all()
+
+
+def test_extract_methods_grib_parameter(zarr_tree_and_datatree_instance):
+    tree_store, dt_instance, _ = zarr_tree_and_datatree_instance
+
+    # testing grib parameter with "extract_dataset_chunk_index" function
+    grib_metadata = extract_dataset_chunk_index(
+        dt_instance["t/instant/isobaricInhPa"], tree_store["refs"], True
+    )
+
+    # testing grib parameter with "extract_datatree_chunk_index" function
+    metadata_df = extract_datatree_chunk_index(dt_instance, tree_store, True)
+
+    assert "level" in metadata_df.columns
+    assert all(list(map(lambda data: "level" in data.keys(), grib_metadata)))
