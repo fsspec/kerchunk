@@ -2,7 +2,7 @@ Quick Start
 ************
 
 This is a run-through example for how to use this package. We scan a set of netCDF4/HDF5 files,
-and create a single emsemble, virtual dataset, which can be read in parallel from remote
+and create a single ensemble, virtual dataset, which can be read in parallel from remote
 using ``zarr``.
 
 Single file JSONs

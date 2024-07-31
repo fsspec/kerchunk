@@ -113,7 +113,7 @@ def scan_grib(
     inline_threshold=100,
     skip=0,
     filter={},
-):
+) -> List[Dict]:
     """
     Generate references for a GRIB2 file
 
