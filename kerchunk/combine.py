@@ -383,13 +383,8 @@ class MultiZarrToZarr:
         """
         Write coordinate arrays into the output
         """
-        fs = fsspec.filesystem(
-            "reference",
-            fo=self.out,
-            remote_protocol=self.remote_protocol,
-            remote_options=self.remote_options,
-        )
-        store = zarr.storage.FSStore("", fs=fs)
+        kv = {}
+        store = zarr.storage.KVStore(kv)
         group = zarr.open(store)
         m = self.fss[0].get_mapper("")
         z = zarr.open(m)
@@ -442,6 +437,7 @@ class MultiZarrToZarr:
                 else:
                     arr.attrs.update(self.cf_units[k])
             # TODO: rewrite .zarray/.zattrs with ujson to save space. Maybe make them by hand anyway.
+        self.out.update(kv)
         logger.debug("Written coordinates")
         for fn in [".zgroup", ".zattrs"]:
             # top-level group attributes from first input
