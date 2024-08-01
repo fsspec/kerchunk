@@ -143,7 +143,7 @@ class MultiZarrToZarr:
             raise ValueError("Values being mapped cannot also be identical")
         self.preprocess = preprocess
         self.postprocess = postprocess
-        self.out = out or {}
+        self.out = out if out is not None else {}
         self.coos = None
         self.done = set()
 
@@ -383,7 +383,14 @@ class MultiZarrToZarr:
         """
         Write coordinate arrays into the output
         """
-        group = zarr.open(self.out)
+        fs = fsspec.filesystem(
+            "reference",
+            fo=self.out,
+            remote_protocol=self.remote_protocol,
+            remote_options=self.remote_options,
+        )
+        store = zarr.storage.FSStore("", fs=fs)
+        group = zarr.open(store)
         m = self.fss[0].get_mapper("")
         z = zarr.open(m)
         for k, v in self.coos.items():
