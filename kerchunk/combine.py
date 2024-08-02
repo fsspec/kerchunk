@@ -143,7 +143,7 @@ class MultiZarrToZarr:
             raise ValueError("Values being mapped cannot also be identical")
         self.preprocess = preprocess
         self.postprocess = postprocess
-        self.out = out or {}
+        self.out = out if out is not None else {}
         self.coos = None
         self.done = set()
 
@@ -383,7 +383,9 @@ class MultiZarrToZarr:
         """
         Write coordinate arrays into the output
         """
-        group = zarr.open(self.out)
+        kv = {}
+        store = zarr.storage.KVStore(kv)
+        group = zarr.open(store)
         m = self.fss[0].get_mapper("")
         z = zarr.open(m)
         for k, v in self.coos.items():
@@ -435,6 +437,7 @@ class MultiZarrToZarr:
                 else:
                     arr.attrs.update(self.cf_units[k])
             # TODO: rewrite .zarray/.zattrs with ujson to save space. Maybe make them by hand anyway.
+        self.out.update(kv)
         logger.debug("Written coordinates")
         for fn in [".zgroup", ".zattrs"]:
             # top-level group attributes from first input
