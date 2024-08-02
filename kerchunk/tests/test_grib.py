@@ -16,6 +16,8 @@ from kerchunk.grib2 import (
     grib_tree,
     correct_hrrr_subhf_step,
     parse_grib_idx,
+    extract_dataset_chunk_index,
+    extract_datatree_chunk_index,
 )
 
 eccodes_ver = tuple(int(i) for i in eccodes.__version__.split("."))
@@ -346,3 +348,114 @@ def test_parse_grib_idx_content(idx_url, storage_options):
         idx_df.iloc[message_no]["length"]
         == output[message_no]["refs"]["longitude/0.0"][2]
     )
+
+
+@pytest.fixture
+def zarr_tree_and_datatree_instance():
+    fn = os.path.join(here, "gfs.t00z.pgrb2.0p25.f006.test-limit-100")
+    tree_store = tree_store = grib_tree(scan_grib(fn))
+    dt_instance = datatree.open_datatree(
+        fsspec.filesystem("reference", fo=tree_store).get_mapper(""),
+        engine="zarr",
+        consolidated=False,
+    )
+
+    return tree_store, dt_instance, fn
+
+
+def test_extract_dataset_chunk_index(zarr_tree_and_datatree_instance):
+    tree_store, dt_instance, fn = zarr_tree_and_datatree_instance
+
+    # extracting the metadata from a single datatree node with key "t/instant/isobaricInhPa" and comparing it.
+    idx_metadata = extract_dataset_chunk_index(
+        dt_instance["t/instant/isobaricInhPa"], tree_store["refs"]
+    )
+
+    # comparing the first metadata generated from the datatree zarr store
+    assert idx_metadata[0]["uri"] == fn
+    assert idx_metadata[0]["offset"] == 5130730
+    assert idx_metadata[0]["length"] == 844711
+
+    # comparing the first metadata with the datatree instance
+    assert (
+        idx_metadata[0]["valid_time"]
+        == dt_instance["t/instant/isobaricInhPa"]
+        .coords["valid_time"][0][0][0]
+        .to_numpy()
+    )
+    assert (
+        idx_metadata[0]["isobaricInhPa"]
+        == dt_instance["t/instant/isobaricInhPa"].coords["isobaricInhPa"][0].to_numpy()
+    )
+    assert (
+        idx_metadata[0]["step"]
+        == dt_instance["t/instant/isobaricInhPa"].coords["step"][0].to_numpy()
+    )
+
+
+def test_extract_datatree_chunk_index(zarr_tree_and_datatree_instance):
+    tree_store, dt_instance, fn = zarr_tree_and_datatree_instance
+
+    # dataframe generated from a single grib file
+    idx_df = extract_datatree_chunk_index(dt_instance, tree_store)
+
+    assert isinstance(idx_df, pd.DataFrame)
+
+    # comparing the dataframe's columns
+    assert len(idx_df.columns) == 15
+    assert (
+        idx_df.columns.to_numpy()
+        == [
+            "varname",
+            "typeOfLevel",
+            "stepType",
+            "name",
+            "isobaricInhPa",
+            "step",
+            "time",
+            "valid_time",
+            "uri",
+            "offset",
+            "length",
+            "inline_value",
+            "surface",
+            "heightAboveGround",
+            "meanSea",
+        ]
+    ).all()
+
+    # comparing the actual values from random places in the dataframe
+    assert (idx_df["varname"][[1, 4, 62, 75]] == ["absv", "acpcp", "t", "v"]).all()
+    assert (
+        idx_df["typeOfLevel"][[42, 46, 49, 50]]
+        == ["heightAboveGround", "isobaricInhPa", "surface", "heightAboveGround"]
+    ).all()
+    assert (idx_df["stepType"][[26, 33, 83]] == ["instant", "avg", "accum"]).all()
+    assert (idx_df["isobaricInhPa"][[17, 72, 85]] == [1000.0, 975.0, 975.0]).all()
+    assert pd.isna(idx_df["isobaricInhPa"][56])
+    assert (idx_df["step"] == np.timedelta64(21600000000000, "ns")).all()
+    assert (
+        idx_df["valid_time"] == np.datetime64("2023-09-28T06:00:00.000000000")
+    ).all()
+    assert (idx_df["uri"] == fn).all()
+    assert (
+        idx_df["offset"][[23, 45, 67, 80]] == [2243950, 14113893, 28609546, 8510703]
+    ).all()
+    assert (
+        idx_df["length"][[12, 34, 78, 80]] == [722563, 576527, 947435, 1176904]
+    ).all()
+
+
+def test_extract_methods_grib_parameter(zarr_tree_and_datatree_instance):
+    tree_store, dt_instance, _ = zarr_tree_and_datatree_instance
+
+    # testing grib parameter with "extract_dataset_chunk_index" function
+    grib_metadata = extract_dataset_chunk_index(
+        dt_instance["t/instant/isobaricInhPa"], tree_store["refs"], True
+    )
+
+    # testing grib parameter with "extract_datatree_chunk_index" function
+    metadata_df = extract_datatree_chunk_index(dt_instance, tree_store, True)
+
+    assert "level" in metadata_df.columns
+    assert all(list(map(lambda data: "level" in data.keys(), grib_metadata)))
