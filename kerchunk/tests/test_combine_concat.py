@@ -103,7 +103,10 @@ def test_fail_chunks(tmpdir):
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
     ref2 = kerchunk.zarr.single_zarr(fn2, inline=0)
 
-    with pytest.raises(ValueError, match=r"Incompatible array chunks at index 1.*"):
+    with pytest.raises(
+        ValueError,
+        match=r"Cannot handle padded chunks when creating variably chunked arrays.",
+    ):
         kerchunk.combine.concatenate_arrays([ref1, ref2], path="x", check_arrays=True)
 
 
@@ -139,3 +142,114 @@ def test_fail_irregular_chunk_boundaries(tmpdir):
 
     with pytest.raises(ValueError, match=r"Array at index 0 has irregular chunking.*"):
         kerchunk.combine.concatenate_arrays([ref1, ref2], path="x", check_arrays=True)
+
+
+@pytest.mark.parametrize(
+    "arrays,axis,expected_chunks",
+    [
+        (
+            [
+                zarr.array(np.arange(10), chunks=([2, 2, 2, 2, 2],)),
+                zarr.array(np.arange(10, 20), chunks=([3, 3, 3, 1],)),
+            ],
+            0,
+            ([2, 2, 2, 2, 2, 3, 3, 3, 1],),
+        ),
+        (
+            [
+                zarr.array(
+                    np.broadcast_to(np.arange(6), (10, 6)), chunks=([5, 5], [6])
+                ),
+                zarr.array(
+                    np.broadcast_to(np.arange(7, 10), (10, 3)), chunks=([5, 5], [3])
+                ),
+            ],
+            1,
+            ([5, 5], [6, 3]),
+        ),
+        (
+            [
+                zarr.array(np.arange(10), chunks=(5,)),
+                zarr.array(np.arange(10, 20), chunks=([3, 7],)),
+            ],
+            0,
+            ([5, 5, 3, 7],),
+        ),
+        (  # Inferring variable chunking from fixed inputs
+            [
+                zarr.array(np.arange(12), chunks=(6,)),
+                zarr.array(np.arange(12, 24), chunks=(4,)),
+            ],
+            0,
+            ([6, 6, 4, 4, 4],),
+        ),
+    ],
+)
+def test_variable_length_chunks_success(tmpdir, arrays, axis, expected_chunks):
+    fns = []
+    refs = []
+    for i, x in enumerate(arrays):
+        fn = f"{tmpdir}/out{i}.zarr"
+        g = zarr.open(fn)
+        g.create_dataset("x", data=x, chunks=x.chunks)
+        fns.append(fn)
+        ref = kerchunk.zarr.single_zarr(fn, inline=0)
+        refs.append(ref)
+
+    out = kerchunk.combine.concatenate_arrays(
+        refs, axis=axis, path="x", check_arrays=True
+    )
+
+    mapper = fsspec.get_mapper("reference://", fo=out)
+    g_result = zarr.open(mapper)
+
+    assert g_result["x"].chunks == expected_chunks
+    np.testing.assert_array_equal(
+        g_result["x"][...], np.concatenate([a[...] for a in arrays], axis=axis)
+    )
+
+
+def test_variable_length_chunks_mismatch_chunk_failure(tmpdir):
+    arrays = [
+        zarr.array(np.arange(12).reshape(4, 3), chunks=([2, 2], [1, 2])),
+        zarr.array(np.arange(12, 24).reshape(4, 3), chunks=([4], [2, 1])),
+    ]
+    axis = 0
+
+    fns = []
+    refs = []
+    for i, x in enumerate(arrays):
+        fn = f"{tmpdir}/out{i}.zarr"
+        g = zarr.open(fn)
+        g.create_dataset("x", data=x, chunks=x.chunks)
+        fns.append(fn)
+        ref = kerchunk.zarr.single_zarr(fn, inline=0)
+        refs.append(ref)
+
+    with pytest.raises(ValueError):
+        kerchunk.combine.concatenate_arrays(
+            refs, axis=axis, path="x", check_arrays=True
+        )
+
+
+def test_fixed_to_variable_padding_failure(tmpdir):
+    arrays = [
+        zarr.array(np.arange(12), chunks=(6,)),
+        zarr.array(np.arange(12, 24), chunks=(8,)),
+    ]
+    axis = 0
+
+    fns = []
+    refs = []
+    for i, x in enumerate(arrays):
+        fn = f"{tmpdir}/out{i}.zarr"
+        g = zarr.open(fn)
+        g.create_dataset("x", data=x, chunks=x.chunks)
+        fns.append(fn)
+        ref = kerchunk.zarr.single_zarr(fn, inline=0)
+        refs.append(ref)
+
+    with pytest.raises(ValueError):
+        kerchunk.combine.concatenate_arrays(
+            refs, axis=axis, path="x", check_arrays=True
+        )
