@@ -628,6 +628,7 @@ def parse_grib_idx(
             ":", expand=True, n=3
         )
         result["offset"] = result["offset"].astype(int)
+        result["idx"] = result["idx"].astype(int)
 
         # dropping the original single "raw_data" column after formatting
         result.drop(columns=["raw_data"], inplace=True)
