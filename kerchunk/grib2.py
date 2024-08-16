@@ -810,8 +810,7 @@ def extract_datatree_chunk_index(
 
 
 def _map_grib_file_by_group(
-    fname: str,
-    mapper: Optional[Callable] = None,
+    fname: str, mapper: Optional[Callable] = None, storage_options=None
 ) -> "pd.DataFrame":
     """
     Helper method used to read the cfgrib metadata associated with each message (group) in the grib file
@@ -841,7 +840,9 @@ def _map_grib_file_by_group(
                     lambda item: item is not None,
                     [
                         _extract_single_group(mapper(group), i)
-                        for i, group in enumerate(scan_grib(fname), start=1)
+                        for i, group in enumerate(
+                            scan_grib(fname, storage_options=storage_options), start=1
+                        )
                     ],
                 )
             )
@@ -911,7 +912,9 @@ def build_idx_grib_mapping(
     """
     import pandas as pd
 
-    grib_file_index = _map_grib_file_by_group(fname=basename, mapper=mapper)
+    grib_file_index = _map_grib_file_by_group(
+        fname=basename, mapper=mapper, storage_options=storage_options
+    )
     idx_file_index = parse_grib_idx(
         basename=basename, suffix=suffix, storage_options=storage_options
     )
