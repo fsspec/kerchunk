@@ -6,6 +6,8 @@ from typing import Union, BinaryIO
 import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
 import numpy as np
+from numba.core.pythonapi import reflect
+
 import zarr
 import numcodecs
 
@@ -786,6 +788,8 @@ class HDF4ToZarr:
             return self._dec_chunked()
         elif ext_type == "LINKED":
             return self._dec_linked_header()
+        elif ext_type == "COMP":
+            return self._dec_comp()
 
     def _dec_linked_header(self):
         # get the bytes of a linked set - these will always be inlined
@@ -837,7 +841,41 @@ class HDF4ToZarr:
         header = self._dec(chk_tbl_tag, chk_tbl_ref)
         data = self._dec("VS", chk_tbl_ref)["data"]  # corresponding table
         # header gives the field pattern for the rows of data, one per chunk
-        return _pl(locals())
+        dt = [(f"ind{i}", ">u4") for i in range(len(dims))] + [
+            ("tag", ">u2"),
+            ("ref", ">u2"),
+        ]
+        rows = np.frombuffer(data, dtype=dt, count=header["nvert"])
+        refs = []
+        for *ind, tag, ref in rows:
+            # maybe ind needs reversing since everything is FORTRAN
+            chunk_tag = self.tags[(tags[tag], ref)]
+            if chunk_tag["extended"]:
+                self.f.seek(chunk_tag["offset"])
+                # these are always COMP?
+                ctype, offset, length = self._dec_extended()
+                refs.append([".".join(str(_) for _ in ind), offset, length, ctype])
+            else:
+                refs.append(
+                    [
+                        ".".join(str(_) for _ in ind),
+                        chunk_tag["offset"],
+                        chunk_tag["length"],
+                    ]
+                )
+        # ref["tag"] should always be 61 -> CHUNK
+        return refs
+
+    def _dec_comp(self):
+        version = self.read_int(2)  # always 0
+        len_uncomp = self.read_int(4)
+        data_ref = self.read_int(2)
+        model = self.read_int(2)  # always 0
+        ctype = comp[self.read_int(2)]
+        tag = self.tags[("COMPRESSED", data_ref)]
+        offset = tag["offset"]
+        length = tag["length"]
+        return ctype, offset, length
 
 
 @reg("VERSION")
@@ -969,4 +1007,15 @@ dtypes = {
     25: "u4",
     26: "i8",
     27: "u8",
+}
+
+# hdf4/hdf/src/hcomp.h
+comp = {
+    0: "NONE",
+    1: "RLE",
+    2: "NBIT",
+    3: "SKPHUFF",
+    4: "DEFLATE",
+    5: "SZIP",
+    7: "JPEG",
 }
