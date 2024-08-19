@@ -766,14 +766,19 @@ class HDF4ToZarr:
             # or continue
             self.f.seek(ddh["next"])
 
-        for (tag, ref), info in self.tags.items():
-            if info["offset"]:
-                self.f.seek(info["offset"])
-                if info["extended"]:
-                    self._dec_extended()
-                else:
-                    info.update(self.decode(tag, info))
+        for tag, ref in self.tags:
+            self._dec(tag, ref)
         return self.tags
+
+    def _dec(self, tag, ref):
+        info = self.tags[(tag, ref)]
+        if not set(info) - {"length", "offset", "extended", "loc"}:
+            self.f.seek(info["offset"])
+            if info["extended"]:
+                info["data"] = self._dec_extended()
+            else:
+                info.update(self.decode(tag, info))
+        return info
 
     def _dec_extended(self):
         ext_type = spec[self.read_int(2)]
@@ -783,30 +788,55 @@ class HDF4ToZarr:
             return self._dec_linked_header()
 
     def _dec_linked_header(self):
+        # get the bytes of a linked set - these will always be inlined
         length = self.read_int(4)
         blk_len = self.read_int(4)
         num_blk = self.read_int(4)
         next_ref = self.read_int(2)
         out = []
         while next_ref:
-            next_ref, data = self._dec_linked_block(
-                self.tags[("LINKED", next_ref)], num_blk
-            )
-            out.extend(out)
-        return
+            next_ref, data = self._dec_linked_block(self.tags[("LINKED", next_ref)])
+            out.extend([d for d in data if d])
+        bits = []
+        for ref in out:
+            info = self.tags[("LINKED", ref)]
+            self.f.seek(info["offset"])
+            bits.append(self.f.read(info["length"]))
+        return b"".join(bits)
 
-    def _dec_linked_block(self, block, num_blk):
+    def _dec_linked_block(self, block):
         self.f.seek(block["offset"])
         next_ref = self.read_int(2)
-        refs = [self.read_int(2) for _ in range(num_blk)]
+        refs = [self.read_int(2) for _ in range((block["length"] // 2) - 1)]
         return next_ref, refs
 
     def _dec_chunked(self):
+        # we want to turn the chunks table into references
         tag_head_len = self.read_int(4)
         version = self.f.read(1)[0]
         flag = self.read_int(4)
         elem_tot_len = self.read_int(4)
         chunk_size = self.read_int(4)
+        nt_size = self.read_int(4)
+        chk_tbl_tag = tags[self.read_int(2)]  # should be VH
+        chk_tbl_ref = self.read_int(2)
+        sp_tag = tags[self.read_int(2)]
+        sp_ref = self.read_int(2)
+        ndims = self.read_int(4)
+        dims = [
+            {
+                "flag": self.read_int(4),
+                "dim_length": self.read_int(4),
+                "chunk_length": self.read_int(4),
+            }
+            for _ in range(ndims)
+        ]
+        fill_value = self.f.read(
+            self.read_int(4)
+        )  # to be interpreted as a number later
+        header = self._dec(chk_tbl_tag, chk_tbl_ref)
+        data = self._dec("VS", chk_tbl_ref)["data"]  # corresponding table
+        # header gives the field pattern for the rows of data, one per chunk
         return _pl(locals())
 
 
@@ -822,6 +852,7 @@ def _dec_version(self, info):
 
 @reg("VH")
 def _dec_vh(self, info):
+    # virtual group ("table") header
     interface = self.read_int(2)
     nvert = self.read_int(4)
     ivsize = self.read_int(2)
