@@ -846,6 +846,7 @@ class HDF4ToZarr:
             ("ref", ">u2"),
         ]
         rows = np.frombuffer(data, dtype=dt, count=header["nvert"])
+        # rows["tag"] should always be 61 -> CHUNK
         refs = []
         for *ind, tag, ref in rows:
             # maybe ind needs reversing since everything is FORTRAN
@@ -863,7 +864,6 @@ class HDF4ToZarr:
                         chunk_tag["length"],
                     ]
                 )
-        # ref["tag"] should always be 61 -> CHUNK
         return refs
 
     def _dec_comp(self):
@@ -876,6 +876,21 @@ class HDF4ToZarr:
         offset = tag["offset"]
         length = tag["length"]
         return ctype, offset, length
+
+
+@reg("NDG")
+def _dec_ndg(self, info):
+    # links together these things as a Data Group
+    return [(tags[self.read_int(2)], self.read_int(2)) for _ in range(0, info["length"], 4)]
+
+
+@reg("SDD")
+def _dec_sdd(self, info):
+    rank = self.read_int(2)
+    dims = [self.read_int(4) for _ in range(rank)]
+    data_tag = (tags[self.read_int(2)], self.read_int(2))
+    scale_tags = [(tags[self.read_int(2)], self.read_int(2)) for _ in range(rank)]
+    return _pl(locals())
 
 
 @reg("VERSION")
@@ -970,6 +985,9 @@ tags = {
     709: "SDT",
     710: "SDLNK",
     720: "NDG",
+    721: "RESERVED",
+# "Objects of tag 721 are never actually written to the file. The tag is
+# needed to make things easier mixing DFSD and SD style objects in the same file"
     731: "CAL",
     732: "FV",
     799: "BREQ",
@@ -1015,7 +1033,7 @@ comp = {
     1: "RLE",
     2: "NBIT",
     3: "SKPHUFF",
-    4: "DEFLATE",
+    4: "DEFLATE",  # called deflate, but code says "gzip" and doc says "GNU zip"
     5: "SZIP",
     7: "JPEG",
 }
