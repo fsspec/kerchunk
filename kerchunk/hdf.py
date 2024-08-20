@@ -6,8 +6,6 @@ from typing import Union, BinaryIO
 import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
 import numpy as np
-from numba.core.pythonapi import reflect
-
 import zarr
 import numcodecs
 
