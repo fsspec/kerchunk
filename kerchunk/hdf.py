@@ -754,7 +754,11 @@ class HDF4ToZarr:
             remote_options=self.remote_options,
         )
         g = zarr.open_group("reference://", storage_options=dict(fs=fs))
+
+        # magic header
         assert self.f.read(4) == b"\x0e\x03\x13\x01"
+
+        # all the data descriptors in a linked list
         self.tags = {}
         while True:
             ddh = self.read_ddh()
@@ -768,8 +772,32 @@ class HDF4ToZarr:
             # or continue
             self.f.seek(ddh["next"])
 
+        # basic decode
         for tag, ref in self.tags:
             self._dec(tag, ref)
+
+        # attributes
+        for (tag, ref), info in self.tags.items():
+            if tag == "VH" and info["names"][0].upper() == "VALUES":
+                dtype = dtypes[info["types"][0]]
+                inf2 = self.tags[("VS", ref)]
+                self.f.seek(inf2["offset"])
+                data = self.f.read(inf2["length"])
+                if info["name"] == "CoreMetadata.0":
+                    obj = None
+                    for line in data.decode().split("\n"):
+                        if "OBJECT" in line:
+                            obj = line.split()[-1]
+                        if "VALUE" in line:
+                            g.attrs[obj] = line.split()[-1].lstrip('"').rstrip('"')
+                elif dtype == "str":
+                    g.attrs[info["name"]] = (
+                        data.decode().lstrip('"').rstrip('"')
+                    )  # decode() ?
+                else:
+                    g.attrs[info["name"]] = np.frombuffer(data, dtype)[0]
+        g.attrs.pop("ArchiveMetadata.0")
+        print(dict(g.attrs))
         return self.tags
 
     def _dec(self, tag, ref):
@@ -881,7 +909,9 @@ class HDF4ToZarr:
 @reg("NDG")
 def _dec_ndg(self, info):
     # links together these things as a Data Group
-    return [(tags[self.read_int(2)], self.read_int(2)) for _ in range(0, info["length"], 4)]
+    return [
+        (tags[self.read_int(2)], self.read_int(2)) for _ in range(0, info["length"], 4)
+    ]
 
 
 @reg("SDD")
@@ -920,6 +950,16 @@ def _dec_vh(self, info):
     classlen = self.read_int(2)
     cls = self.f.read(classlen).decode()
     ref = (self.read_int(2), self.read_int(2))
+    return _pl(locals())
+
+
+@reg("VG")
+def _dec_vg(self, info):
+    nelt = self.read_int(2)
+    tags = [self.read_int(2) for _ in range(nelt)]
+    refs = [self.read_int(2) for _ in range(nelt)]
+    name = self.f.read(self.read_int(2)).decode()
+    cls = self.f.read(self.read_int(2)).decode()
     return _pl(locals())
 
 
@@ -986,8 +1026,8 @@ tags = {
     710: "SDLNK",
     720: "NDG",
     721: "RESERVED",
-# "Objects of tag 721 are never actually written to the file. The tag is
-# needed to make things easier mixing DFSD and SD style objects in the same file"
+    # "Objects of tag 721 are never actually written to the file. The tag is
+    # needed to make things easier mixing DFSD and SD style objects in the same file"
     731: "CAL",
     732: "FV",
     799: "BREQ",
@@ -1017,8 +1057,9 @@ spec = {
 dtypes = {
     5: "f4",
     6: "f8",
-    20: "i1",  # = CHAR, 3?
-    21: "u1",  # = UCHAR, 4?
+    20: "i1",
+    21: "u1",
+    4: "str",  # special case, size given in header
     22: "i2",
     23: "u2",
     24: "i4",
