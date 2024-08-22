@@ -774,29 +774,76 @@ class HDF4ToZarr:
         for tag, ref in self.tags:
             self._dec(tag, ref)
 
-        # attributes
+        # global attributes
+        attrs = {}
         for (tag, ref), info in self.tags.items():
             if tag == "VH" and info["names"][0].upper() == "VALUES":
                 dtype = dtypes[info["types"][0]]
                 inf2 = self.tags[("VS", ref)]
                 self.f.seek(inf2["offset"])
                 data = self.f.read(inf2["length"])
-                if info["name"] == "CoreMetadata.0":
+                # NASA conventions
+                if info["name"].startswith(("CoreMetadata.", "ArchiveMetadata.")):
                     obj = None
                     for line in data.decode().split("\n"):
                         if "OBJECT" in line:
                             obj = line.split()[-1]
                         if "VALUE" in line:
-                            g.attrs[obj] = line.split()[-1].lstrip('"').rstrip('"')
-                elif dtype == "str":
-                    g.attrs[info["name"]] = (
-                        data.decode().lstrip('"').rstrip('"')
-                    )  # decode() ?
-                else:
-                    g.attrs[info["name"]] = np.frombuffer(data, dtype)[0]
-        g.attrs.pop("ArchiveMetadata.0")
-        print(dict(g.attrs))
-        return self.tags
+                            attrs[obj] = line.split()[-1].lstrip('"').rstrip('"')
+        g.attrs.update(attrs)
+
+        # there should be only one root, and it's probably the last VG
+        # so maybe this loop isn't needed
+        roots = set()
+        children = set()
+        child = {}
+        for (tag, ref), info in self.tags.items():
+            if tag == "VG":
+                here = child.setdefault((tag, ref), set())
+                for t, r in zip(info["tag"], info["refs"]):
+                    if t == "VG":
+                        children.add((t, r))
+                        roots.discard((t, r))
+                        here.add((t, r))
+                if tag not in children:
+                    roots.add((tag, ref))
+        for t, r in roots:
+            self.tags[(t, r)] = self._descend_vg(t, r)
+        return self.tags, roots
+
+    def _descend_vg(self, tag, ref):
+        info = self.tags[(tag, ref)]
+        out = {}
+        for t, r in zip(info["tag"], info["refs"]):
+            inf2 = self.tags[(t, r)]
+            if t == "VG":
+                tmp = self._descend_vg(t, r)
+                if list(tmp)[0] == inf2["name"]:
+                    tmp = tmp[inf2["name"]]
+                out[inf2["name"]] = tmp
+            elif t == "VH":
+                if len(inf2["names"]) == 1 and inf2["names"][0].lower() == "values":
+                    dtype = dtypes[inf2["types"][0]]
+                    inf2 = self.tags[("VS", r)]
+                    self.f.seek(inf2["offset"])
+                    data = self.f.read(inf2["length"])
+                    if dtype == "str":
+                        out[info["name"]] = (
+                            data.decode().lstrip('"').rstrip('"')
+                        )  # decode() ?
+                    else:
+                        out[info["name"]] = np.frombuffer(data, dtype)[0]
+            elif t == "NT":
+                out["dtype"] = inf2["typ"]
+            elif t == "SD":
+                out["refs"] = inf2["data"][:-1]
+                out["chunks"] = [_["chunk_length"] for _ in inf2["data"][-1]]
+            elif t == "SDD":
+                out["dims"] = inf2["dims"]
+            else:
+                # NDGs contain same info as NT, SD and SDD
+                pass
+        return out
 
     def _dec(self, tag, ref):
         info = self.tags[(tag, ref)]
@@ -842,18 +889,20 @@ class HDF4ToZarr:
 
     def _dec_chunked(self):
         # we want to turn the chunks table into references
-        tag_head_len = self.read_int(4)
-        version = self.f.read(1)[0]
-        flag = self.read_int(4)
-        elem_tot_len = self.read_int(4)
-        chunk_size = self.read_int(4)
-        nt_size = self.read_int(4)
+        # tag_head_len = self.read_int(4)
+        # version = self.f.read(1)[0]
+        # flag = self.read_int(4)
+        # elem_tot_len = self.read_int(4)
+        # chunk_size = self.read_int(4)
+        # nt_size = self.read_int(4)
+        self.f.seek(21, 1)
         chk_tbl_tag = tags[self.read_int(2)]  # should be VH
         chk_tbl_ref = self.read_int(2)
         sp_tag = tags[self.read_int(2)]
         sp_ref = self.read_int(2)
         ndims = self.read_int(4)
-        dims = [
+
+        dims = [  # we don't use these, could
             {
                 "flag": self.read_int(4),
                 "dim_length": self.read_int(4),
@@ -863,11 +912,15 @@ class HDF4ToZarr:
         ]
         fill_value = self.f.read(
             self.read_int(4)
-        )  # to be interpreted as a number later
+        )  # to be interpreted as a number later; but chunk table probs has no fill
+        # self.f.seek(12*ndims + 4, 1)
+
         header = self._dec(chk_tbl_tag, chk_tbl_ref)
         data = self._dec("VS", chk_tbl_ref)["data"]  # corresponding table
+
         # header gives the field pattern for the rows of data, one per chunk
-        dt = [(f"ind{i}", ">u4") for i in range(len(dims))] + [
+        # maybe faster to use struct and iter than numpy, since we iterate anyway
+        dt = [(f"ind{i}", ">u4") for i in range(ndims)] + [
             ("tag", ">u2"),
             ("ref", ">u2"),
         ]
@@ -876,7 +929,7 @@ class HDF4ToZarr:
         refs = []
         for *ind, tag, ref in rows:
             # maybe ind needs reversing since everything is FORTRAN
-            chunk_tag = self.tags[(tags[tag], ref)]
+            chunk_tag = self.tags[("CHUNK", ref)]
             if chunk_tag["extended"]:
                 self.f.seek(chunk_tag["offset"])
                 # these are always COMP?
@@ -890,26 +943,30 @@ class HDF4ToZarr:
                         chunk_tag["length"],
                     ]
                 )
+        refs.append(dims)
         return refs
 
     def _dec_comp(self):
-        version = self.read_int(2)  # always 0
-        len_uncomp = self.read_int(4)
+        # version = self.read_int(2)  # always 0
+        # len_uncomp = self.read_int(4)
+        self.f.seek(6, 1)
+
         data_ref = self.read_int(2)
-        model = self.read_int(2)  # always 0
-        ctype = comp[self.read_int(2)]
+        # model = self.read_int(2)  # always 0
+        ctype = "DEFLATE"  # comp[self.read_int(2)]
         tag = self.tags[("COMPRESSED", data_ref)]
-        offset = tag["offset"]
-        length = tag["length"]
-        return ctype, offset, length
+        return ctype, tag["offset"], tag["length"]
 
 
 @reg("NDG")
 def _dec_ndg(self, info):
     # links together these things as a Data Group
-    return [
-        (tags[self.read_int(2)], self.read_int(2)) for _ in range(0, info["length"], 4)
-    ]
+    return {
+        "tags": [
+            (tags[self.read_int(2)], self.read_int(2))
+            for _ in range(0, info["length"], 4)
+        ]
+    }
 
 
 @reg("SDD")
@@ -940,7 +997,7 @@ def _dec_vh(self, info):
     nfields = self.read_int(2)
     types = [self.read_int(2) for _ in range(nfields)]
     isize = [self.read_int(2) for _ in range(nfields)]
-    offset = [self.read_int(2) for _ in range(nfields)]
+    offsets = [self.read_int(2) for _ in range(nfields)]
     order = [self.read_int(2) for _ in range(nfields)]
     names = [self.f.read(self.read_int(2)).decode() for _ in range(nfields)]
     namelen = self.read_int(2)
@@ -954,10 +1011,20 @@ def _dec_vh(self, info):
 @reg("VG")
 def _dec_vg(self, info):
     nelt = self.read_int(2)
-    tags = [self.read_int(2) for _ in range(nelt)]
+    tag = [tags[self.read_int(2)] for _ in range(nelt)]
     refs = [self.read_int(2) for _ in range(nelt)]
     name = self.f.read(self.read_int(2)).decode()
     cls = self.f.read(self.read_int(2)).decode()
+    return _pl(locals())
+
+
+import zipfile
+
+
+@reg("NT")
+def _dec_nt(self, info):
+    version, typ, width, cls = list(self.f.read(4))
+    typ = dtypes[typ]
     return _pl(locals())
 
 
@@ -1058,12 +1125,12 @@ dtypes = {
     20: "i1",
     21: "u1",
     4: "str",  # special case, size given in header
-    22: "i2",
-    23: "u2",
-    24: "i4",
-    25: "u4",
-    26: "i8",
-    27: "u8",
+    22: ">i2",
+    23: ">u2",
+    24: ">i4",
+    25: ">u4",
+    26: ">i8",
+    27: ">u8",
 }
 
 # hdf4/hdf/src/hcomp.h
@@ -1076,3 +1143,14 @@ comp = {
     5: "SZIP",
     7: "JPEG",
 }
+
+
+class FLATECodec:  # (numcodecs.abc.Codec)
+    def __init__(self):
+        ...
+
+    def decode(self, data):
+        import zlib
+
+        obj = zlib.decompressobj(-15)
+        return obj.decompress(data)
