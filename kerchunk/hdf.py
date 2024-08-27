@@ -743,15 +743,9 @@ class HDF4ToZarr:
 
     def translate(self):
         import zarr
+        from kerchunk.codecs import ZlibCodec
 
         self.f = fsspec.open(self.path, **(self.st or {})).open()
-        fs = fsspec.filesystem(
-            "reference",
-            fo=self.out,
-            remote_protocol=self.remote_protocol,
-            remote_options=self.remote_options,
-        )
-        g = zarr.open_group("reference://", storage_options=dict(fs=fs))
 
         # magic header
         assert self.f.read(4) == b"\x0e\x03\x13\x01"
@@ -790,7 +784,6 @@ class HDF4ToZarr:
                             obj = line.split()[-1]
                         if "VALUE" in line:
                             attrs[obj] = line.split()[-1].lstrip('"').rstrip('"')
-        g.attrs.update(attrs)
 
         # there should be only one root, and it's probably the last VG
         # so maybe this loop isn't needed
@@ -807,9 +800,46 @@ class HDF4ToZarr:
                         here.add((t, r))
                 if tag not in children:
                     roots.add((tag, ref))
-        for t, r in roots:
-            self.tags[(t, r)] = self._descend_vg(t, r)
-        return self.tags, roots
+
+        # hierarchical output
+        output = self._descend_vg(*list(roots)[0])
+        fs = fsspec.filesystem(
+            "reference",
+            fo=self.out,
+            remote_protocol=self.remote_protocol,
+            remote_options=self.remote_options,
+        )
+        g = zarr.open_group("reference://", storage_options=dict(fs=fs))
+        for k, v in output.items():
+            if isinstance(v, dict):
+                compression = ZlibCodec() if "refs" in v else None
+                arr = g.create_dataset(
+                    name=k,
+                    shape=v["dims"],
+                    dtype=v["dtype"],
+                    chunks=v.get("chunks", v["dims"]),
+                    compressor=compression,
+                    overwrite=True,
+                )
+                arr.attrs.update(
+                    dict(
+                        _ARRAY_DIMENSIONS=[f"{k}_x", f"{k}_y"][: len(v["dims"])]
+                        if "refs" in v
+                        else ["0"],
+                        **{
+                            i: j
+                            for i, j in v.items()
+                            if i not in {"chunk", "dims", "dtype", "refs"}
+                        },
+                    )
+                )
+                for r in v.get("refs", []):
+                    self.out[f"{k}/{r[0]}"] = [self.path, r[1], r[2]]
+            else:
+                attrs[k] = v
+        g.attrs.update(attrs)
+
+        return fs.references
 
     def _descend_vg(self, tag, ref):
         info = self.tags[(tag, ref)]
@@ -824,15 +854,14 @@ class HDF4ToZarr:
             elif t == "VH":
                 if len(inf2["names"]) == 1 and inf2["names"][0].lower() == "values":
                     dtype = dtypes[inf2["types"][0]]
+                    name = inf2["name"]
                     inf2 = self.tags[("VS", r)]
                     self.f.seek(inf2["offset"])
                     data = self.f.read(inf2["length"])
                     if dtype == "str":
-                        out[info["name"]] = (
-                            data.decode().lstrip('"').rstrip('"')
-                        )  # decode() ?
+                        out[name] = data.decode().lstrip('"').rstrip('"')  # decode() ?
                     else:
-                        out[info["name"]] = np.frombuffer(data, dtype)[0]
+                        out[name] = np.frombuffer(data, dtype)[0]
             elif t == "NT":
                 out["dtype"] = inf2["typ"]
             elif t == "SD":
@@ -902,7 +931,7 @@ class HDF4ToZarr:
         sp_ref = self.read_int(2)
         ndims = self.read_int(4)
 
-        dims = [  # we don't use these, could
+        dims = [  # we don't use these, could skip
             {
                 "flag": self.read_int(4),
                 "dim_length": self.read_int(4),
@@ -913,7 +942,7 @@ class HDF4ToZarr:
         fill_value = self.f.read(
             self.read_int(4)
         )  # to be interpreted as a number later; but chunk table probs has no fill
-        # self.f.seek(12*ndims + 4, 1)
+        # self.f.seek(12*ndims + 4, 1)  # if skipping
 
         header = self._dec(chk_tbl_tag, chk_tbl_ref)
         data = self._dec("VS", chk_tbl_ref)["data"]  # corresponding table
@@ -1139,18 +1168,8 @@ comp = {
     1: "RLE",
     2: "NBIT",
     3: "SKPHUFF",
-    4: "DEFLATE",  # called deflate, but code says "gzip" and doc says "GNU zip"
+    4: "DEFLATE",  # called deflate, but code says "gzip" and doc says "GNU zip"; actually zlib?
+    # see codecs.ZlibCodec
     5: "SZIP",
     7: "JPEG",
 }
-
-
-class FLATECodec:  # (numcodecs.abc.Codec)
-    def __init__(self):
-        ...
-
-    def decode(self, data):
-        import zlib
-
-        obj = zlib.decompressobj(-15)
-        return obj.decompress(data)

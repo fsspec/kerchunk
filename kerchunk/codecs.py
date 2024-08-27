@@ -5,6 +5,7 @@ import numcodecs
 from numcodecs.abc import Codec
 import numpy as np
 import threading
+import zlib
 
 
 class FillStringsCodec(Codec):
@@ -238,3 +239,19 @@ class DeflateCodec(Codec):
 
     def encode(self, buf):
         raise NotImplementedError
+
+
+class ZlibCodec(numcodecs.abc.Codec):
+    codec_id = "zlib"
+
+    def __init__(self):
+        ...
+
+    def decode(self, data, out=None):
+        if out:
+            out[:] = zlib.decompress(data)
+            return out
+        return zlib.decompress(data)
+
+    def encode(self, buf):
+        return zlib.compress(buf)
