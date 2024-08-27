@@ -13,7 +13,8 @@ This new method for reference aggregation, developed by **Camus Energy**, is bas
 this method can significantly reduce the time required to combine references, cutting it down to
 a fraction of the previous duration. In reality, this approach builds upon consolidating references
 with ``kerchunk.combine.MultiZarrtoZarr``, making it faster. The functions and operations used in this
-will be a part of the ``kerchunk``'s API.
+will be a part of the ``kerchunk``'s API. You can follow this `video <https://discourse.pangeo.io/t/pangeo-showcase-optimizations-for-kerchunk-aggregation-and-zarr-i-o-at-scale-for-machine-learning/4074>`_
+for the intial discussion.
 
 *How is it faster*
 
