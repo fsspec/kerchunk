@@ -12,7 +12,8 @@ GRIB Aggregations
 This new method for reference aggregation, developed by **Camus Energy**, is based on GRIB2 files. Utilizing
 this method can significantly reduce the time required to combine references, cutting it down to
 a fraction of the previous duration. In reality, this approach builds upon consolidating references
-with ``kerchunk.combine.MultiZarrtoZarr``, making it faster.
+with ``kerchunk.combine.MultiZarrtoZarr``, making it faster. The functions and operations used in this
+will be a part of the ``kerchunk``'s API.
 
 *How is it faster*
 
