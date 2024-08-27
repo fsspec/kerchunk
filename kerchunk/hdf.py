@@ -810,6 +810,7 @@ class HDF4ToZarr:
             remote_options=self.remote_options,
         )
         g = zarr.open_group("reference://", storage_options=dict(fs=fs))
+        refs = {}
         for k, v in output.items():
             if isinstance(v, dict):
                 compression = ZlibCodec() if "refs" in v else None
@@ -834,9 +835,10 @@ class HDF4ToZarr:
                     )
                 )
                 for r in v.get("refs", []):
-                    self.out[f"{k}/{r[0]}"] = [self.path, r[1], r[2]]
+                    refs[f"{k}/{r[0]}"] = [self.path, r[1], r[2]]
             else:
                 attrs[k] = v
+        fs.references.update(refs)
         g.attrs.update(attrs)
 
         return fs.references
