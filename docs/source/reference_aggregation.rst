@@ -1,30 +1,54 @@
-Other Methods of Aggregations
+Aggregation special cases
 =============================
 
 As we have already seen in this `page <https://fsspec.github.io/kerchunk/test_example.html#multi-file-jsons>`_,
-that the main purpose of ``kerchunk`` it to generate references, to view whole archive of files like
-GRIB2, NetCDF etc. allowing us for *in-situ* access to the data. In this part of the documentation,
-we will see some other efficient ways of combining references.
+that the main purpose of ``kerchunk`` it to generate references, to view whole archive
+of files like GRIB2, NetCDF etc. allowing us for direct access to the data. In
+this part of the documentation, we will see some other efficient ways of
+combining references.
 
 GRIB Aggregations
 -----------------
 
-This new method for reference aggregation, developed by **Camus Energy**, is based on GRIB2 files. Utilizing
-this method can significantly reduce the time required to combine references, cutting it down to
-a fraction of the previous duration. In reality, this approach builds upon consolidating references
-with ``kerchunk.combine.MultiZarrtoZarr``, making it faster. The functions and operations used in this
-will be a part of the ``kerchunk``'s API. You can follow this `video <https://discourse.pangeo.io/t/pangeo-showcase-optimizations-for-kerchunk-aggregation-and-zarr-i-o-at-scale-for-machine-learning/4074>`_
-for the intial discussion.
+This reference aggregation method of GRIB files, developed by **Camus Energy**, functions if
+accompanying ``.idx`` files are present.
+
+**But this procedure has some certain restrictions:**
+
+  - GRIB files must paired with their ``.idx`` files
+  - The ``.idx`` file must be of *text* type.
+  - Only specialised for time-series data, where GRIB files
+    have *identical* structure.
+  - Aggregation only works for a specific **forecast horizon** files.
+
+Utilizing this method can significantly reduce the time required to combine
+references, cutting it down to a fraction of the previous duration. The original
+idea was showcased in this `talk <https://discourse.pangeo.io/t/pangeo-showcase-optimizations-for-kerchunk-aggregation-and-zarr-i-o-at-scale-for-machine-learning/4074>`_.
 
 *How is it faster*
 
-Every GRIB file stored on cloud platforms such as **AWS** and **GCP** is accompanied by its
-corresponding ``.idx`` file. This file otherwise known as an *index* file contains the key
+The ``.idx`` file otherwise known as an *index* file contains the key
 metadata of the messages in the GRIB files. These metadata include `index`, `offset`, `datetime`,
 `variable` and `forecast time` for their respective messages stored in the files.
 
+**It follows three step approach:**
+
+  1. Extract and persist metadata directly from a few arbitrary grib
+     files for a given product such as HRRR SUBH, GEFS, GFS etc.
+  2. Use the metadata mapping to build an index table of every grib
+     message from the ``.idx`` files
+  3. Combine the index data with the metadata to build any FMRC
+     slice (Horizon, RunTime, ValidTime, BestAvailable)
+
+.. tip::
+  To confirm the indexing of messages, see this `notebook <https://gist.github.com/Anu-Ra-g/efa01ad1c274c1bd1c14ee01666caa77>`_.
+
 These metadata will be used to build an k_index for every GRIB message that we will be
-indexing. The indexing process primarily involves the `pandas <https://pandas.pydata.org/>`_ library.
+indexing. Indexing process primarily involves the `pandas <https://pandas.pydata.org/>`_ library.
+
+.. note::
+    The index in ``.idx`` file indexes the GRIB messages where as the ``k_index`` (kerchunk index)
+    we build as part of this workflow index the variables in those messages.
 
 .. list-table:: k_index for a single GRIB file
    :header-rows: 1
@@ -110,10 +134,6 @@ indexing. The indexing process primarily involves the `pandas <https://pandas.py
      - None
 
 
-.. note::
-    The index in ``idx`` file indexes the GRIB messages where as the ``k_index`` (kerchunk index)
-    we build as part of this workflow index the variables in those messages.
-
 *What now*
 
 After creating the k_index as per the desired duration, we will use the ``DataTree`` model
@@ -180,6 +200,7 @@ GRIB files produced from **GEFS** model hosted in AWS S3 bucket.
                         ulwrf       (model_horizons, valid_times, latitude, longitude) float64 124MB ...
                     Attributes:
                         typeOfLevel:  nominalTop
+
 
 .. tip::
     For a full tutorial on this workflow, refer this `kerchunk cookbook <https://projectpythia.org/kerchunk-cookbook/README.html>`_
