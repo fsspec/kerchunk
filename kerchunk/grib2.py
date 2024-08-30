@@ -813,8 +813,7 @@ def extract_datatree_chunk_index(
 def _map_grib_file_by_group(
     fname: str,
     mapper: Optional[Callable] = None,
-    storage_options=None,
-    remote_options: Dict = None,
+    storage_options: Optional[Dict] = None,
 ) -> "pd.DataFrame":
     """
     Helper method used to read the cfgrib metadata associated with each message (group) in the grib file
@@ -844,7 +843,7 @@ def _map_grib_file_by_group(
                 filter(
                     lambda item: item is not None,
                     [
-                        _extract_single_group(mapper(group), i, remote_options)
+                        _extract_single_group(mapper(group), i, storage_options)
                         for i, group in enumerate(references, start=1)
                     ],
                 )
@@ -852,14 +851,14 @@ def _map_grib_file_by_group(
         ).set_index("idx")
 
 
-def _extract_single_group(grib_group: dict, idx: int, remote_options: Dict):
+def _extract_single_group(grib_group: dict, idx: int, storage_options: Dict):
     import datatree
 
     grib_tree_store = grib_tree(
         [
             grib_group,
         ],
-        remote_options,
+        storage_options,
     )
 
     if len(grib_tree_store["refs"]) <= 1:
@@ -890,7 +889,6 @@ def build_idx_grib_mapping(
     suffix: str = "idx",
     mapper: Optional[Callable] = None,
     validate: bool = True,
-    remote_options: Dict = None,
 ) -> "pd.DataFrame":
     """
     Mapping method combines the idx and grib metadata to make a mapping from
@@ -909,8 +907,6 @@ def build_idx_grib_mapping(
         the mapper if any to apply (used for hrrr subhf)
     validate : bool
         to assert the mapping is correct or fail before returning
-    remote_options: Dict
-        remote options to pass to MultiZarrToZarr
 
     Returns
     -------
@@ -923,7 +919,6 @@ def build_idx_grib_mapping(
         fname=basename,
         mapper=mapper,
         storage_options=storage_options,
-        remote_options=remote_options,
     )
     idx_file_index = parse_grib_idx(
         basename=basename, suffix=suffix, storage_options=storage_options
