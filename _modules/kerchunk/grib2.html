@@ -90,7 +90,8 @@
 <span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span>
 <span class="kn">import</span> <span class="nn">ujson</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 
@@ -897,6 +898,174 @@
             <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_map_grib_file_by_group</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mapper</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper method used to read the cfgrib metadata associated with each message (group) in the grib file</span>
+<span class="sd">    This method does not add metadata</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fname : str</span>
+<span class="sd">        the file name to read with scan_grib</span>
+<span class="sd">    mapper : Optional[Callable]</span>
+<span class="sd">        the mapper if any to apply (used for hrrr subhf)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.Dataframe : The intermediate dataframe constructed from the grib metadata</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+    <span class="n">mapper</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">mapper</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">mapper</span>
+
+    <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="c1"># grib idx is fortran indexed (from one not zero)</span>
+            <span class="nb">list</span><span class="p">(</span>
+                <span class="nb">filter</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="p">[</span>
+                        <span class="n">_extract_single_group</span><span class="p">(</span><span class="n">mapper</span><span class="p">(</span><span class="n">group</span><span class="p">),</span> <span class="n">i</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                            <span class="n">scan_grib</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span><span class="p">),</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span>
+                        <span class="p">)</span>
+                    <span class="p">],</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;idx&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_extract_single_group</span><span class="p">(</span><span class="n">grib_group</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="kn">import</span> <span class="nn">datatree</span>
+
+    <span class="n">grib_tree_store</span> <span class="o">=</span> <span class="n">grib_tree</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">grib_group</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">grib_tree_store</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Empty DT: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">grib_tree_store</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">datatree</span><span class="o">.</span><span class="n">open_datatree</span><span class="p">(</span>
+        <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">grib_tree_store</span><span class="p">)</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">),</span>
+        <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span>
+        <span class="n">consolidated</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">k_ind</span> <span class="o">=</span> <span class="n">extract_datatree_chunk_index</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">grib_tree_store</span><span class="p">,</span> <span class="n">grib</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">k_ind</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Empty Kind: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">grib_tree_store</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">k_ind</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;expected a single variable grib group but produced: </span><span class="si">{</span><span class="n">k_ind</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">k_ind</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span>
+    <span class="k">return</span> <span class="n">k_ind</span>
+
+
+<span class="k">def</span> <span class="nf">build_idx_grib_mapping</span><span class="p">(</span>
+    <span class="n">basename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">storage_options</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;idx&quot;</span><span class="p">,</span>
+    <span class="n">mapper</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">validate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mapping method combines the idx and grib metadata to make a mapping from</span>
+<span class="sd">    one to the other for a particular model horizon file. This should be generally</span>
+<span class="sd">    applicable to all forecasts for the given horizon.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    basename : str</span>
+<span class="sd">        the full path for the grib2 file</span>
+<span class="sd">    storage_options: dict</span>
+<span class="sd">        For accessing the data, passed to filesystem</span>
+<span class="sd">    suffix : str</span>
+<span class="sd">        The suffix is the ending for the idx file.</span>
+<span class="sd">    mapper : Optional[Callable]</span>
+<span class="sd">        the mapper if any to apply (used for hrrr subhf)</span>
+<span class="sd">    validate : bool</span>
+<span class="sd">        to assert the mapping is correct or fail before returning</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.Dataframe : The merged dataframe with the results of the two operations</span>
+<span class="sd">    joined on the grib message (group) number</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+    <span class="n">grib_file_index</span> <span class="o">=</span> <span class="n">_map_grib_file_by_group</span><span class="p">(</span>
+        <span class="n">fname</span><span class="o">=</span><span class="n">basename</span><span class="p">,</span> <span class="n">mapper</span><span class="o">=</span><span class="n">mapper</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span>
+    <span class="p">)</span>
+    <span class="n">idx_file_index</span> <span class="o">=</span> <span class="n">parse_grib_idx</span><span class="p">(</span>
+        <span class="n">basename</span><span class="o">=</span><span class="n">basename</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">storage_options</span>
+    <span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">idx_file_index</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="c1"># Left merge because the idx file should be authoritative - one record per grib message</span>
+        <span class="n">grib_file_index</span><span class="p">,</span>
+        <span class="n">on</span><span class="o">=</span><span class="s2">&quot;idx&quot;</span><span class="p">,</span>
+        <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;_idx&quot;</span><span class="p">,</span> <span class="s2">&quot;_grib&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">validate</span><span class="p">:</span>
+        <span class="c1"># If any of these conditions fail - inspect the result manually on colab.</span>
+        <span class="n">all_match_offset</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;offset_idx&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;offset_grib&quot;</span><span class="p">])</span>
+            <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;offset_grib&quot;</span><span class="p">])</span>
+            <span class="o">|</span> <span class="o">~</span><span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;inline_value&quot;</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">all_match_length</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;length_idx&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;length_grib&quot;</span><span class="p">])</span>
+            <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;length_grib&quot;</span><span class="p">])</span>
+            <span class="o">|</span> <span class="o">~</span><span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;inline_value&quot;</span><span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">all_match_offset</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">vcs</span> <span class="o">=</span> <span class="n">all_match_offset</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to match message offset mapping for grib file </span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vcs</span><span class="p">[</span><span class="kc">True</span><span class="p">]</span><span class="si">}</span><span class="s2"> matched, </span><span class="si">{</span><span class="n">vcs</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span><span class="si">}</span><span class="s2"> didn&#39;t&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">all_match_length</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">vcs</span> <span class="o">=</span> <span class="n">all_match_length</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to match message offset mapping for grib file </span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2">: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vcs</span><span class="p">[</span><span class="kc">True</span><span class="p">]</span><span class="si">}</span><span class="s2"> matched, </span><span class="si">{</span><span class="n">vcs</span><span class="p">[</span><span class="kc">False</span><span class="p">]</span><span class="si">}</span><span class="s2"> didn&#39;t&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;attrs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">is_unique</span><span class="p">:</span>
+            <span class="n">dups</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;attrs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">keep</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="p">:]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;The idx attribute mapping for </span><span class="si">%s</span><span class="s2"> is not unique for </span><span class="si">%d</span><span class="s2"> variables: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">basename</span><span class="p">,</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">dups</span><span class="p">),</span>
+                <span class="n">dups</span><span class="o">.</span><span class="n">varname</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+        <span class="n">r_index</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;varname&quot;</span><span class="p">,</span> <span class="s2">&quot;typeOfLevel&quot;</span><span class="p">,</span> <span class="s2">&quot;stepType&quot;</span><span class="p">,</span> <span class="s2">&quot;level&quot;</span><span class="p">,</span> <span class="s2">&quot;valid_time&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">r_index</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">is_unique</span><span class="p">:</span>
+            <span class="n">dups</span> <span class="o">=</span> <span class="n">r_index</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">r_index</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">duplicated</span><span class="p">(</span><span class="n">keep</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="p">:]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;The grib hierarchy in </span><span class="si">%s</span><span class="s2"> is not unique for </span><span class="si">%d</span><span class="s2"> variables: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">basename</span><span class="p">,</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">dups</span><span class="p">),</span>
+                <span class="n">dups</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_level_values</span><span class="p">(</span><span class="s2">&quot;varname&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span>
 </pre></div>
 
            </div>
