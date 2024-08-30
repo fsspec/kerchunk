@@ -4,6 +4,7 @@ import logging
 from typing import Union, BinaryIO
 
 import fsspec.core
+import ujson
 from fsspec.implementations.reference import LazyReferenceMapper
 import numpy as np
 import zarr
