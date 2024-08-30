@@ -3,15 +3,16 @@ Aggregation special cases
 
 As we have already seen in this `page <https://fsspec.github.io/kerchunk/test_example.html#multi-file-jsons>`_,
 that the main purpose of ``kerchunk`` it to generate references, to view whole archive
-of files like GRIB2, NetCDF etc. allowing us for direct access to the data. In
+of files like GRIB2, NetCDF etc, allowing us for direct access to the data. In
 this part of the documentation, we will see some other efficient ways of
 combining references.
 
 GRIB Aggregations
 -----------------
 
-This reference aggregation method of GRIB files, developed by **Camus Energy**, functions if
-accompanying ``.idx`` files are present.
+This reference aggregation method of GRIB files, developed by `Camus Energy <https://www.camus.energy>`_,
+and it functions if accompanying ``.idx`` files are present. It involves creating a reference index
+for every GRIB message across the files that we want to aggregate.
 
 **But this procedure has some certain restrictions:**
 
@@ -19,7 +20,8 @@ accompanying ``.idx`` files are present.
   - The ``.idx`` file must be of *text* type.
   - Only specialised for time-series data, where GRIB files
     have *identical* structure.
-  - Aggregation only works for a specific **forecast horizon** files.
+  - Reference index can be combined across many horizons
+    but *each horizon must be indexed separately.*
 
 Utilizing this method can significantly reduce the time required to combine
 references, cutting it down to a fraction of the previous duration. The original
@@ -29,9 +31,10 @@ idea was showcased in this `talk <https://discourse.pangeo.io/t/pangeo-showcase-
 
 The ``.idx`` file otherwise known as an *index* file contains the key
 metadata of the messages in the GRIB files. These metadata include `index`, `offset`, `datetime`,
-`variable` and `forecast time` for their respective messages stored in the files.
+`variable` and `forecast time` for their respective messages stored in the files. This metadata
+will be used to index every GRIB message. This method follows a three step approach.
 
-**It follows three step approach:**
+**Three step approach:**
 
   1. Extract and persist metadata directly from a few arbitrary grib
      files for a given product such as HRRR SUBH, GEFS, GFS etc.
@@ -43,12 +46,17 @@ metadata of the messages in the GRIB files. These metadata include `index`, `off
 .. tip::
   To confirm the indexing of messages, see this `notebook <https://gist.github.com/Anu-Ra-g/efa01ad1c274c1bd1c14ee01666caa77>`_.
 
-These metadata will be used to build an k_index for every GRIB message that we will be
-indexing. Indexing process primarily involves the `pandas <https://pandas.pydata.org/>`_ library.
+Reference index or *k_index*, we get as a result indexes every GRIB message.
+The metadata mapping mentioned in the above steps, is an one-to-one mapping of the attributes,
+from any GRIB file *with the same horizon* to its ``idx`` file. Indexing process primarily
+involves the `pandas <https://pandas.pydata.org/>`_ library.
 
 .. note::
-    The index in ``.idx`` file indexes the GRIB messages where as the ``k_index`` (kerchunk index)
-    we build as part of this workflow index the variables in those messages.
+    The index in ``.idx`` file indexes the GRIB messages where as the ``k_index``
+    (kerchunk index) we build as part of this workflow, index the variables
+    in those messages.
+
+The table mentioned below is a k_index made from a single GRIB file.
 
 .. list-table:: k_index for a single GRIB file
    :header-rows: 1
@@ -138,8 +146,9 @@ indexing. Indexing process primarily involves the `pandas <https://pandas.pydata
 
 After creating the k_index as per the desired duration, we will use the ``DataTree`` model
 from the `xarray-datatree <https://xarray-datatree.readthedocs.io/en/latest/>`_ to view a
-part of the aggregation or the whole. Below is a tree model made from an aggregation of
-GRIB files produced from **GEFS** model hosted in AWS S3 bucket.
+part(desired variables) or the whole of the aggregation, using the k_index. Below is a
+tree model made from an aggregation of GRIB files produced from **GEFS** model hosted
+in AWS S3 bucket.
 
 .. code-block:: bash
 
