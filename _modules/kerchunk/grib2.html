@@ -92,9 +92,21 @@
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Optional</span>
 <span class="kn">import</span> <span class="nn">ujson</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+    <span class="kn">import</span> <span class="nn">datatree</span>
+
+<span class="kn">import</span> <span class="nn">fsspec</span>
+<span class="kn">import</span> <span class="nn">zarr</span>
+<span class="kn">import</span> <span class="nn">xarray</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span><span class="p">,</span> <span class="n">_encode_for_JSON</span>
+<span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">GRIBCodec</span>
+<span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span><span class="p">,</span> <span class="n">drop</span>
+
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">cfgrib</span>
@@ -106,14 +118,9 @@
             <span class="s2">&quot;for more details.&quot;</span>
         <span class="p">)</span>
 
-<span class="kn">import</span> <span class="nn">fsspec</span>
-<span class="kn">import</span> <span class="nn">zarr</span>
-<span class="kn">import</span> <span class="nn">xarray</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span><span class="p">,</span> <span class="n">_encode_for_JSON</span>
-<span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">GRIBCodec</span>
-<span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span><span class="p">,</span> <span class="n">drop</span>
+<span class="k">class</span> <span class="nc">DynamicZarrStoreError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="k">pass</span>
 
 
 <span class="c1"># cfgrib copies over certain GRIB attributes</span>
@@ -735,6 +742,161 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attribute mapping for grib file </span><span class="si">{</span><span class="n">basename</span><span class="si">}</span><span class="s2"> is not unique&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;idx&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">suffix</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the path to access the values in a zarr store without a leading &quot;/&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : Iterable[str | None]</span>
+<span class="sd">        The path is the list of values to the element in zarr store</span>
+<span class="sd">    suffix : str</span>
+<span class="sd">        Last element if any</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str : returns the path as a string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">val</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">[</span><span class="o">*</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">]</span> <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">])</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">extract_dataset_chunk_index</span><span class="p">(</span>
+    <span class="n">dset</span><span class="p">:</span> <span class="s2">&quot;datatree.DataTree&quot;</span><span class="p">,</span>
+    <span class="n">ref_store</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">grib</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process and extract a kerchunk index for an xarray dataset or datatree node.</span>
+
+<span class="sd">    The data_vars from the dataset will be indexed.</span>
+<span class="sd">    The coordinate vars for each dataset will be used for indexing.</span>
+<span class="sd">    Datatrees generated by grib_tree have some nice properties which allow a denser index.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dset : datatree.DataTree</span>
+<span class="sd">        The datatree node from the datatree instance</span>
+<span class="sd">    ref_store : Dict</span>
+<span class="sd">        The zarr store dictionary backed by the gribtree</span>
+<span class="sd">    grib : bool</span>
+<span class="sd">        boolean for treating coordinates as grib levels</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list[dict] : returns the extracted grib metadata in the form of key-value pairs inside a list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">datatree</span>
+
+    <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">attributes</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">dpath</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dset</span><span class="p">,</span> <span class="n">datatree</span><span class="o">.</span><span class="n">DataTree</span><span class="p">):</span>
+        <span class="n">dpath</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">path</span>
+        <span class="n">walk_group</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">while</span> <span class="n">walk_group</span><span class="p">:</span>
+            <span class="n">attributes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">walk_group</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+            <span class="n">walk_group</span> <span class="o">=</span> <span class="n">walk_group</span><span class="o">.</span><span class="n">parent</span>
+
+    <span class="k">for</span> <span class="n">dname</span><span class="p">,</span> <span class="n">dvar</span> <span class="ow">in</span> <span class="n">dset</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># Get the chunk size - `chunks` property only works for xarray native</span>
+        <span class="n">zarray</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">ref_store</span><span class="p">[</span><span class="n">build_path</span><span class="p">([</span><span class="n">dpath</span><span class="p">,</span> <span class="n">dname</span><span class="p">],</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.zarray&quot;</span><span class="p">)])</span>
+        <span class="n">dchunk</span> <span class="o">=</span> <span class="n">zarray</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span>
+        <span class="n">dshape</span> <span class="o">=</span> <span class="n">dvar</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">index_dims</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">ddim_nane</span><span class="p">,</span> <span class="n">ddim_size</span><span class="p">,</span> <span class="n">dchunk_size</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dvar</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="n">dshape</span><span class="p">,</span> <span class="n">dchunk</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dchunk_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">index_dims</span><span class="p">[</span><span class="n">ddim_nane</span><span class="p">]</span> <span class="o">=</span> <span class="n">ddim_size</span>
+            <span class="k">elif</span> <span class="n">dchunk_size</span> <span class="o">!=</span> <span class="n">ddim_size</span><span class="p">:</span>
+                <span class="c1"># Must be able to get a single coordinate value for each chunk to index it.</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Can not extract chunk index for dimension </span><span class="si">%s</span><span class="s2"> with non singleton chunk dimensions&quot;</span>
+                    <span class="o">%</span> <span class="n">ddim_nane</span>
+                <span class="p">)</span>
+            <span class="c1"># Drop the dim where each chunk covers the whole dimension - no indexing needed!</span>
+
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">index_dims</span><span class="o">.</span><span class="n">values</span><span class="p">()]):</span>
+            <span class="c1"># Build an iterator over each of the single dimension chunks</span>
+            <span class="n">dim_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">val</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">index_dims</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">idx</span><span class="p">)}</span>
+
+            <span class="n">coord_vals</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">cname</span><span class="p">,</span> <span class="n">cvar</span> <span class="ow">in</span> <span class="n">dvar</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">grib</span><span class="p">:</span>
+                    <span class="c1"># Grib data has only one level coordinate</span>
+                    <span class="n">cname</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">cname</span>
+                        <span class="k">if</span> <span class="n">cname</span>
+                        <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;valid_time&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="s2">&quot;level&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">dim_name</span> <span class="ow">in</span> <span class="n">dim_idx</span> <span class="k">for</span> <span class="n">dim_name</span> <span class="ow">in</span> <span class="n">cvar</span><span class="o">.</span><span class="n">dims</span><span class="p">]):</span>
+                    <span class="n">coord_index</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">dim_idx</span><span class="p">[</span><span class="n">dim_name</span><span class="p">]</span> <span class="k">for</span> <span class="n">dim_name</span> <span class="ow">in</span> <span class="n">cvar</span><span class="o">.</span><span class="n">dims</span><span class="p">])</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">coord_vals</span><span class="p">[</span><span class="n">cname</span><span class="p">]</span> <span class="o">=</span> <span class="n">cvar</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()[</span><span class="n">coord_index</span><span class="p">]</span>
+                    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">DynamicZarrStoreError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Error reading coords for </span><span class="si">{</span><span class="n">dpath</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">dname</span><span class="si">}</span><span class="s2"> coord </span><span class="si">{</span><span class="n">cname</span><span class="si">}</span><span class="s2"> with index </span><span class="si">{</span><span class="n">coord_index</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+
+            <span class="n">whole_dim_cnt</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">dvar</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">dim_idx</span><span class="p">)</span>
+            <span class="n">chunk_idx</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="p">[</span><span class="o">*</span><span class="n">idx</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">whole_dim_cnt</span><span class="p">])</span>
+            <span class="n">chunk_key</span> <span class="o">=</span> <span class="n">build_path</span><span class="p">([</span><span class="n">dpath</span><span class="p">,</span> <span class="n">dname</span><span class="p">],</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chunk_idx</span><span class="p">))</span>
+            <span class="n">chunk_ref</span> <span class="o">=</span> <span class="n">ref_store</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">chunk_key</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">chunk_ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Chunk not found: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">chunk_key</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chunk_ref</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunk_ref</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">chunk_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">uri</span><span class="o">=</span><span class="n">chunk_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">offset</span><span class="o">=</span><span class="n">chunk_ref</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">length</span><span class="o">=</span><span class="n">chunk_ref</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                    <span class="n">inline_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chunk_ref</span><span class="p">,</span> <span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+                <span class="n">chunk_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">inline_value</span><span class="o">=</span><span class="n">chunk_ref</span><span class="p">,</span> <span class="n">offset</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">length</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Key </span><span class="si">{</span><span class="n">chunk_key</span><span class="si">}</span><span class="s2"> has bad value &#39;</span><span class="si">{</span><span class="n">chunk_ref</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">varname</span><span class="o">=</span><span class="n">dname</span><span class="p">,</span> <span class="o">**</span><span class="n">attributes</span><span class="p">,</span> <span class="o">**</span><span class="n">coord_vals</span><span class="p">,</span> <span class="o">**</span><span class="n">chunk_data</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">extract_datatree_chunk_index</span><span class="p">(</span>
+    <span class="n">dtree</span><span class="p">:</span> <span class="s2">&quot;datatree.DataTree&quot;</span><span class="p">,</span> <span class="n">kerchunk_store</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">grib</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursive method to iterate over the data tree and extract the data variable chunks with index metadata</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dtree : datatree.DataTree</span>
+<span class="sd">        The xarray datatree representation of the reference filesystem</span>
+<span class="sd">    kerchunk_store : dict</span>
+<span class="sd">        the grib_tree output for a single grib file</span>
+<span class="sd">    grib : bool</span>
+<span class="sd">        boolean for treating coordinates as grib levels</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.Dataframe : The dataframe constructed from the grib metadata</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+    <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">dtree</span><span class="o">.</span><span class="n">subtree</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">has_data</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="n">extract_dataset_chunk_index</span><span class="p">(</span>
+                <span class="n">node</span><span class="p">,</span> <span class="n">kerchunk_store</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">],</span> <span class="n">grib</span><span class="o">=</span><span class="n">grib</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 
            </div>
