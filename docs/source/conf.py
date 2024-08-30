@@ -56,3 +56,4 @@ html_static_path = ['images']
 pygments_style = "sphinx"
 html_theme = "sphinx_rtd_theme"
 html_logo = "kerchunk.png"
+html_favicon = "kerchunk.ico"
