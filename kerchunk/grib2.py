@@ -838,8 +838,10 @@ def _map_grib_file_by_group(
             # grib idx is fortran indexed (from one not zero)
             list(
                 filter(
+                    # filtering out the cfgrib metadata dataframe in case it is None
                     lambda item: item is not None,
                     [
+                        # extracting the metadata from a single message
                         _extract_single_group(mapper(group), i)
                         for i, group in enumerate(
                             scan_grib(fname, storage_options=storage_options), start=1
@@ -851,6 +853,7 @@ def _map_grib_file_by_group(
 
 
 def _extract_single_group(grib_group: dict, idx: int):
+    # This function, returns the grib metadata as a dataframe, on a per message basis.
     import datatree
 
     grib_tree_store = grib_tree(
