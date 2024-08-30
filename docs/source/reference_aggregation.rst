@@ -20,12 +20,13 @@ for every GRIB message across the files that we want to aggregate.
   - The ``.idx`` file must be of *text* type.
   - Only specialised for time-series data, where GRIB files
     have *identical* structure.
-  - Reference index can be combined across many horizons
-    but *each horizon must be indexed separately.*
+  - Each horizon(forecast time) must be indexed separately.
+
 
 Utilizing this method can significantly reduce the time required to combine
 references, cutting it down to a fraction of the previous duration. The original
-idea was showcased in this `talk <https://discourse.pangeo.io/t/pangeo-showcase-optimizations-for-kerchunk-aggregation-and-zarr-i-o-at-scale-for-machine-learning/4074>`_. It follows a three step approach.
+idea was showcased in this `talk <https://discourse.pangeo.io/t/pangeo-showcase-optimizations-for-kerchunk-aggregation-and-zarr-i-o-at-scale-for-machine-learning/4074>`_.
+It follows a three step approach.
 
 **Three step approach:**
 
@@ -36,21 +37,29 @@ idea was showcased in this `talk <https://discourse.pangeo.io/t/pangeo-showcase-
   3. Combine the index data with the metadata to build any FMRC
      slice (Horizon, RunTime, ValidTime, BestAvailable)
 
+
 *How is it faster*
 
 The ``.idx`` file otherwise known as an *index* file contains the key
 metadata of the messages in the GRIB files. These metadata include `index`, `offset`, `datetime`,
 `variable` and `forecast time` for their respective messages. This metadata
-will be used to index every GRIB message. By following this approach, we only have to ``scan_grib`` a single GRIB file, not the whole archive.
+will be used to index every GRIB message. By following this approach, we only have to
+``scan_grib`` a single GRIB file, not the whole archive.
 
-Building the index of a time horizon, requires a single one-to-one mapping of GRIB/Zarr metadata to the attributes in the idx file. Only constraint is the mapping needs to be made from a single GRIB file, belonging to the *same time horizon*. The indexing process primarily involves the `pandas <https://pandas.pydata.org/>`_ library. To confirm this, see this `notebook <https://gist.github.com/Anu-Ra-g/efa01ad1c274c1bd1c14ee01666caa77>`_.
+Building the index of a time horizon, first requires a single one-to-one mapping of GRIB/Zarr
+metadata to the attributes in the idx file. Only constraint is the mapping needs to be
+made from a single GRIB file, belonging to the *same time horizon*. The indexing process
+primarily involves the `pandas <https://pandas.pydata.org/>`_ library. To confirm this,
+see this `notebook <https://gist.github.com/Anu-Ra-g/efa01ad1c274c1bd1c14ee01666caa77>`_.
+After indexing a single time horizon, you can combine this index with indexes of
+other time horizon and store it.
 
 .. note::
     The index in ``.idx`` file indexes the GRIB messages where as the ``k_index``
     (kerchunk index), index the variables
     in those messages.
 
-The table mentioned below is a k_index made from a single GRIB file.
+The table mentioned below is a *k_index* made from a single GRIB file.
 
 .. list-table:: k_index for a single GRIB file
    :header-rows: 1
