@@ -841,8 +841,10 @@ def _map_grib_file_by_group(
             # grib idx is fortran indexed (from one not zero)
             list(
                 filter(
+                    # filtering out the cfgrib metadata dataframe in case it is None
                     lambda item: item is not None,
                     [
+                        # extracting the metadata from a single message
                         _extract_single_group(mapper(group), i, storage_options)
                         for i, group in enumerate(references, start=1)
                     ],
