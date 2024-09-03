@@ -241,7 +241,7 @@ class DeflateCodec(Codec):
         raise NotImplementedError
 
 
-class ZlibCodec(numcodecs.abc.Codec):
+class ZlibCodec(Codec):
     codec_id = "zlib"
 
     def __init__(self):
