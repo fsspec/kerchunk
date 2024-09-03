@@ -15,21 +15,19 @@ def reg(name):
 
 
 class HDF4ToZarr:
+    """Experimental: interface to HDF4 archival files"""
+
     def __init__(
         self,
         path,
         storage_options=None,
         inline_threshold=100,
         out=None,
-        remote_protocol=None,
-        remote_options=None,
     ):
         self.path = path
         self.st = storage_options
         self.thresh = inline_threshold
         self.out = out or {}
-        self.remote_protocol = remote_protocol
-        self.remote_options = remote_options
 
     def read_int(self, n):
         return int.from_bytes(self.f.read(n), "big")
@@ -76,7 +74,8 @@ class HDF4ToZarr:
         import zarr
         from kerchunk.codecs import ZlibCodec
 
-        self.f = fsspec.open(self.path, **(self.st or {})).open()
+        fo = fsspec.open(self.path, **(self.st or {}))
+        self.f = fo.open()
 
         # magic header
         assert self.f.read(4) == b"\x0e\x03\x13\x01"
@@ -134,11 +133,13 @@ class HDF4ToZarr:
 
         # hierarchical output
         output = self._descend_vg(*list(roots)[0])
+        prot = fo.fs.protocol
+        prot = prot[0] if isinstance(prot, tuple) else prot
         fs = fsspec.filesystem(
             "reference",
             fo=self.out,
-            remote_protocol=self.remote_protocol,
-            remote_options=self.remote_options,
+            remote_protocol=prot,
+            remote_options=self.st,
         )
         g = zarr.open_group("reference://", storage_options=dict(fs=fs))
         refs = {}
