@@ -811,7 +811,9 @@ def extract_datatree_chunk_index(
 
 
 def _map_grib_file_by_group(
-    fname: str, mapper: Optional[Callable] = None, storage_options=None
+    fname: str,
+    mapper: Optional[Callable] = None,
+    storage_options: Optional[Dict] = None,
 ) -> "pd.DataFrame":
     """
     Helper method used to read the cfgrib metadata associated with each message (group) in the grib file
@@ -831,6 +833,7 @@ def _map_grib_file_by_group(
     import pandas as pd
 
     mapper = (lambda x: x) if mapper is None else mapper
+    references = scan_grib(fname, storage_options=storage_options)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -842,24 +845,22 @@ def _map_grib_file_by_group(
                     lambda item: item is not None,
                     [
                         # extracting the metadata from a single message
-                        _extract_single_group(mapper(group), i)
-                        for i, group in enumerate(
-                            scan_grib(fname, storage_options=storage_options), start=1
-                        )
+                        _extract_single_group(mapper(group), i, storage_options)
+                        for i, group in enumerate(references, start=1)
                     ],
                 )
             )
         ).set_index("idx")
 
 
-def _extract_single_group(grib_group: dict, idx: int):
-    # This function, returns the grib metadata as a dataframe, on a per message basis.
+def _extract_single_group(grib_group: dict, idx: int, storage_options: Dict):
     import datatree
 
     grib_tree_store = grib_tree(
         [
             grib_group,
-        ]
+        ],
+        storage_options,
     )
 
     if len(grib_tree_store["refs"]) <= 1:
@@ -917,7 +918,9 @@ def build_idx_grib_mapping(
     import pandas as pd
 
     grib_file_index = _map_grib_file_by_group(
-        fname=basename, mapper=mapper, storage_options=storage_options
+        fname=basename,
+        mapper=mapper,
+        storage_options=storage_options,
     )
     idx_file_index = parse_grib_idx(
         basename=basename, suffix=suffix, storage_options=storage_options
