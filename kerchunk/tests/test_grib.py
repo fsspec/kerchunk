@@ -16,6 +16,8 @@ from kerchunk.grib2 import (
     grib_tree,
     correct_hrrr_subhf_step,
     parse_grib_idx,
+)
+from kerchunk._grib_idx import (
     extract_dataset_chunk_index,
     extract_datatree_chunk_index,
 )
@@ -457,5 +459,8 @@ def test_extract_methods_grib_parameter(zarr_tree_and_datatree_instance):
     # testing grib parameter with "extract_datatree_chunk_index" function
     metadata_df = extract_datatree_chunk_index(dt_instance, tree_store, True)
 
+    # checking if level in the generated dataframe
     assert "level" in metadata_df.columns
+
+    # checking if level in each series data
     assert all(list(map(lambda data: "level" in data.keys(), grib_metadata)))
