@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aggregation special cases &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="_static/kerchunk.ico"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Contributing to kerchunk" href="contributing.html" />
+    <link rel="prev" title="API Reference" href="reference.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            kerchunk
+              <img src="_static/kerchunk.png" class="logo" alt="Logo"/>
+          </a>
+              <div class="version">
+                9999
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="test_example.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nonzarr.html">Non-zarr uses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Aggregation special cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#grib-aggregations">GRIB Aggregations</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to kerchunk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">kerchunk</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Aggregation special cases</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/reference_aggregation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="aggregation-special-cases">
+<h1>Aggregation special cases<a class="headerlink" href="#aggregation-special-cases" title="Link to this heading"></a></h1>
+<p>As we have already seen in this <a class="reference external" href="https://fsspec.github.io/kerchunk/test_example.html#multi-file-jsons">page</a>,
+that the main purpose of <code class="docutils literal notranslate"><span class="pre">kerchunk</span></code> it to generate references, to view whole archive
+of files like GRIB2, NetCDF etc, allowing us for direct access to the data. In
+this part of the documentation, we will see some other efficient ways of
+combining references.</p>
+<section id="grib-aggregations">
+<h2>GRIB Aggregations<a class="headerlink" href="#grib-aggregations" title="Link to this heading"></a></h2>
+<p>This reference aggregation method of GRIB files, developed by <a class="reference external" href="https://www.camus.energy">Camus Energy</a>,
+and it functions if accompanying <code class="docutils literal notranslate"><span class="pre">.idx</span></code> files are present. It involves creating a reference index
+for every GRIB message across the files that we want to aggregate.</p>
+<p><strong>But this procedure has some certain restrictions:</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p>GRIB files must paired with their <code class="docutils literal notranslate"><span class="pre">.idx</span></code> files</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">.idx</span></code> file must be of <em>text</em> type.</p></li>
+<li><p>Only specialised for time-series data, where GRIB files
+have <em>identical</em> structure.</p></li>
+<li><p>Each horizon(forecast time) must be indexed separately.</p></li>
+</ul>
+</div></blockquote>
+<p>Utilizing this method can significantly reduce the time required to combine
+references, cutting it down to a fraction of the previous duration. The original
+idea was showcased in this <a class="reference external" href="https://discourse.pangeo.io/t/pangeo-showcase-optimizations-for-kerchunk-aggregation-and-zarr-i-o-at-scale-for-machine-learning/4074">talk</a>.
+It follows a three step approach.</p>
+<p><strong>Three step approach:</strong></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Extract and persist metadata directly from a few arbitrary grib
+files for a given product such as HRRR SUBH, GEFS, GFS etc.</p></li>
+<li><p>Use the metadata mapping to build an index table of every grib
+message from the <code class="docutils literal notranslate"><span class="pre">.idx</span></code> files</p></li>
+<li><p>Combine the index data with the metadata to build any FMRC
+slice (Horizon, RunTime, ValidTime, BestAvailable)</p></li>
+</ol>
+</div></blockquote>
+<p><em>How is it faster</em></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">.idx</span></code> file otherwise known as an <em>index</em> file contains the key
+metadata of the messages in the GRIB files. These metadata include <cite>index</cite>, <cite>offset</cite>, <cite>datetime</cite>,
+<cite>variable</cite> and <cite>forecast time</cite> for their respective messages. This metadata
+will be used to index every GRIB message. By following this approach, we only have to
+<code class="docutils literal notranslate"><span class="pre">scan_grib</span></code> a single GRIB file, not the whole archive.</p>
+<p>Building the index of a time horizon, first requires a single one-to-one mapping of GRIB/Zarr
+metadata to the attributes in the idx file. Only constraint is the mapping needs to be
+made from a single GRIB file, belonging to the <em>same time horizon</em>. The indexing process
+primarily involves the <a class="reference external" href="https://pandas.pydata.org/">pandas</a> library. To confirm this,
+see this <a class="reference external" href="https://gist.github.com/Anu-Ra-g/efa01ad1c274c1bd1c14ee01666caa77">notebook</a>.
+After indexing a single time horizon, you can combine this index with indexes of
+other time horizon and store it.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The index in <code class="docutils literal notranslate"><span class="pre">.idx</span></code> file indexes the GRIB messages where as the <code class="docutils literal notranslate"><span class="pre">k_index</span></code>
+(kerchunk index), index the variables
+in those messages.</p>
+</div>
+<p>The table mentioned below is a <em>k_index</em> made from a single GRIB file.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">k_index for a single GRIB file</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 2.7%" />
+<col style="width: 5.4%" />
+<col style="width: 8.1%" />
+<col style="width: 5.4%" />
+<col style="width: 10.8%" />
+<col style="width: 8.1%" />
+<col style="width: 5.4%" />
+<col style="width: 10.8%" />
+<col style="width: 10.8%" />
+<col style="width: 16.2%" />
+<col style="width: 5.4%" />
+<col style="width: 5.4%" />
+<col style="width: 5.4%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>varname</p></th>
+<th class="head"><p>typeOfLevel</p></th>
+<th class="head"><p>stepType</p></th>
+<th class="head"><p>name</p></th>
+<th class="head"><p>step</p></th>
+<th class="head"><p>level</p></th>
+<th class="head"><p>time</p></th>
+<th class="head"><p>valid_time</p></th>
+<th class="head"><p>uri</p></th>
+<th class="head"><p>offset</p></th>
+<th class="head"><p>length</p></th>
+<th class="head"><p>inline_value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>gh</p></td>
+<td><p>isobaricInhPa</p></td>
+<td><p>instant</p></td>
+<td><p>Geopotential height</p></td>
+<td><p>0 days 06:00:00</p></td>
+<td><p>0.0</p></td>
+<td><p>2017-01-01 06:00:00</p></td>
+<td><p>2017-01-01 12:00:00</p></td>
+<td><p>s3://noaa-gefs-pds/gefs.20170101/06/gec00.t06z…</p></td>
+<td><p>0</p></td>
+<td><p>47493</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>t</p></td>
+<td><p>isobaricInhPa</p></td>
+<td><p>instant</p></td>
+<td><p>Temperature</p></td>
+<td><p>0 days 06:00:00</p></td>
+<td><p>0.0</p></td>
+<td><p>2017-01-01 06:00:00</p></td>
+<td><p>2017-01-01 12:00:00</p></td>
+<td><p>s3://noaa-gefs-pds/gefs.20170101/06/gec00.t06z…</p></td>
+<td><p>47493</p></td>
+<td><p>19438</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>r</p></td>
+<td><p>isobaricInhPa</p></td>
+<td><p>instant</p></td>
+<td><p>Relative humidity</p></td>
+<td><p>0 days 06:00:00</p></td>
+<td><p>0.0</p></td>
+<td><p>2017-01-01 06:00:00</p></td>
+<td><p>2017-01-01 12:00:00</p></td>
+<td><p>s3://noaa-gefs-pds/gefs.20170101/06/gec00.t06z…</p></td>
+<td><p>66931</p></td>
+<td><p>10835</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>u</p></td>
+<td><p>isobaricInhPa</p></td>
+<td><p>instant</p></td>
+<td><p>U component of wind</p></td>
+<td><p>0 days 06:00:00</p></td>
+<td><p>0.0</p></td>
+<td><p>2017-01-01 06:00:00</p></td>
+<td><p>2017-01-01 12:00:00</p></td>
+<td><p>s3://noaa-gefs-pds/gefs.20170101/06/gec00.t06z…</p></td>
+<td><p>77766</p></td>
+<td><p>22625</p></td>
+<td><p>None</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>v</p></td>
+<td><p>isobaricInhPa</p></td>
+<td><p>instant</p></td>
+<td><p>V component of wind</p></td>
+<td><p>0 days 06:00:00</p></td>
+<td><p>0.0</p></td>
+<td><p>2017-01-01 06:00:00</p></td>
+<td><p>2017-01-01 12:00:00</p></td>
+<td><p>s3://noaa-gefs-pds/gefs.20170101/06/gec00.t06z…</p></td>
+<td><p>100391</p></td>
+<td><p>20488</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p><em>What now</em></p>
+<p>After creating the k_index as per the desired duration, we will use the <code class="docutils literal notranslate"><span class="pre">DataTree</span></code> model
+from the <a class="reference external" href="https://xarray-datatree.readthedocs.io/en/latest/">xarray-datatree</a> to view a
+part(desired variables) or the whole of the aggregation, using the k_index. Below is a
+tree model made from an aggregation of GRIB files produced from <strong>GEFS</strong> model hosted
+in AWS S3 bucket.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>DataTree<span class="o">(</span><span class="s1">&#39;None&#39;</span>,<span class="w"> </span><span class="nv">parent</span><span class="o">=</span>None<span class="o">)</span>
+├──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;prmsl&#39;</span><span class="o">)</span>
+│<span class="w">   </span>│<span class="w">   </span>Dimensions:<span class="w">  </span><span class="o">()</span>
+│<span class="w">   </span>│<span class="w">   </span>Data<span class="w"> </span>variables:
+│<span class="w">   </span>│<span class="w">       </span>*empty*
+│<span class="w">   </span>│<span class="w">   </span>Attributes:
+│<span class="w">   </span>│<span class="w">       </span>name:<span class="w">     </span>Pressure<span class="w"> </span>reduced<span class="w"> </span>to<span class="w"> </span>MSL
+│<span class="w">   </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;instant&#39;</span><span class="o">)</span>
+│<span class="w">       </span>│<span class="w">   </span>Dimensions:<span class="w">  </span><span class="o">()</span>
+│<span class="w">       </span>│<span class="w">   </span>Data<span class="w"> </span>variables:
+│<span class="w">       </span>│<span class="w">       </span>*empty*
+│<span class="w">       </span>│<span class="w">   </span>Attributes:
+│<span class="w">       </span>│<span class="w">       </span>stepType:<span class="w">  </span>instant
+│<span class="w">       </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;meanSea&#39;</span><span class="o">)</span>
+│<span class="w">               </span>Dimensions:<span class="w">     </span><span class="o">(</span>latitude:<span class="w"> </span><span class="m">181</span>,<span class="w"> </span>longitude:<span class="w"> </span><span class="m">360</span>,<span class="w"> </span>time:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>step:<span class="w"> </span><span class="m">1</span>,
+│<span class="w">                                </span>model_horizons:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>valid_times:<span class="w"> </span><span class="m">237</span><span class="o">)</span>
+│<span class="w">               </span>Coordinates:
+│<span class="w">                 </span>*<span class="w"> </span>latitude<span class="w">    </span><span class="o">(</span>latitude<span class="o">)</span><span class="w"> </span>float64<span class="w"> </span>1kB<span class="w"> </span><span class="m">90</span>.0<span class="w"> </span><span class="m">89</span>.0<span class="w"> </span><span class="m">88</span>.0<span class="w"> </span><span class="m">87</span>.0<span class="w"> </span>...<span class="w"> </span>-88.0<span class="w"> </span>-89.0<span class="w"> </span>-90.0
+│<span class="w">                 </span>*<span class="w"> </span>longitude<span class="w">   </span><span class="o">(</span>longitude<span class="o">)</span><span class="w"> </span>float64<span class="w"> </span>3kB<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span><span class="m">1</span>.0<span class="w"> </span><span class="m">2</span>.0<span class="w"> </span><span class="m">3</span>.0<span class="w"> </span>...<span class="w"> </span><span class="m">357</span>.0<span class="w"> </span><span class="m">358</span>.0<span class="w"> </span><span class="m">359</span>.0
+│<span class="w">                   </span>meanSea<span class="w">     </span>float64<span class="w"> </span>8B<span class="w"> </span>...
+│<span class="w">                   </span>number<span class="w">      </span><span class="o">(</span>time,<span class="w"> </span>step<span class="o">)</span><span class="w"> </span>int64<span class="w"> </span>8B<span class="w"> </span>...
+│<span class="w">                   </span>step<span class="w">        </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times<span class="o">)</span><span class="w"> </span>timedelta64<span class="o">[</span>ns<span class="o">]</span><span class="w"> </span>2kB<span class="w"> </span>...
+│<span class="w">                   </span><span class="nb">time</span><span class="w">        </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times<span class="o">)</span><span class="w"> </span>datetime64<span class="o">[</span>ns<span class="o">]</span><span class="w"> </span>2kB<span class="w"> </span>...
+│<span class="w">                   </span>valid_time<span class="w">  </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times<span class="o">)</span><span class="w"> </span>datetime64<span class="o">[</span>ns<span class="o">]</span><span class="w"> </span>2kB<span class="w"> </span>...
+│<span class="w">               </span>Dimensions<span class="w"> </span>without<span class="w"> </span>coordinates:<span class="w"> </span>model_horizons,<span class="w"> </span>valid_times
+│<span class="w">               </span>Data<span class="w"> </span>variables:
+│<span class="w">                   </span>prmsl<span class="w">       </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times,<span class="w"> </span>latitude,<span class="w"> </span>longitude<span class="o">)</span><span class="w"> </span>float64<span class="w"> </span>124MB<span class="w"> </span>...
+│<span class="w">               </span>Attributes:
+│<span class="w">                   </span>typeOfLevel:<span class="w">  </span>meanSea
+└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;ulwrf&#39;</span><span class="o">)</span>
+<span class="w">    </span>│<span class="w">   </span>Dimensions:<span class="w">  </span><span class="o">()</span>
+<span class="w">    </span>│<span class="w">   </span>Data<span class="w"> </span>variables:
+<span class="w">    </span>│<span class="w">       </span>*empty*
+<span class="w">    </span>│<span class="w">   </span>Attributes:
+<span class="w">    </span>│<span class="w">       </span>name:<span class="w">     </span>Upward<span class="w"> </span>long-wave<span class="w"> </span>radiation<span class="w"> </span>flux
+<span class="w">    </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;avg&#39;</span><span class="o">)</span>
+<span class="w">        </span>│<span class="w">   </span>Dimensions:<span class="w">  </span><span class="o">()</span>
+<span class="w">        </span>│<span class="w">   </span>Data<span class="w"> </span>variables:
+<span class="w">        </span>│<span class="w">       </span>*empty*
+<span class="w">        </span>│<span class="w">   </span>Attributes:
+<span class="w">        </span>│<span class="w">       </span>stepType:<span class="w">  </span>avg
+<span class="w">        </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;nominalTop&#39;</span><span class="o">)</span>
+<span class="w">                </span>Dimensions:<span class="w">     </span><span class="o">(</span>latitude:<span class="w"> </span><span class="m">181</span>,<span class="w"> </span>longitude:<span class="w"> </span><span class="m">360</span>,<span class="w"> </span>time:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>step:<span class="w"> </span><span class="m">1</span>,
+<span class="w">                                    </span>model_horizons:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>valid_times:<span class="w"> </span><span class="m">237</span><span class="o">)</span>
+<span class="w">                </span>Coordinates:
+<span class="w">                    </span>*<span class="w"> </span>latitude<span class="w">    </span><span class="o">(</span>latitude<span class="o">)</span><span class="w"> </span>float64<span class="w"> </span>1kB<span class="w"> </span><span class="m">90</span>.0<span class="w"> </span><span class="m">89</span>.0<span class="w"> </span><span class="m">88</span>.0<span class="w"> </span><span class="m">87</span>.0<span class="w"> </span>...<span class="w"> </span>-88.0<span class="w"> </span>-89.0<span class="w"> </span>-90.0
+<span class="w">                    </span>*<span class="w"> </span>longitude<span class="w">   </span><span class="o">(</span>longitude<span class="o">)</span><span class="w"> </span>float64<span class="w"> </span>3kB<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span><span class="m">1</span>.0<span class="w"> </span><span class="m">2</span>.0<span class="w"> </span><span class="m">3</span>.0<span class="w"> </span>...<span class="w"> </span><span class="m">357</span>.0<span class="w"> </span><span class="m">358</span>.0<span class="w"> </span><span class="m">359</span>.0
+<span class="w">                    </span>nominalTop<span class="w">  </span>float64<span class="w"> </span>8B<span class="w"> </span>...
+<span class="w">                    </span>number<span class="w">      </span><span class="o">(</span>time,<span class="w"> </span>step<span class="o">)</span><span class="w"> </span>int64<span class="w"> </span>8B<span class="w"> </span>...
+<span class="w">                    </span>step<span class="w">        </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times<span class="o">)</span><span class="w"> </span>timedelta64<span class="o">[</span>ns<span class="o">]</span><span class="w"> </span>2kB<span class="w"> </span>...
+<span class="w">                    </span><span class="nb">time</span><span class="w">        </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times<span class="o">)</span><span class="w"> </span>datetime64<span class="o">[</span>ns<span class="o">]</span><span class="w"> </span>2kB<span class="w"> </span>...
+<span class="w">                    </span>valid_time<span class="w">  </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times<span class="o">)</span><span class="w"> </span>datetime64<span class="o">[</span>ns<span class="o">]</span><span class="w"> </span>2kB<span class="w"> </span>...
+<span class="w">                </span>Dimensions<span class="w"> </span>without<span class="w"> </span>coordinates:<span class="w"> </span>model_horizons,<span class="w"> </span>valid_times
+<span class="w">                </span>Data<span class="w"> </span>variables:
+<span class="w">                    </span>ulwrf<span class="w">       </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times,<span class="w"> </span>latitude,<span class="w"> </span>longitude<span class="o">)</span><span class="w"> </span>float64<span class="w"> </span>124MB<span class="w"> </span>...
+<span class="w">                </span>Attributes:
+<span class="w">                    </span>typeOfLevel:<span class="w">  </span>nominalTop
+</pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>For a full tutorial on this workflow, refer this <a class="reference external" href="https://projectpythia.org/kerchunk-cookbook/README.html">kerchunk cookbook</a>
+in <a class="reference external" href="https://projectpythia.org/">Project Pythia</a>.</p>
+</div>
+<script data-goatcounter="https://kerchunk.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reference.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="contributing.html" class="btn btn-neutral float-right" title="Contributing to kerchunk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Martin Durant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
