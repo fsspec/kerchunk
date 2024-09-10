@@ -3,11 +3,8 @@ import copy
 import io
 import logging
 from collections import defaultdict
-from typing import Iterable, List, Dict, Set, TYPE_CHECKING, Optional, Callable
+from typing import Iterable, List, Dict, Set
 import ujson
-
-if TYPE_CHECKING:
-    import pandas as pd
 
 import fsspec
 import zarr
@@ -17,7 +14,7 @@ import numpy as np
 from kerchunk.utils import class_factory, _encode_for_JSON
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
-from kerchunk._grib_idx import _map_grib_file_by_group
+from kerchunk._grib_idx import build_idx_grib_mapping, map_from_index
 
 
 try:
@@ -586,163 +583,3 @@ def correct_hrrr_subhf_step(group: Dict) -> Dict:
     group["refs"]["step/0"] = enocded_val
 
     return group
-
-
-def parse_grib_idx(
-    basename: str,
-    suffix: str = "idx",
-    storage_options: Optional[Dict] = None,
-    validate: bool = False,
-) -> "pd.DataFrame":
-    """
-    Parses per-message metadata from a grib2.idx file (text-type) to a dataframe of attributes
-
-    The function uses the idx file, extracts the metadata known as attrs (variables with
-    level and forecast time) from each idx entry and converts it into pandas
-    DataFrame. The dataframe is later to build the one-to-one mapping to the grib file metadata.
-
-    Parameters
-    ----------
-    basename : str
-        The base name is the full path to the grib file.
-    suffix : str
-        The suffix is the ending for the idx file.
-    storage_options: dict
-        For accessing the data, passed to filesystem
-    validate : bool
-        The validation if the metadata table has duplicate attrs.
-
-    Returns
-    -------
-    pandas.DataFrame : The data frame containing the results.
-    """
-    import pandas as pd
-
-    fs, _ = fsspec.core.url_to_fs(basename, **(storage_options or {}))
-
-    fname = f"{basename}.{suffix}"
-
-    baseinfo = fs.info(basename)
-
-    with fs.open(fname) as f:
-        result = pd.read_csv(f, header=None, names=["raw_data"])
-        result[["idx", "offset", "date", "attrs"]] = result["raw_data"].str.split(
-            ":", expand=True, n=3
-        )
-        result["offset"] = result["offset"].astype(int)
-        result["idx"] = result["idx"].astype(int)
-
-        # dropping the original single "raw_data" column after formatting
-        result.drop(columns=["raw_data"], inplace=True)
-
-    result = result.assign(
-        length=(
-            result.offset.shift(periods=-1, fill_value=baseinfo["size"]) - result.offset
-        ),
-        idx_uri=fname,
-        grib_uri=basename,
-    )
-
-    if validate and not result["attrs"].is_unique:
-        raise ValueError(f"Attribute mapping for grib file {basename} is not unique")
-
-    return result.set_index("idx")
-
-
-def build_idx_grib_mapping(
-    basename: str,
-    storage_options: Optional[Dict] = None,
-    suffix: str = "idx",
-    mapper: Optional[Callable] = None,
-    validate: bool = True,
-) -> "pd.DataFrame":
-    """
-    Mapping method combines the idx and grib metadata to make a mapping from
-    one to the other for a particular model horizon file. This should be generally
-    applicable to all forecasts for the given horizon.
-
-    Parameters
-    ----------
-    basename : str
-        the full path for the grib2 file
-    storage_options: dict
-        For accessing the data, passed to filesystem
-    suffix : str
-        The suffix is the ending for the idx file.
-    mapper : Optional[Callable]
-        the mapper if any to apply (used for hrrr subhf)
-    validate : bool
-        to assert the mapping is correct or fail before returning
-
-    Returns
-    -------
-    pandas.Dataframe : The merged dataframe with the results of the two operations
-    joined on the grib message (group) number
-    """
-    import pandas as pd
-
-    grib_file_index = _map_grib_file_by_group(
-        fname=basename,
-        mapper=mapper,
-        storage_options=storage_options,
-    )
-    idx_file_index = parse_grib_idx(
-        basename=basename, suffix=suffix, storage_options=storage_options
-    )
-    result = idx_file_index.merge(
-        # Left merge because the idx file should be authoritative - one record per grib message
-        grib_file_index,
-        on="idx",
-        how="left",
-        suffixes=("_idx", "_grib"),
-    )
-
-    if validate:
-        # If any of these conditions fail - inspect the result manually on colab.
-        all_match_offset = (
-            (result.loc[:, "offset_idx"] == result.loc[:, "offset_grib"])
-            | pd.isna(result.loc[:, "offset_grib"])
-            | ~pd.isna(result.loc[:, "inline_value"])
-        )
-        all_match_length = (
-            (result.loc[:, "length_idx"] == result.loc[:, "length_grib"])
-            | pd.isna(result.loc[:, "length_grib"])
-            | ~pd.isna(result.loc[:, "inline_value"])
-        )
-
-        if not all_match_offset.all():
-            vcs = all_match_offset.value_counts()
-            raise ValueError(
-                f"Failed to match message offset mapping for grib file {basename}: "
-                f"{vcs[True]} matched, {vcs[False]} didn't"
-            )
-
-        if not all_match_length.all():
-            vcs = all_match_length.value_counts()
-            raise ValueError(
-                f"Failed to match message offset mapping for grib file {basename}: "
-                f"{vcs[True]} matched, {vcs[False]} didn't"
-            )
-
-        if not result["attrs"].is_unique:
-            dups = result.loc[result["attrs"].duplicated(keep=False), :]
-            logger.warning(
-                "The idx attribute mapping for %s is not unique for %d variables: %s",
-                basename,
-                len(dups),
-                dups.varname.tolist(),
-            )
-
-        r_index = result.set_index(
-            ["varname", "typeOfLevel", "stepType", "level", "valid_time"]
-        )
-        if not r_index.index.is_unique:
-            dups = r_index.loc[r_index.index.duplicated(keep=False), :]
-            logger.warning(
-                "The grib hierarchy in %s is not unique for %d variables: %s",
-                basename,
-                len(dups),
-                dups.index.get_level_values("varname").tolist(),
-            )
-
-    return result
