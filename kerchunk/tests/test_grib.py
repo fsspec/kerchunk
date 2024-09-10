@@ -15,9 +15,9 @@ from kerchunk.grib2 import (
     GribToZarr,
     grib_tree,
     correct_hrrr_subhf_step,
-    parse_grib_idx,
 )
 from kerchunk._grib_idx import (
+    parse_grib_idx,
     extract_dataset_chunk_index,
     extract_datatree_chunk_index,
 )
