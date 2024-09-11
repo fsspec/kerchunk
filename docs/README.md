@@ -1,5 +1,6 @@
 To build docs:
 
-  - create an environment using the ``requirements.txt`` file in this directory
-  - run ``make`` in this directory
-  - find the docs is "./build/html", probably starting with file "index.html"
+  - `cd docs`
+  - create an environment using the `requirements.txt` file in this directory, e.g., `pip install -r requirements.txt`
+  - run `make html`
+  - open `/build/html/index.html`
