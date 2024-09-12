@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kerchunk.hdf4 &mdash; kerchunk  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+    <link rel="shortcut icon" href="../../_static/kerchunk.ico"/>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            kerchunk
+              <img src="../../_static/kerchunk.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../test_example.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../detail.html">Detailed description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cases.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../spec.html">References specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../beyond.html">Beyond Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nonzarr.html">Non-zarr uses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference_aggregation.html">Aggregation special cases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to kerchunk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../advanced.html">Advanced Topics</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">kerchunk</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">kerchunk.hdf4</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for kerchunk.hdf4</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">fsspec</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">ujson</span>
+
+
+<span class="n">decoders</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<span class="k">def</span> <span class="nf">reg</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+        <span class="n">decoders</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span>
+        <span class="k">return</span> <span class="n">func</span>
+
+    <span class="k">return</span> <span class="n">f</span>
+
+
+<div class="viewcode-block" id="HDF4ToZarr">
+<a class="viewcode-back" href="../../reference.html#kerchunk.hdf4.HDF4ToZarr">[docs]</a>
+<span class="k">class</span> <span class="nc">HDF4ToZarr</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Experimental: interface to HDF4 archival files&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="HDF4ToZarr.__init__">
+<a class="viewcode-back" href="../../reference.html#kerchunk.hdf4.HDF4ToZarr.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">,</span>
+        <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">st</span> <span class="o">=</span> <span class="n">storage_options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thresh</span> <span class="o">=</span> <span class="n">inline_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="ow">or</span> <span class="p">{}</span></div>
+
+
+    <span class="k">def</span> <span class="nf">read_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">read_ddh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;ndd&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="s2">&quot;next&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">)}</span>
+
+    <span class="k">def</span> <span class="nf">read_dd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&amp;</span> <span class="mh">0x4000</span><span class="p">:</span>
+            <span class="n">extended</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="mh">0x4000</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">extended</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">tags</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">no_data</span> <span class="o">=</span> <span class="n">tag</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;NULL&quot;</span><span class="p">}</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="s2">&quot;big&quot;</span><span class="p">))</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">no_data</span><span class="p">,</span>
+            <span class="s2">&quot;length&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span> <span class="o">*</span> <span class="n">no_data</span><span class="p">,</span>
+            <span class="s2">&quot;extended&quot;</span><span class="p">:</span> <span class="n">extended</span><span class="p">,</span>
+            <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="n">loc</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">ref</span><span class="p">,</span> <span class="n">info</span>
+
+    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
+        <span class="n">ident</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">,</span> <span class="n">__</span><span class="p">:</span> <span class="n">info</span>
+        <span class="k">return</span> <span class="n">decoders</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">ident</span><span class="p">)(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HDF4ToZarr.translate">
+<a class="viewcode-back" href="../../reference.html#kerchunk.hdf4.HDF4ToZarr.translate">[docs]</a>
+    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Scan and return references</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: if given, write to this as JSON</span>
+<span class="sd">        storage_options: to interpret filename</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        references</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">zarr</span>
+        <span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">ZlibCodec</span>
+
+        <span class="n">fo</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">st</span> <span class="ow">or</span> <span class="p">{}))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">open</span><span class="p">()</span>
+
+        <span class="c1"># magic header</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\x0e\x03\x13\x01</span><span class="s2">&quot;</span>
+
+        <span class="c1"># all the data descriptors in a linked list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">ddh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_ddh</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ddh</span><span class="p">[</span><span class="s2">&quot;ndd&quot;</span><span class="p">]):</span>
+                <span class="n">ident</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_dd</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[</span><span class="n">ident</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+            <span class="k">if</span> <span class="n">ddh</span><span class="p">[</span><span class="s2">&quot;next&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># &quot;finished&quot; sentry</span>
+                <span class="k">break</span>
+            <span class="c1"># or continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">ddh</span><span class="p">[</span><span class="s2">&quot;next&quot;</span><span class="p">])</span>
+
+        <span class="c1"># basic decode</span>
+        <span class="k">for</span> <span class="n">tag</span><span class="p">,</span> <span class="n">ref</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dec</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">)</span>
+
+        <span class="c1"># global attributes</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">),</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;VH&quot;</span> <span class="ow">and</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;names&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;VALUES&quot;</span><span class="p">:</span>
+                <span class="c1"># dtype = dtypes[info[&quot;types&quot;][0]]</span>
+                <span class="n">inf2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="s2">&quot;VS&quot;</span><span class="p">,</span> <span class="n">ref</span><span class="p">)]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">])</span>
+                <span class="c1"># NASA conventions</span>
+                <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;CoreMetadata.&quot;</span><span class="p">,</span> <span class="s2">&quot;ArchiveMetadata.&quot;</span><span class="p">)):</span>
+                    <span class="n">obj</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="s2">&quot;OBJECT&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                            <span class="n">obj</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="s2">&quot;VALUE&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                            <span class="n">attrs</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+
+        <span class="c1"># there should be only one root, and it&#39;s probably the last VG</span>
+        <span class="c1"># so maybe this loop isn&#39;t needed</span>
+        <span class="n">roots</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">children</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">child</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">),</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;VG&quot;</span><span class="p">:</span>
+                <span class="n">here</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">),</span> <span class="nb">set</span><span class="p">())</span>
+                <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]):</span>
+                    <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;VG&quot;</span><span class="p">:</span>
+                        <span class="n">children</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">t</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span>
+                        <span class="n">roots</span><span class="o">.</span><span class="n">discard</span><span class="p">((</span><span class="n">t</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span>
+                        <span class="n">here</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">t</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">tag</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+                    <span class="n">roots</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">))</span>
+
+        <span class="c1"># hierarchical output</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_descend_vg</span><span class="p">(</span><span class="o">*</span><span class="nb">list</span><span class="p">(</span><span class="n">roots</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">prot</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">protocol</span>
+        <span class="n">prot</span> <span class="o">=</span> <span class="n">prot</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prot</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="n">prot</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
+            <span class="s2">&quot;reference&quot;</span><span class="p">,</span>
+            <span class="n">fo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">,</span>
+            <span class="n">remote_protocol</span><span class="o">=</span><span class="n">prot</span><span class="p">,</span>
+            <span class="n">remote_options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">st</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">))</span>
+        <span class="n">refs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">compression</span> <span class="o">=</span> <span class="n">ZlibCodec</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">v</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">],</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;dtype&quot;</span><span class="p">],</span>
+                    <span class="n">chunks</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;chunks&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">]),</span>
+                    <span class="n">compressor</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span>
+                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="nb">dict</span><span class="p">(</span>
+                        <span class="n">_ARRAY_DIMENSIONS</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_x&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_y&quot;</span><span class="p">][:</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">])]</span>
+                        <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">v</span>
+                        <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">],</span>
+                        <span class="o">**</span><span class="p">{</span>
+                            <span class="n">i</span><span class="p">:</span> <span class="n">j</span>
+                            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;chunk&quot;</span><span class="p">,</span> <span class="s2">&quot;dims&quot;</span><span class="p">,</span> <span class="s2">&quot;dtype&quot;</span><span class="p">,</span> <span class="s2">&quot;refs&quot;</span><span class="p">}</span>
+                        <span class="p">},</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;refs&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+                    <span class="n">refs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">attrs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
+        <span class="n">g</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span>
+        <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_descend_vg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">):</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">)]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">],</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]):</span>
+            <span class="n">inf2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="n">t</span><span class="p">,</span> <span class="n">r</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;VG&quot;</span><span class="p">:</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_descend_vg</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">list</span><span class="p">(</span><span class="n">tmp</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]:</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span><span class="p">[</span><span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]]</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">tmp</span>
+            <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;VH&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;names&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;names&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;values&quot;</span><span class="p">:</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtypes</span><span class="p">[</span><span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;types&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+                    <span class="n">inf2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="s2">&quot;VS&quot;</span><span class="p">,</span> <span class="n">r</span><span class="p">)]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;str&quot;</span><span class="p">:</span>
+                        <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>  <span class="c1"># decode() ?</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;NT&quot;</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s2">&quot;dtype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;typ&quot;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;SD&quot;</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">out</span><span class="p">[</span><span class="s2">&quot;chunks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">_</span><span class="p">[</span><span class="s2">&quot;chunk_length&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;SDD&quot;</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inf2</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># NDGs contain same info as NT, SD and SDD</span>
+                <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">_dec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">):</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">info</span><span class="p">)</span> <span class="o">-</span> <span class="p">{</span><span class="s2">&quot;length&quot;</span><span class="p">,</span> <span class="s2">&quot;offset&quot;</span><span class="p">,</span> <span class="s2">&quot;extended&quot;</span><span class="p">,</span> <span class="s2">&quot;loc&quot;</span><span class="p">}:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;extended&quot;</span><span class="p">]:</span>
+                <span class="n">info</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_extended</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">info</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">info</span>
+
+    <span class="k">def</span> <span class="nf">_dec_extended</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ext_type</span> <span class="o">=</span> <span class="n">spec</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">ext_type</span> <span class="o">==</span> <span class="s2">&quot;CHUNKED&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_chunked</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">ext_type</span> <span class="o">==</span> <span class="s2">&quot;LINKED&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_linked_header</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">ext_type</span> <span class="o">==</span> <span class="s2">&quot;COMP&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_comp</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_dec_linked_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># get the bytes of a linked set - these will always be inlined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># blk_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># num_blk</span>
+        <span class="n">next_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="n">next_ref</span><span class="p">:</span>
+            <span class="n">next_ref</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_linked_block</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="s2">&quot;LINKED&quot;</span><span class="p">,</span> <span class="n">next_ref</span><span class="p">)])</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span> <span class="k">if</span> <span class="n">d</span><span class="p">])</span>
+        <span class="n">bits</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="s2">&quot;LINKED&quot;</span><span class="p">,</span> <span class="n">ref</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
+            <span class="n">bits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bits</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_dec_linked_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
+        <span class="n">next_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">refs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">((</span><span class="n">block</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">next_ref</span><span class="p">,</span> <span class="n">refs</span>
+
+    <span class="k">def</span> <span class="nf">_dec_chunked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># we want to turn the chunks table into references</span>
+        <span class="c1"># tag_head_len = self.read_int(4)</span>
+        <span class="c1"># version = self.f.read(1)[0]</span>
+        <span class="c1"># flag = self.read_int(4)</span>
+        <span class="c1"># elem_tot_len = self.read_int(4)</span>
+        <span class="c1"># chunk_size = self.read_int(4)</span>
+        <span class="c1"># nt_size = self.read_int(4)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">21</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">chk_tbl_tag</span> <span class="o">=</span> <span class="n">tags</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>  <span class="c1"># should be VH</span>
+        <span class="n">chk_tbl_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># sp_tab = tags[self.read_int(2)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># sp_ref</span>
+        <span class="n">ndims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+
+        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span>  <span class="c1"># we don&#39;t use these, could skip</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;flag&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+                <span class="s2">&quot;dim_length&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+                <span class="s2">&quot;chunk_length&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndims</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>  <span class="c1"># fill_value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># to be interpreted as a number later; but chunk table probs has no fill</span>
+        <span class="c1"># self.f.seek(12*ndims + 4, 1)  # if skipping</span>
+
+        <span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec</span><span class="p">(</span><span class="n">chk_tbl_tag</span><span class="p">,</span> <span class="n">chk_tbl_ref</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec</span><span class="p">(</span><span class="s2">&quot;VS&quot;</span><span class="p">,</span> <span class="n">chk_tbl_ref</span><span class="p">)[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span>  <span class="c1"># corresponding table</span>
+
+        <span class="c1"># header gives the field pattern for the rows of data, one per chunk</span>
+        <span class="c1"># maybe faster to use struct and iter than numpy, since we iterate anyway</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="p">[(</span><span class="sa">f</span><span class="s2">&quot;ind</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;u4&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndims</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">&quot;tag&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;u2&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;ref&quot;</span><span class="p">,</span> <span class="s2">&quot;&gt;u2&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;nvert&quot;</span><span class="p">])</span>
+        <span class="c1"># rows[&quot;tag&quot;] should always be 61 -&gt; CHUNK</span>
+        <span class="n">refs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="o">*</span><span class="n">ind</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+            <span class="c1"># maybe ind needs reversing since everything is FORTRAN</span>
+            <span class="n">chunk_tag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="s2">&quot;CHUNK&quot;</span><span class="p">,</span> <span class="n">ref</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">chunk_tag</span><span class="p">[</span><span class="s2">&quot;extended&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">chunk_tag</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
+                <span class="c1"># these are always COMP?</span>
+                <span class="n">ctype</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_extended</span><span class="p">()</span>
+                <span class="n">refs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">),</span> <span class="n">offset</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">ctype</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">refs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">),</span>
+                        <span class="n">chunk_tag</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">],</span>
+                        <span class="n">chunk_tag</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">],</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+        <span class="n">refs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">refs</span>
+
+    <span class="k">def</span> <span class="nf">_dec_comp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># version = self.read_int(2)  # always 0</span>
+        <span class="c1"># len_uncomp = self.read_int(4)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">data_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># model = self.read_int(2)  # always 0</span>
+        <span class="n">ctype</span> <span class="o">=</span> <span class="s2">&quot;DEFLATE&quot;</span>  <span class="c1"># comp[self.read_int(2)]</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">[(</span><span class="s2">&quot;COMPRESSED&quot;</span><span class="p">,</span> <span class="n">data_ref</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">ctype</span><span class="p">,</span> <span class="n">tag</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">],</span> <span class="n">tag</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span></div>
+
+
+
+<span class="nd">@reg</span><span class="p">(</span><span class="s2">&quot;NDG&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_dec_ndg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+    <span class="c1"># links together these things as a Data Group</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;tags&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">tags</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)],</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">],</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+
+<span class="nd">@reg</span><span class="p">(</span><span class="s2">&quot;SDD&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_dec_sdd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+    <span class="n">rank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rank</span><span class="p">)]</span>
+    <span class="n">data_tag</span> <span class="o">=</span> <span class="p">(</span><span class="n">tags</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)],</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">scale_tags</span> <span class="o">=</span> <span class="p">[(</span><span class="n">tags</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)],</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rank</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">_pl</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+
+
+<span class="nd">@reg</span><span class="p">(</span><span class="s2">&quot;VERSION&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_dec_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;major&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+        <span class="s2">&quot;minor&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+        <span class="s2">&quot;release&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
+        <span class="s2">&quot;string:&quot;</span><span class="p">:</span> <span class="n">_null_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;length&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()),</span>
+    <span class="p">}</span>
+
+
+<span class="nd">@reg</span><span class="p">(</span><span class="s2">&quot;VH&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_dec_vh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+    <span class="c1"># virtual group (&quot;table&quot;) header</span>
+    <span class="n">interface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">nvert</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">ivsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">nfields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfields</span><span class="p">)]</span>
+    <span class="n">isize</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfields</span><span class="p">)]</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfields</span><span class="p">)]</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfields</span><span class="p">)]</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfields</span><span class="p">)]</span>
+    <span class="n">namelen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">namelen</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="n">classlen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">classlen</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="n">ref</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">_pl</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+
+
+<span class="nd">@reg</span><span class="p">(</span><span class="s2">&quot;VG&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_dec_vg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+    <span class="n">nelt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="p">[</span><span class="n">tags</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelt</span><span class="p">)]</span>
+    <span class="n">refs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelt</span><span class="p">)]</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">read_int</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_pl</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+
+
+<span class="nd">@reg</span><span class="p">(</span><span class="s2">&quot;NT&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_dec_nt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">info</span><span class="p">):</span>
+    <span class="n">version</span><span class="p">,</span> <span class="n">typ</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="bp">cls</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+    <span class="n">typ</span> <span class="o">=</span> <span class="n">dtypes</span><span class="p">[</span><span class="n">typ</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">_pl</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+
+
+<span class="k">def</span> <span class="nf">_null_str</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\00</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_pl</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;info&quot;</span><span class="p">,</span> <span class="s2">&quot;f&quot;</span><span class="p">,</span> <span class="s2">&quot;self&quot;</span><span class="p">}}</span>
+
+
+<span class="c1"># hdf/src/htags.h</span>
+<span class="n">tags</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;NULL&quot;</span><span class="p">,</span>
+    <span class="mi">20</span><span class="p">:</span> <span class="s2">&quot;LINKED&quot;</span><span class="p">,</span>
+    <span class="mi">30</span><span class="p">:</span> <span class="s2">&quot;VERSION&quot;</span><span class="p">,</span>
+    <span class="mi">40</span><span class="p">:</span> <span class="s2">&quot;COMPRESSED&quot;</span><span class="p">,</span>
+    <span class="mi">50</span><span class="p">:</span> <span class="s2">&quot;VLINKED&quot;</span><span class="p">,</span>
+    <span class="mi">51</span><span class="p">:</span> <span class="s2">&quot;VLINKED_DATA&quot;</span><span class="p">,</span>
+    <span class="mi">60</span><span class="p">:</span> <span class="s2">&quot;CHUNKED&quot;</span><span class="p">,</span>
+    <span class="mi">61</span><span class="p">:</span> <span class="s2">&quot;CHUNK&quot;</span><span class="p">,</span>
+    <span class="mi">100</span><span class="p">:</span> <span class="s2">&quot;FID&quot;</span><span class="p">,</span>
+    <span class="mi">101</span><span class="p">:</span> <span class="s2">&quot;FD&quot;</span><span class="p">,</span>
+    <span class="mi">102</span><span class="p">:</span> <span class="s2">&quot;TID&quot;</span><span class="p">,</span>
+    <span class="mi">103</span><span class="p">:</span> <span class="s2">&quot;TD&quot;</span><span class="p">,</span>
+    <span class="mi">104</span><span class="p">:</span> <span class="s2">&quot;DIL&quot;</span><span class="p">,</span>
+    <span class="mi">105</span><span class="p">:</span> <span class="s2">&quot;DIA&quot;</span><span class="p">,</span>
+    <span class="mi">106</span><span class="p">:</span> <span class="s2">&quot;NT&quot;</span><span class="p">,</span>
+    <span class="mi">107</span><span class="p">:</span> <span class="s2">&quot;MT&quot;</span><span class="p">,</span>
+    <span class="mi">108</span><span class="p">:</span> <span class="s2">&quot;FREE&quot;</span><span class="p">,</span>
+    <span class="mi">200</span><span class="p">:</span> <span class="s2">&quot;ID8&quot;</span><span class="p">,</span>
+    <span class="mi">201</span><span class="p">:</span> <span class="s2">&quot;IP8&quot;</span><span class="p">,</span>
+    <span class="mi">202</span><span class="p">:</span> <span class="s2">&quot;RI8&quot;</span><span class="p">,</span>
+    <span class="mi">203</span><span class="p">:</span> <span class="s2">&quot;CI8&quot;</span><span class="p">,</span>
+    <span class="mi">204</span><span class="p">:</span> <span class="s2">&quot;II8&quot;</span><span class="p">,</span>
+    <span class="mi">300</span><span class="p">:</span> <span class="s2">&quot;ID&quot;</span><span class="p">,</span>
+    <span class="mi">301</span><span class="p">:</span> <span class="s2">&quot;LUT&quot;</span><span class="p">,</span>
+    <span class="mi">302</span><span class="p">:</span> <span class="s2">&quot;RI&quot;</span><span class="p">,</span>
+    <span class="mi">303</span><span class="p">:</span> <span class="s2">&quot;CI&quot;</span><span class="p">,</span>
+    <span class="mi">304</span><span class="p">:</span> <span class="s2">&quot;NRI&quot;</span><span class="p">,</span>
+    <span class="mi">306</span><span class="p">:</span> <span class="s2">&quot;RIG&quot;</span><span class="p">,</span>
+    <span class="mi">307</span><span class="p">:</span> <span class="s2">&quot;LD&quot;</span><span class="p">,</span>
+    <span class="mi">308</span><span class="p">:</span> <span class="s2">&quot;MD&quot;</span><span class="p">,</span>
+    <span class="mi">309</span><span class="p">:</span> <span class="s2">&quot;MA&quot;</span><span class="p">,</span>
+    <span class="mi">310</span><span class="p">:</span> <span class="s2">&quot;CCN&quot;</span><span class="p">,</span>
+    <span class="mi">311</span><span class="p">:</span> <span class="s2">&quot;CFM&quot;</span><span class="p">,</span>
+    <span class="mi">312</span><span class="p">:</span> <span class="s2">&quot;AR&quot;</span><span class="p">,</span>
+    <span class="mi">400</span><span class="p">:</span> <span class="s2">&quot;DRAW&quot;</span><span class="p">,</span>
+    <span class="mi">401</span><span class="p">:</span> <span class="s2">&quot;RUN&quot;</span><span class="p">,</span>
+    <span class="mi">500</span><span class="p">:</span> <span class="s2">&quot;XYP&quot;</span><span class="p">,</span>
+    <span class="mi">501</span><span class="p">:</span> <span class="s2">&quot;MTO&quot;</span><span class="p">,</span>
+    <span class="mi">602</span><span class="p">:</span> <span class="s2">&quot;T14&quot;</span><span class="p">,</span>
+    <span class="mi">603</span><span class="p">:</span> <span class="s2">&quot;T105&quot;</span><span class="p">,</span>
+    <span class="mi">700</span><span class="p">:</span> <span class="s2">&quot;SDG&quot;</span><span class="p">,</span>
+    <span class="mi">701</span><span class="p">:</span> <span class="s2">&quot;SDD&quot;</span><span class="p">,</span>
+    <span class="mi">702</span><span class="p">:</span> <span class="s2">&quot;SD&quot;</span><span class="p">,</span>
+    <span class="mi">703</span><span class="p">:</span> <span class="s2">&quot;SDS&quot;</span><span class="p">,</span>
+    <span class="mi">704</span><span class="p">:</span> <span class="s2">&quot;SDL&quot;</span><span class="p">,</span>
+    <span class="mi">705</span><span class="p">:</span> <span class="s2">&quot;SDU&quot;</span><span class="p">,</span>
+    <span class="mi">706</span><span class="p">:</span> <span class="s2">&quot;SDF&quot;</span><span class="p">,</span>
+    <span class="mi">707</span><span class="p">:</span> <span class="s2">&quot;SDM&quot;</span><span class="p">,</span>
+    <span class="mi">708</span><span class="p">:</span> <span class="s2">&quot;SDC&quot;</span><span class="p">,</span>
+    <span class="mi">709</span><span class="p">:</span> <span class="s2">&quot;SDT&quot;</span><span class="p">,</span>
+    <span class="mi">710</span><span class="p">:</span> <span class="s2">&quot;SDLNK&quot;</span><span class="p">,</span>
+    <span class="mi">720</span><span class="p">:</span> <span class="s2">&quot;NDG&quot;</span><span class="p">,</span>
+    <span class="mi">721</span><span class="p">:</span> <span class="s2">&quot;RESERVED&quot;</span><span class="p">,</span>
+    <span class="c1"># &quot;Objects of tag 721 are never actually written to the file. The tag is</span>
+    <span class="c1"># needed to make things easier mixing DFSD and SD style objects in the same file&quot;</span>
+    <span class="mi">731</span><span class="p">:</span> <span class="s2">&quot;CAL&quot;</span><span class="p">,</span>
+    <span class="mi">732</span><span class="p">:</span> <span class="s2">&quot;FV&quot;</span><span class="p">,</span>
+    <span class="mi">799</span><span class="p">:</span> <span class="s2">&quot;BREQ&quot;</span><span class="p">,</span>
+    <span class="mi">781</span><span class="p">:</span> <span class="s2">&quot;SDRAG&quot;</span><span class="p">,</span>
+    <span class="mi">780</span><span class="p">:</span> <span class="s2">&quot;EREQ&quot;</span><span class="p">,</span>
+    <span class="mi">1965</span><span class="p">:</span> <span class="s2">&quot;VG&quot;</span><span class="p">,</span>
+    <span class="mi">1962</span><span class="p">:</span> <span class="s2">&quot;VH&quot;</span><span class="p">,</span>
+    <span class="mi">1963</span><span class="p">:</span> <span class="s2">&quot;VS&quot;</span><span class="p">,</span>
+    <span class="mi">11</span><span class="p">:</span> <span class="s2">&quot;RLE&quot;</span><span class="p">,</span>
+    <span class="mi">12</span><span class="p">:</span> <span class="s2">&quot;IMCOMP&quot;</span><span class="p">,</span>
+    <span class="mi">13</span><span class="p">:</span> <span class="s2">&quot;JPEG&quot;</span><span class="p">,</span>
+    <span class="mi">14</span><span class="p">:</span> <span class="s2">&quot;GREYJPEG&quot;</span><span class="p">,</span>
+    <span class="mi">15</span><span class="p">:</span> <span class="s2">&quot;JPEG5&quot;</span><span class="p">,</span>
+    <span class="mi">16</span><span class="p">:</span> <span class="s2">&quot;GREYJPEG5&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">spec</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;LINKED&quot;</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;EXT&quot;</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;COMP&quot;</span><span class="p">,</span>
+    <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;VLINKED&quot;</span><span class="p">,</span>
+    <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;CHUNKED&quot;</span><span class="p">,</span>
+    <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;BUFFERED&quot;</span><span class="p">,</span>
+    <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;COMPRAS&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># hdf4/hdf/src/hntdefs.h</span>
+<span class="n">dtypes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;f4&quot;</span><span class="p">,</span>
+    <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;f8&quot;</span><span class="p">,</span>
+    <span class="mi">20</span><span class="p">:</span> <span class="s2">&quot;i1&quot;</span><span class="p">,</span>
+    <span class="mi">21</span><span class="p">:</span> <span class="s2">&quot;u1&quot;</span><span class="p">,</span>
+    <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">,</span>  <span class="c1"># special case, size given in header</span>
+    <span class="mi">22</span><span class="p">:</span> <span class="s2">&quot;&gt;i2&quot;</span><span class="p">,</span>
+    <span class="mi">23</span><span class="p">:</span> <span class="s2">&quot;&gt;u2&quot;</span><span class="p">,</span>
+    <span class="mi">24</span><span class="p">:</span> <span class="s2">&quot;&gt;i4&quot;</span><span class="p">,</span>
+    <span class="mi">25</span><span class="p">:</span> <span class="s2">&quot;&gt;u4&quot;</span><span class="p">,</span>
+    <span class="mi">26</span><span class="p">:</span> <span class="s2">&quot;&gt;i8&quot;</span><span class="p">,</span>
+    <span class="mi">27</span><span class="p">:</span> <span class="s2">&quot;&gt;u8&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># hdf4/hdf/src/hcomp.h</span>
+<span class="n">comp</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;NONE&quot;</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;RLE&quot;</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;NBIT&quot;</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;SKPHUFF&quot;</span><span class="p">,</span>
+    <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;DEFLATE&quot;</span><span class="p">,</span>  <span class="c1"># called deflate, but code says &quot;gzip&quot; and doc says &quot;GNU zip&quot;; actually zlib?</span>
+    <span class="c1"># see codecs.ZlibCodec</span>
+    <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;SZIP&quot;</span><span class="p">,</span>
+    <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;JPEG&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Martin Durant.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

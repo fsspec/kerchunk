@@ -69,6 +69,11 @@
 <li class="toctree-l4"><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr.translate"><code class="docutils literal notranslate"><span class="pre">NetCDF3ToZarr.translate()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#kerchunk.hdf4.HDF4ToZarr"><code class="docutils literal notranslate"><span class="pre">HDF4ToZarr</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#kerchunk.hdf4.HDF4ToZarr.__init__"><code class="docutils literal notranslate"><span class="pre">HDF4ToZarr.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#kerchunk.hdf4.HDF4ToZarr.translate"><code class="docutils literal notranslate"><span class="pre">HDF4ToZarr.translate()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#codecs">Codecs</a><ul>
@@ -90,6 +95,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#kerchunk.codecs.RecordArrayMember"><code class="docutils literal notranslate"><span class="pre">RecordArrayMember</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#kerchunk.codecs.RecordArrayMember.__init__"><code class="docutils literal notranslate"><span class="pre">RecordArrayMember.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#kerchunk.codecs.ZlibCodec"><code class="docutils literal notranslate"><span class="pre">ZlibCodec</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#kerchunk.codecs.ZlibCodec.__init__"><code class="docutils literal notranslate"><span class="pre">ZlibCodec.__init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -170,6 +179,9 @@
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="kerchunk.netCDF3.NetCDF3ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></a>(filename[, ...])</p></td>
 <td><p>Generate references for a netCDF3 file</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.hdf4.HDF4ToZarr" title="kerchunk.hdf4.HDF4ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.hdf4.HDF4ToZarr</span></code></a>(path[, ...])</p></td>
+<td><p>Experimental: interface to HDF4 archival files</p></td>
 </tr>
 </tbody>
 </table>
@@ -393,6 +405,44 @@ to customise how references get stored</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="kerchunk.hdf4.HDF4ToZarr">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kerchunk.hdf4.</span></span><span class="sig-name descname"><span class="pre">HDF4ToZarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inline_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf4.html#HDF4ToZarr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.hdf4.HDF4ToZarr" title="Link to this definition"></a></dt>
+<dd><p>Experimental: interface to HDF4 archival files</p>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf4.HDF4ToZarr.translate" title="kerchunk.hdf4.HDF4ToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([filename, storage_options])</p></td>
+<td><p>Scan and return references</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt class="sig sig-object py" id="kerchunk.hdf4.HDF4ToZarr.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inline_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf4.html#HDF4ToZarr.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.hdf4.HDF4ToZarr.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="kerchunk.hdf4.HDF4ToZarr.translate">
+<span class="sig-name descname"><span class="pre">translate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/hdf4.html#HDF4ToZarr.translate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.hdf4.HDF4ToZarr.translate" title="Link to this definition"></a></dt>
+<dd><p>Scan and return references</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>filename: if given, write to this as JSON</strong></dt><dd></dd>
+<dt><strong>storage_options: to interpret filename</strong></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>references</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="codecs">
 <h2>Codecs<a class="headerlink" href="#codecs" title="Link to this heading"></a></h2>
@@ -499,6 +549,16 @@ parsable by <code class="docutils literal notranslate"><span class="pre">np.dtyp
 </dd>
 </dl>
 </dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="kerchunk.codecs.ZlibCodec">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">kerchunk.codecs.</span></span><span class="sig-name descname"><span class="pre">ZlibCodec</span></span><a class="reference internal" href="_modules/kerchunk/codecs.html#ZlibCodec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.codecs.ZlibCodec" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="kerchunk.codecs.ZlibCodec.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/codecs.html#ZlibCodec.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.codecs.ZlibCodec.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 

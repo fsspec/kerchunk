@@ -10,6 +10,7 @@ File format backends
    kerchunk.fits.process_file
    kerchunk.tiff.tiff_to_zarr
    kerchunk.netCDF3.NetCDF3ToZarr
+   kerchunk.hdf4.HDF4ToZarr
 
 .. autoclass:: kerchunk.hdf.SingleHdf5ToZarr
     :members:
@@ -22,6 +23,9 @@ File format backends
 .. autofunction:: kerchunk.tiff.tiff_to_zarr
 
 .. autoclass:: kerchunk.netCDF3.NetCDF3ToZarr
+    :members: __init__, translate
+
+.. autoclass:: kerchunk.hdf4.HDF4ToZarr
     :members: __init__, translate
 
 Codecs
@@ -48,6 +52,9 @@ Codecs
     :members: __init__
 
 .. autoclass:: kerchunk.codecs.RecordArrayMember
+    :members: __init__
+
+.. autoclass:: kerchunk.codecs.ZlibCodec
     :members: __init__
 
 Combining
