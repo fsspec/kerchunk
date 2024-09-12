@@ -21,7 +21,8 @@ import kerchunk
 project = 'kerchunk'
 copyright = '2021, Martin Durant'
 author = 'Martin Durant'
-version = kerchunk.__version__
+# No easy way to get the latest version based on how the github pages are built/deployed, so leave it blank or else it will be 9999
+version = ''
 
 # -- General configuration ---------------------------------------------------
 
