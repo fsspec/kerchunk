@@ -14,7 +14,7 @@ import numpy as np
 from kerchunk.utils import class_factory, _encode_for_JSON
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
-from kerchunk._grib_idx import build_idx_grib_mapping, map_from_index
+from kerchunk._grib_idx import parse_grib_idx, build_idx_grib_mapping, map_from_index
 
 
 try:
@@ -590,6 +590,7 @@ __all__ = [
     "grib_tree",
     "correct_hrrr_subhf_step",
     "example_combine",
+    "parse_grib_idx",
     "build_idx_grib_mapping",
     "map_from_index",
 ]

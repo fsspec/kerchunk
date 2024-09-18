@@ -46,7 +46,7 @@ module as the necessary functions for building the index are exposed there.
 
 References
 ----------
-For more information on indexing the process check out this
+For more information on indexing, check out this
 link: https://github.com/asascience-open/nextgen-dmac/pull/57
 
 """
