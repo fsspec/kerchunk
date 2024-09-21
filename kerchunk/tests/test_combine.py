@@ -768,6 +768,29 @@ def test_inline(refs):
     assert ref.references["data/0.0.0"].startswith("base64:")
 
 
+def test_no_inline(refs):
+    """Ensure that inline_threshold=None disables MultiZarrToZarr checking file size."""
+    ds = xr.Dataset(dict(x=[1, 2, 3]))
+    ds["y"] = 3 + ds["x"]
+    store = fsspec.get_mapper("memory://zarr_store")
+    ds.to_zarr(store, mode="w", consolidated=False)
+    ref = kerchunk.utils.consolidate(store)
+    # This type of reference with no offset or total size is produced by
+    # kerchunk.zarr.single_zarr or equivalently ZarrToZarr.translate.
+    ref["refs"]["y/0"] = ["file:///tmp/some/data-that-shouldnt-be-accessed"]
+
+    mzz_no_inline = MultiZarrToZarr([ref], concat_dims=["x"], inline_threshold=None)
+    # Should be okay because inline_threshold=None so we don't check the file size
+    # in order to see if it should be inlined
+    mzz_no_inline.translate()
+
+    mzz_inline = MultiZarrToZarr([ref], concat_dims=["x"], inline_threshold=1)
+    with pytest.raises(FileNotFoundError):
+        # Should raise because we check the file size to see if it should be inlined,
+        # and the example was engineered so that the file doesn't exist.
+        mzz_inline.translate()
+
+
 def test_merge_vars():
     a = dict({"version": 1, "refs": dict({"item1": 1})})
     b = dict({"version": 1, "refs": dict({"item2": 2})})
