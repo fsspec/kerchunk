@@ -1,7 +1,7 @@
 import collections.abc
 import logging
 import re
-from typing import List
+from typing import List, Optional
 import warnings
 
 import fsspec
@@ -78,8 +78,9 @@ class MultiZarrToZarr:
     :param remote_protocol: str
         The protocol of the original data
     :param remote_options: dict
-    :param inline_threshold: int
-        Size below which binary blocks are included directly in the output
+    :param inline_threshold: int | None
+        Size below which binary blocks are included directly in the output. If None, no
+        inlining is done.
     :param preprocess: callable
         Acts on the references dict of all inputs before processing. See ``drop()``
         for an example.
@@ -106,7 +107,7 @@ class MultiZarrToZarr:
         target_options=None,
         remote_protocol=None,
         remote_options=None,
-        inline_threshold=500,
+        inline_threshold: Optional[int] = 500,
         preprocess=None,
         postprocess=None,
         out=None,
@@ -584,9 +585,13 @@ class MultiZarrToZarr:
                     key = key.rstrip(".")
 
                     ref = fs.references.get(fn)
-                    if isinstance(ref, list) and (
-                        (len(ref) > 1 and ref[2] < self.inline)
-                        or fs.info(fn)["size"] < self.inline
+                    if (
+                        self.inline is not None
+                        and isinstance(ref, list)
+                        and (
+                            (len(ref) > 1 and ref[2] < self.inline)
+                            or fs.info(fn)["size"] < self.inline
+                        )
                     ):
                         to_download[key] = fn
                     else:
