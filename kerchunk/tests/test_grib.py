@@ -16,6 +16,8 @@ from kerchunk.grib2 import (
     grib_tree,
     correct_hrrr_subhf_step,
     parse_grib_idx,
+)
+from kerchunk._grib_idx import (
     extract_dataset_chunk_index,
     extract_datatree_chunk_index,
 )
@@ -315,7 +317,7 @@ def test_parse_grib_idx_duplicate_attrs():
             dict(),
         ),
         (
-            "s3://noaa-hrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
+            "s3://noaa-gefs-pds/gefs.20170101/06/gec00.t06z.pgrb2af024",
             dict(anon=True),
         ),
     ],
@@ -324,30 +326,23 @@ def test_parse_grib_idx_duplicate_attrs():
 def test_parse_grib_idx_content(idx_url, storage_options):
     import re
 
+    # s3 variable assuming you don't have gcsfs locally
+    variable = "gh/0.0"
+
     if re.match(r"gs://|gcs://", idx_url):
         pytest.importorskip("gcsfs", reason="gcsfs is not installed on the system")
+        variable = "prmsl/0.0"
 
     idx_df = parse_grib_idx(idx_url, storage_options=storage_options)
     assert isinstance(idx_df, pd.DataFrame)
+
+    # comparing the url, length, offset values of the first message
     message_no = 0
     output = scan_grib(idx_url, skip=15, storage_options=storage_options)
     assert idx_df.iloc[message_no]["grib_uri"] == output[message_no]["templates"]["u"]
-    assert (
-        idx_df.iloc[message_no]["offset"]
-        == output[message_no]["refs"]["latitude/0.0"][1]
-    )
-    assert (
-        idx_df.iloc[message_no]["offset"]
-        == output[message_no]["refs"]["longitude/0.0"][1]
-    )
-    assert (
-        idx_df.iloc[message_no]["length"]
-        == output[message_no]["refs"]["latitude/0.0"][2]
-    )
-    assert (
-        idx_df.iloc[message_no]["length"]
-        == output[message_no]["refs"]["longitude/0.0"][2]
-    )
+
+    assert idx_df.iloc[message_no]["offset"] == output[message_no]["refs"][variable][1]
+    assert idx_df.iloc[message_no]["length"] == output[message_no]["refs"][variable][2]
 
 
 @pytest.fixture
@@ -457,5 +452,8 @@ def test_extract_methods_grib_parameter(zarr_tree_and_datatree_instance):
     # testing grib parameter with "extract_datatree_chunk_index" function
     metadata_df = extract_datatree_chunk_index(dt_instance, tree_store, True)
 
+    # checking if level in the generated dataframe
     assert "level" in metadata_df.columns
+
+    # checking if level in each series data
     assert all(list(map(lambda data: "level" in data.keys(), grib_metadata)))

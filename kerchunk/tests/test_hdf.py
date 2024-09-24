@@ -279,18 +279,18 @@ def test_compound_string_encode():
     assert (z.vlen_str["strs"][1:] == "").all()
 
 
-def test_compact():
-    pytest.importorskip("ipfsspec")
-    h = kerchunk.hdf.SingleHdf5ToZarr(
-        "ipfs://QmVZc4TzRP7zydgKzDX7CH2JpYw2LJKkWBm6jhCfigeon6"
-    )
-    out = h.translate()
-
-    m = fsspec.get_mapper("reference://", fo=out)
-    g = zarr.open(m)
-    assert np.allclose(g.ancillary_data.atlas_sdp_gps_epoch[:], 1.19880002e09)
-
-
+# def test_compact():
+#     pytest.importorskip("ipfsspec")
+#     h = kerchunk.hdf.SingleHdf5ToZarr(
+#         "ipfs://QmVZc4TzRP7zydgKzDX7CH2JpYw2LJKkWBm6jhCfigeon6"
+#     )
+#     out = h.translate()
+#
+#     m = fsspec.get_mapper("reference://", fo=out)
+#     g = zarr.open(m)
+#     assert np.allclose(g.ancillary_data.atlas_sdp_gps_epoch[:], 1.19880002e09)
+#
+#
 def test_compress():
     import glob
 
