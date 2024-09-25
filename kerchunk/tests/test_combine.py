@@ -769,7 +769,7 @@ def test_inline(refs):
 
 
 def test_no_inline(refs):
-    """Ensure that inline_threshold=None disables MultiZarrToZarr checking file size."""
+    """Ensure that inline_threshold=0 disables MultiZarrToZarr checking file size."""
     ds = xr.Dataset(dict(x=[1, 2, 3]))
     ds["y"] = 3 + ds["x"]
     store = fsspec.get_mapper("memory://zarr_store")
@@ -779,7 +779,7 @@ def test_no_inline(refs):
     # kerchunk.zarr.single_zarr or equivalently ZarrToZarr.translate.
     ref["refs"]["y/0"] = ["file:///tmp/some/data-that-shouldnt-be-accessed"]
 
-    mzz_no_inline = MultiZarrToZarr([ref], concat_dims=["x"], inline_threshold=None)
+    mzz_no_inline = MultiZarrToZarr([ref], concat_dims=["x"], inline_threshold=0)
     # Should be okay because inline_threshold=None so we don't check the file size
     # in order to see if it should be inlined
     mzz_no_inline.translate()
