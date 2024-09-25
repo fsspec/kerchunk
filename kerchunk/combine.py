@@ -94,7 +94,7 @@ class MultiZarrToZarr:
         If True, will load the references specified by out and add to them rather than starting
         from scratch. Assumes the same coordinates are being concatenated.
     """
-    
+
     inline: int
 
     def __init__(
