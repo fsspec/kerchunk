@@ -1,7 +1,7 @@
 import collections.abc
 import logging
 import re
-from typing import List, Optional
+from typing import List
 import warnings
 
 import fsspec
@@ -78,9 +78,8 @@ class MultiZarrToZarr:
     :param remote_protocol: str
         The protocol of the original data
     :param remote_options: dict
-    :param inline_threshold: int | None
-        Size below which binary blocks are included directly in the output. If None, no
-        inlining is done.
+    :param inline_threshold: int
+        Size below which binary blocks are included directly in the output
     :param preprocess: callable
         Acts on the references dict of all inputs before processing. See ``drop()``
         for an example.
@@ -95,6 +94,8 @@ class MultiZarrToZarr:
         If True, will load the references specified by out and add to them rather than starting
         from scratch. Assumes the same coordinates are being concatenated.
     """
+    
+    inline: int
 
     def __init__(
         self,
@@ -107,7 +108,7 @@ class MultiZarrToZarr:
         target_options=None,
         remote_protocol=None,
         remote_options=None,
-        inline_threshold: Optional[int] = 500,
+        inline_threshold: int = 500,
         preprocess=None,
         postprocess=None,
         out=None,
@@ -586,7 +587,7 @@ class MultiZarrToZarr:
 
                     ref = fs.references.get(fn)
                     if (
-                        self.inline is not None
+                        self.inline > 0
                         and isinstance(ref, list)
                         and (
                             (len(ref) > 1 and ref[2] < self.inline)
