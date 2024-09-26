@@ -105,9 +105,12 @@ class HDF4ToZarr:
                 # dtype = dtypes[info["types"][0]]
                 inf2 = self.tags[("VS", ref)]
                 self.f.seek(inf2["offset"])
-                data = self.f.read(inf2["length"])
+                # remove zero padding
+                data = self.f.read(inf2["length"]).split(b"\x00", 1)[0]
                 # NASA conventions
-                if info["name"].startswith(("CoreMetadata.", "ArchiveMetadata.")):
+                if info["name"].startswith(
+                    ("CoreMetadata.", "ArchiveMetadata.", "StructMetadata.")
+                ):
                     obj = None
                     for line in data.decode().split("\n"):
                         if "OBJECT" in line:
@@ -132,7 +135,7 @@ class HDF4ToZarr:
                     roots.add((tag, ref))
 
         # hierarchical output
-        output = self._descend_vg(*list(roots)[0])
+        output = self._descend_vg(*sorted(roots, key=lambda t: t[1])[-1])
         prot = fo.fs.protocol
         prot = prot[0] if isinstance(prot, tuple) else prot
         fs = fsspec.filesystem(
@@ -167,9 +170,14 @@ class HDF4ToZarr:
                     )
                 )
                 for r in v.get("refs", []):
+                    if r[0] == "DEFLATE":
+                        continue
                     refs[f"{k}/{r[0]}"] = [self.path, r[1], r[2]]
             else:
-                attrs[k] = v
+                if not k.startswith(
+                    ("CoreMetadata.", "ArchiveMetadata.", "StructMetadata.")
+                ):
+                    attrs[k] = v
         fs.references.update(refs)
         g.attrs.update(attrs)
 
@@ -185,7 +193,7 @@ class HDF4ToZarr:
             inf2 = self.tags[(t, r)]
             if t == "VG":
                 tmp = self._descend_vg(t, r)
-                if list(tmp)[0] == inf2["name"]:
+                if tmp and list(tmp)[0] == inf2["name"]:
                     tmp = tmp[inf2["name"]]
                 out[inf2["name"]] = tmp
             elif t == "VH":
@@ -196,19 +204,27 @@ class HDF4ToZarr:
                     self.f.seek(inf2["offset"])
                     data = self.f.read(inf2["length"])
                     if dtype == "str":
-                        out[name] = data.decode().lstrip('"').rstrip('"')  # decode() ?
+                        out[name] = (
+                            data.split(b"\x00", 1)[0].decode().lstrip('"').rstrip('"')
+                        )  # decode() ?
                     else:
                         out[name] = np.frombuffer(data, dtype)[0]
             elif t == "NT":
                 out["dtype"] = inf2["typ"]
             elif t == "SD":
-                out["refs"] = inf2["data"][:-1]
-                out["chunks"] = [_["chunk_length"] for _ in inf2["data"][-1]]
+                if isinstance(inf2["data"][-1], (tuple, list)):
+                    out["refs"] = inf2["data"][:-1]
+                    out["chunks"] = [_["chunk_length"] for _ in inf2["data"][-1]]
+                else:
+                    out["refs"] = [inf2["data"]]
+                    out["chunks"] = True
             elif t == "SDD":
                 out["dims"] = inf2["dims"]
-            else:
-                # NDGs contain same info as NT, SD and SDD
-                pass
+            elif t == "NDG":
+                out.setdefault("extra", []).append(_dec_ndg(self, inf2))
+        if out.get("chunks") is True:
+            out["chunks"] = out["dims"]
+            out["refs"] = [".".join(["0"] * len(out["dims"]))] + out["refs"]
         return out
 
     def _dec(self, tag, ref):
@@ -326,13 +342,14 @@ class HDF4ToZarr:
 
 @reg("NDG")
 def _dec_ndg(self, info):
-    # links together these things as a Data Group
-    return {
-        "tags": [
-            (tags[self.read_int(2)], self.read_int(2))
-            for _ in range(0, info["length"], 4)
-        ]
-    }
+    if "tags" not in info:
+        return {
+            "tags": [
+                (tags[self.read_int(2)], self.read_int(2))
+                for _ in range(0, info["length"], 4)
+            ]
+        }
+    return info["tags"]
 
 
 @reg("SDD")
@@ -365,11 +382,14 @@ def _dec_vh(self, info):
     isize = [self.read_int(2) for _ in range(nfields)]
     offsets = [self.read_int(2) for _ in range(nfields)]
     order = [self.read_int(2) for _ in range(nfields)]
-    names = [self.f.read(self.read_int(2)).decode() for _ in range(nfields)]
+    names = [
+        self.f.read(self.read_int(2)).split(b"\x00", 1)[0].decode()
+        for _ in range(nfields)
+    ]
     namelen = self.read_int(2)
-    name = self.f.read(namelen).decode()
+    name = self.f.read(namelen).split(b"\x00", 1)[0].decode()
     classlen = self.read_int(2)
-    cls = self.f.read(classlen).decode()
+    cls = self.f.read(classlen).split(b"\x00", 1)[0].decode()
     ref = (self.read_int(2), self.read_int(2))
     return _pl(locals())
 
@@ -379,8 +399,8 @@ def _dec_vg(self, info):
     nelt = self.read_int(2)
     tag = [tags[self.read_int(2)] for _ in range(nelt)]
     refs = [self.read_int(2) for _ in range(nelt)]
-    name = self.f.read(self.read_int(2)).decode()
-    cls = self.f.read(self.read_int(2)).decode()
+    name = self.f.read(self.read_int(2)).split(b"\x00", 1)[0].decode()
+    cls = self.f.read(self.read_int(2)).split(b"\x00", 1)[0].decode()
     return _pl(locals())
 
 
