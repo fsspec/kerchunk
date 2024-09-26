@@ -95,6 +95,8 @@ class MultiZarrToZarr:
         from scratch. Assumes the same coordinates are being concatenated.
     """
 
+    inline: int
+
     def __init__(
         self,
         path,
@@ -106,7 +108,7 @@ class MultiZarrToZarr:
         target_options=None,
         remote_protocol=None,
         remote_options=None,
-        inline_threshold=500,
+        inline_threshold: int = 500,
         preprocess=None,
         postprocess=None,
         out=None,
@@ -584,9 +586,13 @@ class MultiZarrToZarr:
                     key = key.rstrip(".")
 
                     ref = fs.references.get(fn)
-                    if isinstance(ref, list) and (
-                        (len(ref) > 1 and ref[2] < self.inline)
-                        or fs.info(fn)["size"] < self.inline
+                    if (
+                        self.inline > 0
+                        and isinstance(ref, list)
+                        and (
+                            (len(ref) > 1 and ref[2] < self.inline)
+                            or fs.info(fn)["size"] < self.inline
+                        )
                     ):
                         to_download[key] = fn
                     else:
