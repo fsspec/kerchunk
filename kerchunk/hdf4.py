@@ -221,10 +221,13 @@ class HDF4ToZarr:
             elif t == "SDD":
                 out["dims"] = inf2["dims"]
             elif t == "NDG":
-                out.setdefault("extra", []).append(_dec_ndg(self, inf2))
+                pass  # out.setdefault("extra", []).append(_dec_ndg(self, inf2))
         if out.get("chunks") is True:
             out["chunks"] = out["dims"]
-            out["refs"] = [".".join(["0"] * len(out["dims"]))] + out["refs"]
+            out["refs"] = [
+                [".".join(["0"] * len(out["dims"]))]
+                + [out["refs"][0][1], out["refs"][0][2], out["refs"][0][0]]
+            ]
         return out
 
     def _dec(self, tag, ref):
