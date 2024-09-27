@@ -12,6 +12,9 @@ dependencies:
   - h5py
   - pandas
   - cfgrib
+  # Temporary workaround for #508
+  - eccodes <2.38
+
   - cftime
   - astropy
   - requests

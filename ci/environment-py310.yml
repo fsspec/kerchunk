@@ -13,6 +13,9 @@ dependencies:
   - pandas
   - cfgrib
   - cftime
+  # Temporary workaround for #508
+  - eccodes <2.38
+
   - astropy
   - requests
   - aiohttp
