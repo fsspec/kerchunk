@@ -274,11 +274,12 @@ def scan_grib(
                     )
                     continue
 
-                if idx:
+                if idx and coord in ["time", "valid_time"]:
                     line = ""
                     if coord == "time":
                         time = dt.datetime.fromtimestamp(x, tz=pytz.UTC)
                         line = f"{count}:{offset}:d={time.strftime('%Y%m%d%H')}:{varName.upper()}"
+                        count += 1
                     elif coord == "valid_time":
                         valid_time = dt.datetime.fromtimestamp(x, tz=pytz.UTC)
                         diff = int((valid_time - time).total_seconds() / 3600)
