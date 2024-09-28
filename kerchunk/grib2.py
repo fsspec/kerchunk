@@ -5,6 +5,8 @@ import logging
 from collections import defaultdict
 from typing import Iterable, List, Dict, Set
 import ujson
+import datetime as dt
+import pytz
 
 import fsspec
 import zarr
@@ -112,6 +114,7 @@ def scan_grib(
     inline_threshold=100,
     skip=0,
     filter={},
+    idx=False,
 ) -> List[Dict]:
     """
     Generate references for a GRIB2 file
@@ -148,6 +151,10 @@ def scan_grib(
     # valid_time is added if "time" and "step" are present in time_dims
     # These are present by default
     # TIME_DIMS = ["step", "time", "valid_time"]
+
+    count = 1
+    if idx:
+        idx_f = open(f"{url.split('/')[-1]}.idx", "a")
 
     out = []
     with fsspec.open(url, "rb", **storage_options) as f:
@@ -267,6 +274,17 @@ def scan_grib(
                     )
                     continue
 
+                if idx:
+                    line = ""
+                    if coord == "time":
+                        time = dt.datetime.fromtimestamp(x, tz=pytz.UTC)
+                        line = f"{count}:{offset}:d={time.strftime('%Y%m%d%H')}:{varName.upper()}"
+                    elif coord == "valid_time":
+                        valid_time = dt.datetime.fromtimestamp(x, tz=pytz.UTC)
+                        diff = int((valid_time - time).total_seconds() / 3600)
+                        line += f":{diff} hour fcst\n"
+                    idx_f.write(line)
+
                 if x is None:
                     continue
                 coordinates.append(coord)
@@ -318,6 +336,8 @@ def scan_grib(
                     "templates": {"u": url},
                 }
             )
+    if idx:
+        idx_f.close()
     logger.debug("Done")
     return out
 
