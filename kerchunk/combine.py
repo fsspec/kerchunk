@@ -203,7 +203,7 @@ class MultiZarrToZarr:
         ds = xr.open_dataset(
             fs.get_mapper(), engine="zarr", backend_kwargs={"consolidated": False}
         )
-        z = zarr.open(fs.get_mapper())
+        z = zarr.open(fs.get_mapper(), zarr_version=2)
         mzz = MultiZarrToZarr(
             path,
             out=fs.references,  # dict or parquet/lazy
@@ -360,7 +360,7 @@ class MultiZarrToZarr:
                 fs._dircache_from_items()
 
             logger.debug("First pass: %s", i)
-            z = zarr.open_group(fs.get_mapper(""))
+            z = zarr.open_group(fs.get_mapper(""), zarr_version=2)
             for var in self.concat_dims:
                 value = self._get_value(i, z, var, fn=self._paths[i])
                 if isinstance(value, np.ndarray):
@@ -387,7 +387,7 @@ class MultiZarrToZarr:
         """
         kv = {}
         store = zarr.storage.KVStore(kv)
-        group = zarr.open(store)
+        group = zarr.open(store, zarr_version=2)
         m = self.fss[0].get_mapper("")
         z = zarr.open(m)
         for k, v in self.coos.items():
@@ -461,7 +461,7 @@ class MultiZarrToZarr:
         for i, fs in enumerate(self.fss):
             to_download = {}
             m = fs.get_mapper("")
-            z = zarr.open(m)
+            z = zarr.open(m, zarr_version=2)
 
             if no_deps is None:
                 # done first time only

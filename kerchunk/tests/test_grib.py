@@ -119,7 +119,7 @@ def test_grib_tree():
     corrected_msg_groups = [correct_hrrr_subhf_step(msg) for msg in scanned_msg_groups]
     result = grib_tree(corrected_msg_groups)
     fs = fsspec.filesystem("reference", fo=result)
-    zg = zarr.open_group(fs.get_mapper(""))
+    zg = zarr.open_group(fs.get_mapper(""), zarr_version=2)
     assert isinstance(zg["refc/instant/atmosphere/refc"], zarr.Array)
     assert isinstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
     assert set(zg["vbdsf/avg/surface"].attrs["coordinates"].split()) == set(
@@ -147,14 +147,14 @@ def test_correct_hrrr_subhf_group_step():
         scanned_msgs = ujson.load(fobj)
 
     original_zg = [
-        zarr.open_group(fsspec.filesystem("reference", fo=val).get_mapper(""))
+        zarr.open_group(fsspec.filesystem("reference", fo=val).get_mapper(""), zarr_version=2)
         for val in scanned_msgs
     ]
 
     corrected_msgs = [correct_hrrr_subhf_step(msg) for msg in scanned_msgs]
 
     corrected_zg = [
-        zarr.open_group(fsspec.filesystem("reference", fo=val).get_mapper(""))
+        zarr.open_group(fsspec.filesystem("reference", fo=val).get_mapper(""), zarr_version=2)
         for val in corrected_msgs
     ]
 
@@ -177,7 +177,7 @@ def test_hrrr_subhf_corrected_grib_tree():
 
     corrected_msgs = [correct_hrrr_subhf_step(msg) for msg in scanned_msgs]
     merged = grib_tree(corrected_msgs)
-    zg = zarr.open_group(fsspec.filesystem("reference", fo=merged).get_mapper(""))
+    zg = zarr.open_group(fsspec.filesystem("reference", fo=merged).get_mapper(""), zarr_version=2)
     # Check the values and shape of the time coordinates
     assert zg.u.instant.heightAboveGround.step[:].tolist() == [
         0.0,
@@ -220,7 +220,7 @@ def test_hrrr_sfcf_grib_tree():
     with open(fpath, "rb") as fobj:
         scanned_msgs = ujson.load(fobj)
     merged = grib_tree(scanned_msgs)
-    zg = zarr.open_group(fsspec.filesystem("reference", fo=merged).get_mapper(""))
+    zg = zarr.open_group(fsspec.filesystem("reference", fo=merged).get_mapper(""), zarr_version=2)
     # Check the heightAboveGround level shape of the time coordinates
     assert zg.u.instant.heightAboveGround.heightAboveGround[()] == 80.0
     assert zg.u.instant.heightAboveGround.heightAboveGround.shape == ()

@@ -51,7 +51,7 @@ def test_success(tmpdir, arrays, chunks, axis, m):
     refs = []
     for i, x in enumerate(arrays):
         fn = f"{tmpdir}/out{i}.zarr"
-        g = zarr.open(fn)
+        g = zarr.open(fn, zarr_version=2)
         g.create_dataset("x", data=x, chunks=chunks)
         fns.append(fn)
         ref = kerchunk.zarr.single_zarr(fn, inline=0)
@@ -62,7 +62,7 @@ def test_success(tmpdir, arrays, chunks, axis, m):
     )
 
     mapper = fsspec.get_mapper("reference://", fo=out)
-    g = zarr.open(mapper)
+    g = zarr.open(mapper, zarr_version=2)
     assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
 
     try:
@@ -76,7 +76,7 @@ def test_success(tmpdir, arrays, chunks, axis, m):
         remote_protocol="file",
         skip_instance_cache=True,
     )
-    g = zarr.open(mapper)
+    g = zarr.open(mapper, zarr_version=2)
     assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
 
     kerchunk.df.refs_to_dataframe(out, "memory://out.parq", record_size=1)
@@ -86,7 +86,7 @@ def test_success(tmpdir, arrays, chunks, axis, m):
         remote_protocol="file",
         skip_instance_cache=True,
     )
-    g = zarr.open(mapper)
+    g = zarr.open(mapper, zarr_version=2)
     assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
 
 
@@ -95,9 +95,9 @@ def test_fail_chunks(tmpdir):
     fn2 = f"{tmpdir}/out2.zarr"
     x1 = np.arange(10)
     x2 = np.arange(10, 20)
-    g = zarr.open(fn1)
+    g = zarr.open(fn1, zarr_version=2)
     g.create_dataset("x", data=x1, chunks=(2,))
-    g = zarr.open(fn2)
+    g = zarr.open(fn2, zarr_version=2)
     g.create_dataset("x", data=x2, chunks=(3,))
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
@@ -112,9 +112,9 @@ def test_fail_shape(tmpdir):
     fn2 = f"{tmpdir}/out2.zarr"
     x1 = np.arange(12).reshape(6, 2)
     x2 = np.arange(12, 24)
-    g = zarr.open(fn1)
+    g = zarr.open(fn1, zarr_version=2)
     g.create_dataset("x", data=x1, chunks=(2,))
-    g = zarr.open(fn2)
+    g = zarr.open(fn2, zarr_version=2)
     g.create_dataset("x", data=x2, chunks=(2,))
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
@@ -129,9 +129,9 @@ def test_fail_irregular_chunk_boundaries(tmpdir):
     fn2 = f"{tmpdir}/out2.zarr"
     x1 = np.arange(10)
     x2 = np.arange(10, 24)
-    g = zarr.open(fn1)
+    g = zarr.open(fn1, zarr_version=2)
     g.create_dataset("x", data=x1, chunks=(4,))
-    g = zarr.open(fn2)
+    g = zarr.open(fn2, zarr_version=2)
     g.create_dataset("x", data=x2, chunks=(4,))
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)

@@ -133,14 +133,14 @@ xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk2.zarr")
 
 # simple time arrays - xarray can't make these!
 m = fs.get_mapper("time1.zarr")
-z = zarr.open(m, mode="w")
+z = zarr.open(m, mode="w", zarr_version=2)
 ar = z.create_dataset("time", data=np.array([1], dtype="M8[s]"))
 ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
 ar = z.create_dataset("data", data=arr)
 ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
 
 m = fs.get_mapper("time2.zarr")
-z = zarr.open(m, mode="w")
+z = zarr.open(m, mode="w", zarr_version=2)
 ar = z.create_dataset("time", data=np.array([2], dtype="M8[s]"))
 ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
 ar = z.create_dataset("data", data=arr)
@@ -272,7 +272,7 @@ def test_get_coos(refs, selector, expected):
     mzz.first_pass()
     assert mzz.coos["time"].tolist() == expected
     mzz.store_coords()
-    g = zarr.open(mzz.out)
+    g = zarr.open(mzz.out, zarr_version=2)
     assert g["time"][:].tolist() == expected
     assert dict(g.attrs)
 

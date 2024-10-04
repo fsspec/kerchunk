@@ -16,7 +16,7 @@ def test_one():
     fn = files[0]
     out = kerchunk.tiff.tiff_to_zarr(fn)
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m)
+    z = zarr.open(m, zarr_version=2)
     assert list(z) == ["0", "1", "2"]
     assert z.attrs["multiscales"] == [
         {
@@ -34,7 +34,7 @@ def test_coord():
     fn = files[0]
     out = kerchunk.tiff.tiff_to_zarr(fn)
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m)  # highest res is the one xarray picks
+    z = zarr.open(m, zarr_version=2)  # highest res is the one xarray picks
     out = kerchunk.tiff.generate_coords(z.attrs, z[0].shape)
 
     ds = xr.open_dataset(fn)

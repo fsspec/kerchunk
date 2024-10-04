@@ -79,13 +79,13 @@ def test_inline_array():
     assert "data/1" not in out2
     assert json.loads(out2["data/.zattrs"]) == json.loads(refs["data/.zattrs"])
     fs = fsspec.filesystem("reference", fo=out2)
-    g = zarr.open(fs.get_mapper())
+    g = zarr.open(fs.get_mapper(), zarr_version=2)
     assert g.data[:].tolist() == [1, 2]
 
     out3 = kerchunk.utils.inline_array(refs, threshold=1000)  # inlines because of size
     assert "data/1" not in out3
     fs = fsspec.filesystem("reference", fo=out3)
-    g = zarr.open(fs.get_mapper())
+    g = zarr.open(fs.get_mapper(), zarr_version=2)
     assert g.data[:].tolist() == [1, 2]
 
 
@@ -99,7 +99,7 @@ def test_json():
 @pytest.mark.parametrize("chunks", [[10, 10], [5, 10]])
 def test_subchunk_exact(m, chunks):
     store = m.get_mapper("test.zarr")
-    g = zarr.open_group(store, mode="w")
+    g = zarr.open_group(store, mode="w", zarr_version=2)
     data = np.arange(100).reshape(10, 10)
     arr = g.create_dataset("data", data=data, chunks=chunks, compression=None)
     ref = kerchunk.zarr.single_zarr("memory://test.zarr")["refs"]
@@ -114,7 +114,7 @@ def test_subchunk_exact(m, chunks):
     ]
 
     g2 = zarr.open_group(
-        "reference://", storage_options={"fo": out, "remote_protocol": "memory"}
+        "reference://", storage_options={"fo": out, "remote_protocol": "memory"}, zarr_version=2
     )
     assert (g2.data[:] == data).all()
 

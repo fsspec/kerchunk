@@ -167,7 +167,7 @@ class NetCDF3ToZarr(netcdf_file):
         import zarr
 
         out = self.out
-        z = zarr.open(out, mode="w")
+        z = zarr.open(out, mode="w", zarr_version=2)
         for dim, var in self.variables.items():
             if dim in self.chunks:
                 shape = self.chunks[dim][-1]

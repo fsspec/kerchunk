@@ -191,7 +191,7 @@ def scan_grib(
             if good is False:
                 continue
 
-            z = zarr.open_group(store)
+            z = zarr.open_group(store, zarr_version=2)
             global_attrs = {
                 f"GRIB_{k}": m[k]
                 for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS
@@ -398,7 +398,7 @@ def grib_tree(
 
     # TODO allow passing a LazyReferenceMapper as output?
     zarr_store = {}
-    zroot = zarr.open_group(store=zarr_store)
+    zroot = zarr.open_group(store=zarr_store, zarr_version=2)
 
     aggregations: Dict[str, List] = defaultdict(list)
     aggregation_dims: Dict[str, Set] = defaultdict(set)

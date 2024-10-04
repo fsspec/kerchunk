@@ -193,7 +193,7 @@ def test_string_embed():
     out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     assert txt in fs.references["vlen_str/0"]
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
     assert z.vlen_str.dtype == "O"
     assert z.vlen_str[0] == txt
     assert (z.vlen_str[1:] == "").all()
@@ -204,7 +204,7 @@ def test_string_null():
     h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="null", inline_threshold=0)
     out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
     assert z.vlen_str.dtype == "O"
     assert (z.vlen_str[:] == None).all()
 
@@ -217,7 +217,7 @@ def test_string_leave():
         )
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
     assert z.vlen_str.dtype == "S16"
     assert z.vlen_str[0]  # some obscured ID
     assert (z.vlen_str[1:] == b"").all()
@@ -232,7 +232,7 @@ def test_string_decode():
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     assert txt in fs.cat("vlen_str/.zarray").decode()  # stored in filter def
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
     assert z.vlen_str[0] == txt
     assert (z.vlen_str[1:] == "").all()
 
@@ -243,7 +243,7 @@ def test_compound_string_null():
         h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="null", inline_threshold=0)
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
     assert z.vlen_str[0].tolist() == (10, None)
     assert (z.vlen_str["ints"][1:] == 0).all()
     assert (z.vlen_str["strs"][1:] == None).all()
@@ -257,7 +257,7 @@ def test_compound_string_leave():
         )
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
     assert z.vlen_str["ints"][0] == 10
     assert z.vlen_str["strs"][0]  # random ID
     assert (z.vlen_str["ints"][1:] == 0).all()
@@ -272,7 +272,7 @@ def test_compound_string_encode():
         )
         out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
     assert z.vlen_str["ints"][0] == 10
     assert z.vlen_str["strs"][0] == "water"
     assert (z.vlen_str["ints"][1:] == 0).all()
@@ -303,7 +303,7 @@ def test_compress():
             continue
         out = h.translate()
         m = fsspec.get_mapper("reference://", fo=out)
-        g = zarr.open(m)
+        g = zarr.open(m, zarr_version=2)
         assert np.mean(g.data) == 49.5
 
 
@@ -313,7 +313,7 @@ def test_embed():
     out = h.translate()
 
     fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
     data = z["Domain_10"]["STER"]["min_1"]["boom_1"]["temperature"][:]
     assert data[0].tolist() == [
         "2014-04-01 00:00:00.0",
@@ -348,7 +348,7 @@ def test_translate_links():
         preserve_linked_dsets=True
     )
     fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper())
+    z = zarr.open(fs.get_mapper(), zarr_version=2)
 
     # 1. Test the hard linked datasets were translated correctly
     # 2. Test the soft linked datasets were translated correctly

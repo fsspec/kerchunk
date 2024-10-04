@@ -226,7 +226,7 @@ def inline_array(store, threshold=1000, names=None, remote_options=None):
     fs = fsspec.filesystem(
         "reference", fo=store, **(remote_options or {}), skip_instance_cache=True
     )
-    g = zarr.open_group(fs.get_mapper(), mode="r+")
+    g = zarr.open_group(fs.get_mapper(), mode="r+", zarr_version=2)
     _inline_array(g, threshold, names=names or [])
     return fs.references
 
