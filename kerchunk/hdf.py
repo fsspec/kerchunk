@@ -21,11 +21,11 @@ except ModuleNotFoundError:  # pragma: no cover
         "for more details."
     )
 
-try:
-    from zarr.meta import encode_fill_value
-except ModuleNotFoundError:
-    # https://github.com/zarr-developers/zarr-python/issues/2021
-    from zarr.v2.meta import encode_fill_value
+# try:
+#     from zarr.meta import encode_fill_value
+# except ModuleNotFoundError:
+#     # https://github.com/zarr-developers/zarr-python/issues/2021
+#     from zarr.v2.meta import encode_fill_value
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -465,9 +465,10 @@ class SingleHdf5ToZarr:
                     if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
                         return
                     if h5obj.attrs.get("_FillValue") is not None:
-                        fill = encode_fill_value(
-                            h5obj.attrs.get("_FillValue"), dt or h5obj.dtype
-                        )
+                        fill = h5obj.attrs.get("_FillValue")
+                        # fill = encode_fill_value(
+                        #     h5obj.attrs.get("_FillValue"), dt or h5obj.dtype
+                        # )
 
                 # Create a Zarr array equivalent to this HDF5 dataset...
                 za = self._zroot.require_dataset(
