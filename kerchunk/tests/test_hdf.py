@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import xarray as xr
 import zarr
+from zarr.storage import MemoryStore
 import h5py
 
 from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
@@ -26,9 +27,8 @@ def test_single():
     m = fsspec.get_mapper(
         "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
     )
-    x = [(k, v) for (k, v) in m.items()]
-    raise ValueError("foo")
-    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    store = MemoryStore(m)
+    ds = xr.open_dataset(store, engine="zarr", backend_kwargs=dict(consolidated=False))
 
     with fsspec.open(url, **so) as f:
         expected = xr.open_dataset(f, engine="h5netcdf")
