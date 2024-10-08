@@ -1,7 +1,8 @@
 import base64
 import io
 import logging
-from typing import Union, BinaryIO
+from typing import Union, BinaryIO, Any, cast
+from packaging.version import Version
 
 import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
@@ -111,8 +112,13 @@ class SingleHdf5ToZarr:
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self.store = out or {}
-        self._zroot = zarr.group(store=self.store, overwrite=True)
+        self.store_dict = out or {}
+        if Version(zarr.__version__) < Version("3.0.0.a0"):
+            self.store = zarr.storage.KVStore(self.store_dict)
+        else:
+            self.store = zarr.storage.MemoryStore(mode="a", store_dict=self.store_dict)
+        # self.store = out or {}
+        self._zroot = zarr.group(store=self.store, zarr_format=2, overwrite=True)
 
         self._uri = url
         self.error = error
@@ -141,7 +147,11 @@ class SingleHdf5ToZarr:
         lggr.debug("Translation begins")
         self._transfer_attrs(self._h5f, self._zroot)
 
+        print('transfer done')
+
         self._h5f.visititems(self._translator)
+
+        print('visit done')
 
         if preserve_linked_dsets:
             if not has_visititems_links():
@@ -157,7 +167,10 @@ class SingleHdf5ToZarr:
             self.store.flush()
             return self.store
         else:
-            store = _encode_for_JSON(self.store)
+            for k, v in self.store_dict.items():
+                if isinstance(v, zarr.core.buffer.cpu.Buffer):
+                    self.store_dict[k] = v.to_bytes()
+            store = _encode_for_JSON(self.store_dict)
             return {"version": 1, "refs": store}
 
     def _unref(self, ref):
@@ -466,26 +479,30 @@ class SingleHdf5ToZarr:
                         return
                     if h5obj.attrs.get("_FillValue") is not None:
                         fill = h5obj.attrs.get("_FillValue")
-                        # fill = encode_fill_value(
-                        #     h5obj.attrs.get("_FillValue"), dt or h5obj.dtype
-                        # )
+                        fill = encode_fill_value(
+                            h5obj.attrs.get("_FillValue"), dt or h5obj.dtype
+                        )
 
-                # Create a Zarr array equivalent to this HDF5 dataset...
-                za = self._zroot.require_dataset(
-                    h5obj.name,
+                adims = self._get_array_dims(h5obj)
+
+                # Create a Zarr array equivalent to this HDF5 dataset..
+                za = self._zroot.require_array(
+                    name=h5obj.name,
                     shape=h5obj.shape,
                     dtype=dt or h5obj.dtype,
                     chunks=h5obj.chunks or False,
                     fill_value=fill,
-                    compression=None,
+                    compressor=None,
                     filters=filters,
-                    overwrite=True,
+                    attributes={
+                        "_ARRAY_DIMENSIONS": adims,
+                    },
                     **kwargs,
                 )
                 lggr.debug(f"Created Zarr array: {za}")
-                self._transfer_attrs(h5obj, za)
-                adims = self._get_array_dims(h5obj)
-                za.attrs["_ARRAY_DIMENSIONS"] = adims
+                #self._transfer_attrs(h5obj, za)
+
+                # za.attrs["_ARRAY_DIMENSIONS"] = adims
                 lggr.debug(f"_ARRAY_DIMENSIONS = {adims}")
 
                 if "data" in kwargs:
@@ -497,6 +514,7 @@ class SingleHdf5ToZarr:
                         if h5obj.fletcher32:
                             logging.info("Discarding fletcher32 checksum")
                             v["size"] -= 4
+                        key = ".".join(map(str, k))
                         if (
                             self.inline
                             and isinstance(v, dict)
@@ -509,9 +527,10 @@ class SingleHdf5ToZarr:
                                 data.decode("ascii")
                             except UnicodeDecodeError:
                                 data = b"base64:" + base64.b64encode(data)
-                            self.store[za._chunk_key(k)] = data
+
+                            self.store_dict[key] = data
                         else:
-                            self.store[za._chunk_key(k)] = [
+                            self.store_dict[key] = [
                                 self._uri,
                                 v["offset"],
                                 v["size"],
@@ -523,6 +542,7 @@ class SingleHdf5ToZarr:
                 self._transfer_attrs(h5obj, zgrp)
         except Exception as e:
             import traceback
+            raise e
 
             msg = "\n".join(
                 [
@@ -682,3 +702,43 @@ def _is_netcdf_variable(dataset: h5py.Dataset):
 
 def has_visititems_links():
     return hasattr(h5py.Group, "visititems_links")
+
+def encode_fill_value(v: Any, dtype: np.dtype, object_codec: Any = None) -> Any:
+    # early out
+    if v is None:
+        return v
+    if dtype.kind == "V" and dtype.hasobject:
+        if object_codec is None:
+            raise ValueError("missing object_codec for object array")
+        v = object_codec.encode(v)
+        v = str(base64.standard_b64encode(v), "ascii")
+        return v
+    if dtype.kind == "f":
+        if np.isnan(v):
+            return "NaN"
+        elif np.isposinf(v):
+            return "Infinity"
+        elif np.isneginf(v):
+            return "-Infinity"
+        else:
+            return float(v)
+    elif dtype.kind in "ui":
+        return int(v)
+    elif dtype.kind == "b":
+        return bool(v)
+    elif dtype.kind in "c":
+        c = cast(np.complex128, np.dtype(complex).type())
+        v = (
+            encode_fill_value(v.real, c.real.dtype, object_codec),
+            encode_fill_value(v.imag, c.imag.dtype, object_codec),
+        )
+        return v
+    elif dtype.kind in "SV":
+        v = str(base64.standard_b64encode(v), "ascii")
+        return v
+    elif dtype.kind == "U":
+        return v
+    elif dtype.kind in "mM":
+        return int(v.view("i8"))
+    else:
+        return v

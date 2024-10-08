@@ -18,7 +18,7 @@ def test_ascii_table():
     url = "https://fits.gsfc.nasa.gov/samples/WFPC2u5780205r_c0fx.fits"
     out = kerchunk.fits.process_file(url, extension=1)
     m = fsspec.get_mapper("reference://", fo=out, remote_protocol="https")
-    g = zarr.open(m, zarr_version=2)
+    g = zarr.open(m, zarr_format=2)
     arr = g["u5780205r_cvt.c0h.tab"][:]
     with fsspec.open(
         "https://fits.gsfc.nasa.gov/samples/WFPC2u5780205r_c0fx.fits"
@@ -31,7 +31,7 @@ def test_ascii_table():
 def test_binary_table():
     out = kerchunk.fits.process_file(btable, extension=1)
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m, zarr_version=2)
+    z = zarr.open(m, zarr_format=2)
     arr = z["1"]
     with open(btable, "rb") as f:
         hdul = fits.open(f)
@@ -48,7 +48,7 @@ def test_binary_table():
 def test_cube():
     out = kerchunk.fits.process_file(range_im)
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m, zarr_version=2)
+    z = zarr.open(m, zarr_format=2)
     arr = z["PRIMARY"]
     with open(range_im, "rb") as f:
         hdul = fits.open(f)
@@ -61,7 +61,7 @@ def test_with_class():
     out = ftz.translate()
     assert "fits" in repr(ftz)
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m, zarr_version=2)
+    z = zarr.open(m, zarr_format=2)
     arr = z["PRIMARY"]
     with open(range_im, "rb") as f:
         hdul = fits.open(f)
@@ -76,7 +76,7 @@ def test_var():
     ftz = kerchunk.fits.FitsToZarr(var)
     out = ftz.translate()
     m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m, zarr_version=2)
+    z = zarr.open(m, zarr_format=2)
     arr = z["1"]
     vars = [_.tolist() for _ in arr["var"]]
 

@@ -144,7 +144,7 @@ class HDF4ToZarr:
             remote_protocol=prot,
             remote_options=self.st,
         )
-        g = zarr.open_group("reference://", storage_options=dict(fs=fs), zarr_version=2)
+        g = zarr.open_group("reference://", storage_options=dict(fs=fs), zarr_format=2)
         refs = {}
         for k, v in output.items():
             if isinstance(v, dict):

@@ -72,7 +72,7 @@ def process_file(
 
     storage_options = storage_options or {}
     out = out or {}
-    g = zarr.open(out, zarr_version=2)
+    g = zarr.open(out, zarr_format=2)
 
     with fsspec.open(url, mode="rb", **storage_options) as f:
         infile = fits.open(f, do_not_scale_image_data=True)
