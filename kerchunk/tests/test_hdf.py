@@ -1,6 +1,9 @@
 import fsspec
 import os.path as osp
 
+import fsspec.implementations
+import fsspec.implementations.reference
+
 import kerchunk.hdf
 import numpy as np
 import pytest
@@ -8,6 +11,8 @@ import xarray as xr
 import zarr
 from zarr.storage import MemoryStore
 import h5py
+
+from packaging.version import Version
 
 from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
 from kerchunk.combine import MultiZarrToZarr, drop
@@ -24,11 +29,15 @@ def test_single():
         h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
         test_dict = h5chunks.translate()
 
-    m = fsspec.get_mapper(
-        "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
-    )
-    store = MemoryStore(m)
-    ds = xr.open_dataset(store, engine="zarr", backend_kwargs=dict(consolidated=False))
+    if Version(zarr.__version__) < Version("3.0.0.a0"):
+        store = fsspec.get_mapper(
+            "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
+        )
+    else:
+        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict)
+        store = zarr.storage.RemoteStore(fs, mode="r")
+
+    ds = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
 
     with fsspec.open(url, **so) as f:
         expected = xr.open_dataset(f, engine="h5netcdf")
@@ -45,22 +54,32 @@ def test_single_direct_open():
         h5f=url, inline_threshold=300, storage_options=so
     ).translate()
 
-    m = fsspec.get_mapper(
-        "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
-    )
+    if Version(zarr.__version__) < Version("3.0.0.a0"):
+        store = fsspec.get_mapper(
+            "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
+        )
+    else:
+        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict)
+        store = zarr.storage.RemoteStore(fs, mode="r")
+
     ds_direct = xr.open_dataset(
-        m, engine="zarr", backend_kwargs=dict(consolidated=False)
+        store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
     )
 
     with fsspec.open(url, **so) as f:
         h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
         test_dict = h5chunks.translate()
 
-    m = fsspec.get_mapper(
-        "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
-    )
+    if Version(zarr.__version__) < Version("3.0.0.a0"):
+        store = fsspec.get_mapper(
+            "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
+        )
+    else:
+        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict)
+        store = zarr.storage.RemoteStore(fs, mode="r")
+
     ds_from_file_opener = xr.open_dataset(
-        m, engine="zarr", backend_kwargs=dict(consolidated=False)
+        store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
     )
 
     xr.testing.assert_equal(

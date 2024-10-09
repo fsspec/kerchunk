@@ -115,11 +115,11 @@ class SingleHdf5ToZarr:
         self.store_dict = out or {}
         if Version(zarr.__version__) < Version("3.0.0.a0"):
             self.store = zarr.storage.KVStore(self.store_dict)
+            self._zroot = zarr.group(store=self.store, overwrite=True)
         else:
             self.store = zarr.storage.MemoryStore(mode="a", store_dict=self.store_dict)
-        # self.store = out or {}
-        self._zroot = zarr.group(store=self.store, zarr_format=2, overwrite=True)
-
+            self._zroot = zarr.group(store=self.store, zarr_format=2, overwrite=True)
+    
         self._uri = url
         self.error = error
         lggr.debug(f"HDF5 file URI: {self._uri}")
@@ -146,12 +146,7 @@ class SingleHdf5ToZarr:
         """
         lggr.debug("Translation begins")
         self._transfer_attrs(self._h5f, self._zroot)
-
-        print('transfer done')
-
         self._h5f.visititems(self._translator)
-
-        print('visit done')
 
         if preserve_linked_dsets:
             if not has_visititems_links():
@@ -542,7 +537,6 @@ class SingleHdf5ToZarr:
                 self._transfer_attrs(h5obj, zgrp)
         except Exception as e:
             import traceback
-            raise e
 
             msg = "\n".join(
                 [
