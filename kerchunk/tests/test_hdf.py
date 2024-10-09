@@ -23,6 +23,16 @@ async def list_dir(store, path):
     [x async for x in store.list_dir(path)]
 
 
+def create_store(test_dict: dict):
+    if Version(zarr.__version__) < Version("3.0.0.a0"):
+        return fsspec.get_mapper(
+            "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
+        )
+    else:
+        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict)
+        return zarr.storage.RemoteStore(fs, mode="r")
+
+
 def test_single():
     """Test creating references for a single HDF file"""
     url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
@@ -32,13 +42,7 @@ def test_single():
         h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
         test_dict = h5chunks.translate()
 
-    if Version(zarr.__version__) < Version("3.0.0.a0"):
-        store = fsspec.get_mapper(
-            "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
-        )
-    else:
-        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict)
-        store = zarr.storage.RemoteStore(fs, mode="r")
+    store = create_store(test_dict)
 
     ds = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
 
@@ -57,13 +61,7 @@ def test_single_direct_open():
         h5f=url, inline_threshold=300, storage_options=so
     ).translate()
 
-    if Version(zarr.__version__) < Version("3.0.0.a0"):
-        store = fsspec.get_mapper(
-            "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
-        )
-    else:
-        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict)
-        store = zarr.storage.RemoteStore(fs, mode="r")
+    store = create_store(test_dict)
 
     ds_direct = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
@@ -73,13 +71,7 @@ def test_single_direct_open():
         h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
         test_dict = h5chunks.translate()
 
-    if Version(zarr.__version__) < Version("3.0.0.a0"):
-        store = fsspec.get_mapper(
-            "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
-        )
-    else:
-        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict)
-        store = zarr.storage.RemoteStore(fs, mode="r")
+    store = create_store(test_dict)
 
     ds_from_file_opener = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
@@ -105,11 +97,8 @@ def test_multizarr(generate_mzz):
     """Test creating a combined reference file with MultiZarrToZarr"""
     mzz = generate_mzz
     test_dict = mzz.translate()
-
-    m = fsspec.get_mapper(
-        "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
-    )
-    ds = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    store = create_store(test_dict)
+    ds = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
 
     with fsspec.open_files(urls, **so) as fs:
         expts = [xr.open_dataset(f, engine="h5netcdf") for f in fs]
@@ -183,11 +172,8 @@ def test_times(times_data):
         h5chunks = SingleHdf5ToZarr(f, url)
         test_dict = h5chunks.translate()
 
-    m = fsspec.get_mapper(
-        "reference://",
-        fo=test_dict,
-    )
-    result = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    store = create_store(test_dict)
+    result = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
     expected = x1.to_dataset()
     xr.testing.assert_equal(result, expected)
 
@@ -199,11 +185,8 @@ def test_times_str(times_data):
     h5chunks = SingleHdf5ToZarr(url)
     test_dict = h5chunks.translate()
 
-    m = fsspec.get_mapper(
-        "reference://",
-        fo=test_dict,
-    )
-    result = xr.open_dataset(m, engine="zarr", backend_kwargs=dict(consolidated=False))
+    store = create_store(test_dict)
+    result = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
     expected = x1.to_dataset()
     xr.testing.assert_equal(result, expected)
 
@@ -327,8 +310,8 @@ def test_compress():
                 h.translate()
             continue
         out = h.translate()
-        m = fsspec.get_mapper("reference://", fo=out)
-        g = zarr.open(m, zarr_format=2)
+        store = create_store(out)
+        g = zarr.open(store, zarr_format=2)
         assert np.mean(g.data) == 49.5
 
 
@@ -337,8 +320,8 @@ def test_embed():
     h = kerchunk.hdf.SingleHdf5ToZarr(fn, vlen_encode="embed")
     out = h.translate()
 
-    fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = create_store(out)
+    z = zarr.open(store, zarr_format=2)
     data = z["Domain_10"]["STER"]["min_1"]["boom_1"]["temperature"][:]
     assert data[0].tolist() == [
         "2014-04-01 00:00:00.0",

@@ -705,6 +705,7 @@ def _is_netcdf_variable(dataset: h5py.Dataset):
 def has_visititems_links():
     return hasattr(h5py.Group, "visititems_links")
 
+
 def encode_fill_value(v: Any, dtype: np.dtype, object_codec: Any = None) -> Any:
     # early out
     if v is None:
