@@ -162,9 +162,16 @@ class SingleHdf5ToZarr:
             self.store.flush()
             return self.store
         else:
+            keys_to_remove = []
+            new_keys = {}
             for k, v in self.store_dict.items():
                 if isinstance(v, zarr.core.buffer.cpu.Buffer):
-                    self.store_dict[k] = v.to_bytes()
+                    key = str.removeprefix(k, "/")
+                    new_keys[key] = v.to_bytes()
+                    keys_to_remove.append(k)
+            for k in keys_to_remove:
+                del self.store_dict[k]
+            self.store_dict.update(new_keys)
             store = _encode_for_JSON(self.store_dict)
             return {"version": 1, "refs": store}
 
@@ -495,7 +502,7 @@ class SingleHdf5ToZarr:
                     **kwargs,
                 )
                 lggr.debug(f"Created Zarr array: {za}")
-                #self._transfer_attrs(h5obj, za)
+                self._transfer_attrs(h5obj, za)
 
                 # za.attrs["_ARRAY_DIMENSIONS"] = adims
                 lggr.debug(f"_ARRAY_DIMENSIONS = {adims}")
@@ -509,7 +516,8 @@ class SingleHdf5ToZarr:
                         if h5obj.fletcher32:
                             logging.info("Discarding fletcher32 checksum")
                             v["size"] -= 4
-                        key = ".".join(map(str, k))
+                        key =  str.removeprefix(h5obj.name, "/") + "/" + ".".join(map(str, k))
+
                         if (
                             self.inline
                             and isinstance(v, dict)

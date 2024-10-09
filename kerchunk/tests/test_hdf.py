@@ -1,3 +1,4 @@
+import asyncio
 import fsspec
 import os.path as osp
 
@@ -9,8 +10,6 @@ import numpy as np
 import pytest
 import xarray as xr
 import zarr
-from zarr.storage import MemoryStore
-import h5py
 
 from packaging.version import Version
 
@@ -18,6 +17,10 @@ from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
 from kerchunk.combine import MultiZarrToZarr, drop
 
 here = osp.dirname(__file__)
+
+
+async def list_dir(store, path):
+    [x async for x in store.list_dir(path)]
 
 
 def test_single():
