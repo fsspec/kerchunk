@@ -1,7 +1,42 @@
+from packaging.version import Version
+
 import fsspec
 from fsspec.implementations.reference import LazyReferenceMapper
+import zarr
 
 import kerchunk.utils
+
+
+def is_zarr3():
+    """Check if the installed zarr version is version 3"""
+    return Version(zarr.__version__) >= Version("3.0.0.a0")
+
+
+def dict_to_store(store_dict: dict):
+    """Create an in memory zarr store backed by the given dictionary"""
+    if is_zarr3():
+        return zarr.storage.MemoryStore(mode="a", store_dict=store_dict)
+    else:
+        return zarr.storage.KVStore(store_dict)
+
+
+def fs_as_store(fs, mode='r', remote_protocol=None, remote_options=None):
+    """Open the refs as a zarr store
+    
+    Parameters
+    ----------
+    refs: dict-like
+        the references to open
+    mode: str
+    
+    Returns
+    -------
+    zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
+    """
+    if is_zarr3():
+        return zarr.storage.RemoteStore(fs, mode=mode)
+    else:
+        return fs.get_mapper()
 
 
 def single_zarr(

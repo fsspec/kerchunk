@@ -10,6 +10,8 @@ import numpy as np
 import zarr
 import numcodecs
 
+from kerchunk.zarr import dict_to_store
+
 from .codecs import FillStringsCodec
 from .utils import _encode_for_JSON, encode_fill_value
 
@@ -107,13 +109,8 @@ class SingleHdf5ToZarr:
             raise NotImplementedError
         self.vlen = vlen_encode
         self.store_dict = out or {}
-        if Version(zarr.__version__) < Version("3.0.0.a0"):
-            self.store = zarr.storage.KVStore(self.store_dict)
-            self._zroot = zarr.group(store=self.store, overwrite=True)
-        else:
-            self.store = zarr.storage.MemoryStore(mode="a", store_dict=self.store_dict)
-            self._zroot = zarr.group(store=self.store, zarr_format=2, overwrite=True)
-    
+        self.store = dict_to_store(self.store_dict)
+        self._zroot = zarr.group(store=self.store, zarr_format=2, overwrite=True)
         self._uri = url
         self.error = error
         lggr.debug(f"HDF5 file URI: {self._uri}")

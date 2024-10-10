@@ -198,7 +198,7 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and var.data.dtype.kind == "i":
                     fill = int(fill)
-                arr = z.create_dataset(
+                arr = z.create_array(
                     name=dim,
                     shape=shape,
                     dtype=var.data.dtype,
@@ -252,7 +252,7 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and base.kind == "i":
                     fill = int(fill)
-                arr = z.create_dataset(
+                arr = z.create_array(
                     name=name,
                     shape=shape,
                     dtype=base,

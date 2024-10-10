@@ -1,10 +1,6 @@
-from typing import Any
 import fsspec
 import json
 import os.path as osp
-
-import fsspec.implementations
-import fsspec.implementations.reference
 
 import kerchunk.hdf
 import numpy as np
@@ -12,31 +8,17 @@ import pytest
 import xarray as xr
 import zarr
 
-from packaging.version import Version
-
 from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
 from kerchunk.combine import MultiZarrToZarr, drop
+from kerchunk.utils import refs_as_fs, refs_as_store
+from kerchunk.zarr import fs_as_store
 
 here = osp.dirname(__file__)
 
 
-async def list_dir(store, path):
-    [x async for x in store.list_dir(path)]
-
-
-def create_store(test_dict: dict, remote_options: Any = None):
-    if Version(zarr.__version__) < Version("3.0.0.a0"):
-        return fsspec.get_mapper(
-            "reference://", fo=test_dict, remote_protocol="s3", remote_options=remote_options
-        )
-    else:
-        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict, remote_options=remote_options)
-        return zarr.storage.RemoteStore(fs, mode="r")
-
-
 def test_single():
     """Test creating references for a single HDF file"""
-    #url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
+    # url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
     url = "s3://noaa-nos-ofs-pds/ngofs2/netcdf/202410/ngofs2.t03z.20241001.2ds.f020.nc"
     so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
 
@@ -47,9 +29,11 @@ def test_single():
     with open("test_dict.json", "w") as f:
         json.dump(test_dict, f)
 
-    store = create_store(test_dict)
+    store = refs_as_store(test_dict)
 
-    ds = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
+    ds = xr.open_dataset(
+        store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
+    )
 
     with fsspec.open(url, **so) as f:
         expected = xr.open_dataset(f, engine="h5netcdf")
@@ -66,7 +50,7 @@ def test_single_direct_open():
         h5f=url, inline_threshold=300, storage_options=so
     ).translate()
 
-    store = create_store(test_dict)
+    store = refs_as_store(test_dict)
 
     ds_direct = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
@@ -76,7 +60,7 @@ def test_single_direct_open():
         h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
         test_dict = h5chunks.translate()
 
-    store = create_store(test_dict)
+    store = refs_as_store(test_dict)
 
     ds_from_file_opener = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
@@ -103,8 +87,10 @@ def test_multizarr(generate_mzz):
     mzz = generate_mzz
     test_dict = mzz.translate()
 
-    store = create_store(test_dict)
-    ds = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
+    store = refs_as_store(test_dict)
+    ds = xr.open_dataset(
+        store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
+    )
 
     with fsspec.open_files(urls, **so) as fs:
         expts = [xr.open_dataset(f, engine="h5netcdf") for f in fs]
@@ -178,8 +164,10 @@ def test_times(times_data):
         h5chunks = SingleHdf5ToZarr(f, url)
         test_dict = h5chunks.translate()
 
-    store = create_store(test_dict)
-    result = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
+    store = refs_as_store(test_dict)
+    result = xr.open_dataset(
+        store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
+    )
     expected = x1.to_dataset()
     xr.testing.assert_equal(result, expected)
 
@@ -191,8 +179,10 @@ def test_times_str(times_data):
     h5chunks = SingleHdf5ToZarr(url)
     test_dict = h5chunks.translate()
 
-    store = create_store(test_dict)
-    result = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
+    store = refs_as_store(test_dict)
+    result = xr.open_dataset(
+        store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
+    )
     expected = x1.to_dataset()
     xr.testing.assert_equal(result, expected)
 
@@ -205,9 +195,10 @@ def test_string_embed():
     fn = osp.join(here, "vlen.h5")
     h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="embed")
     out = h.translate()
-    fs = fsspec.filesystem("reference", fo=out)
+    fs = refs_as_fs(out)
     assert txt in fs.references["vlen_str/0"]
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = fs_as_store(fs)
+    z = zarr.open(store, zarr_format=2)
     assert z.vlen_str.dtype == "O"
     assert z.vlen_str[0] == txt
     assert (z.vlen_str[1:] == "").all()
@@ -217,8 +208,8 @@ def test_string_null():
     fn = osp.join(here, "vlen.h5")
     h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="null", inline_threshold=0)
     out = h.translate()
-    fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = refs_as_store(out)
+    z = zarr.open(store, zarr_format=2)
     assert z.vlen_str.dtype == "O"
     assert (z.vlen_str[:] == None).all()
 
@@ -230,8 +221,8 @@ def test_string_leave():
             f, fn, vlen_encode="leave", inline_threshold=0
         )
         out = h.translate()
-    fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = refs_as_store(out)
+    z = zarr.open(store, zarr_format=2)
     assert z.vlen_str.dtype == "S16"
     assert z.vlen_str[0]  # some obscured ID
     assert (z.vlen_str[1:] == b"").all()
@@ -244,9 +235,10 @@ def test_string_decode():
             f, fn, vlen_encode="encode", inline_threshold=0
         )
         out = h.translate()
-    fs = fsspec.filesystem("reference", fo=out)
+    fs = refs_as_fs(out)
     assert txt in fs.cat("vlen_str/.zarray").decode()  # stored in filter def
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = fs_as_store(fs)
+    z = zarr.open(store, zarr_format=2)
     assert z.vlen_str[0] == txt
     assert (z.vlen_str[1:] == "").all()
 
@@ -256,8 +248,8 @@ def test_compound_string_null():
     with open(fn, "rb") as f:
         h = kerchunk.hdf.SingleHdf5ToZarr(f, fn, vlen_encode="null", inline_threshold=0)
         out = h.translate()
-    fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = refs_as_store(out)
+    z = zarr.open(store, zarr_format=2)
     assert z.vlen_str[0].tolist() == (10, None)
     assert (z.vlen_str["ints"][1:] == 0).all()
     assert (z.vlen_str["strs"][1:] == None).all()
@@ -270,8 +262,8 @@ def test_compound_string_leave():
             f, fn, vlen_encode="leave", inline_threshold=0
         )
         out = h.translate()
-    fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = refs_as_store(out)
+    z = zarr.open(store, zarr_format=2)
     assert z.vlen_str["ints"][0] == 10
     assert z.vlen_str["strs"][0]  # random ID
     assert (z.vlen_str["ints"][1:] == 0).all()
@@ -285,8 +277,8 @@ def test_compound_string_encode():
             f, fn, vlen_encode="encode", inline_threshold=0
         )
         out = h.translate()
-    fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = refs_as_store(out)
+    z = zarr.open(store, zarr_format=2)
     assert z.vlen_str["ints"][0] == 10
     assert z.vlen_str["strs"][0] == "water"
     assert (z.vlen_str["ints"][1:] == 0).all()
@@ -316,7 +308,7 @@ def test_compress():
                 h.translate()
             continue
         out = h.translate()
-        store = create_store(out)
+        store = refs_as_store(out)
         g = zarr.open(store, zarr_format=2)
         assert np.mean(g.data) == 49.5
 
@@ -326,7 +318,7 @@ def test_embed():
     h = kerchunk.hdf.SingleHdf5ToZarr(fn, vlen_encode="embed")
     out = h.translate()
 
-    store = create_store(out)
+    store = refs_as_store(out)
     z = zarr.open(store, zarr_format=2)
     data = z["Domain_10"]["STER"]["min_1"]["boom_1"]["temperature"][:]
     assert data[0].tolist() == [
@@ -361,8 +353,8 @@ def test_translate_links():
     out = kerchunk.hdf.SingleHdf5ToZarr(fn, inline_threshold=50).translate(
         preserve_linked_dsets=True
     )
-    fs = fsspec.filesystem("reference", fo=out)
-    z = zarr.open(fs.get_mapper(), zarr_format=2)
+    store = refs_as_store(out)
+    z = zarr.open(store, zarr_format=2)
 
     # 1. Test the hard linked datasets were translated correctly
     # 2. Test the soft linked datasets were translated correctly

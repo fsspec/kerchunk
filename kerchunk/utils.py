@@ -10,6 +10,28 @@ import fsspec
 import numpy as np
 import zarr
 
+from kerchunk.zarr import fs_as_store
+
+
+def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
+    """Convert a reference set to an fsspec filesystem"""
+    fs = fsspec.filesystem(
+        "reference",
+        fo=refs,
+        remote_protocol=remote_protocol,
+        remote_options=remote_options,
+        **kwargs,
+    )
+    return fs
+
+
+def refs_as_store(refs, remote_protocol=None, remote_options=None):
+    """Convert a reference set to a zarr store"""
+    fs = refs_as_fs(
+        refs, remote_protocol=remote_protocol, remote_options=remote_options
+    )
+    return fs_as_store(fs)
+
 
 def class_factory(func):
     """Experimental uniform API across function-based file scanners"""
@@ -74,7 +96,7 @@ def rename_target(refs, renames):
     -------
     dict: the altered reference set, which can be saved
     """
-    fs = fsspec.filesystem("reference", fo=refs)  # to produce normalised refs
+    fs = refs_as_fs(refs)  # to produce normalised refs
     refs = fs.references
     out = {}
     for k, v in refs.items():
@@ -136,7 +158,6 @@ def _encode_for_JSON(store):
     return store
 
 
-
 def encode_fill_value(v: Any, dtype: np.dtype, object_codec: Any = None) -> Any:
     # early out
     if v is None:
@@ -189,6 +210,9 @@ def do_inline(store, threshold, remote_options=None, remote_protocol=None):
         fo=store,
         remote_options=remote_options,
         remote_protocol=remote_protocol,
+    )
+    fs = refs_as_fs(
+        store, remote_protocol=remote_protocol, remote_options=remote_options
     )
     out = fs.references.copy()
 
@@ -267,10 +291,9 @@ def inline_array(store, threshold=1000, names=None, remote_options=None):
     -------
     amended references set (simple style)
     """
-    fs = fsspec.filesystem(
-        "reference", fo=store, **(remote_options or {}), skip_instance_cache=True
-    )
-    g = zarr.open_group(fs.get_mapper(), mode="r+", zarr_format=2)
+    fs = refs_as_fs(store, remote_options=remote_options or {})
+    zarr_store = fs_as_store(store, mode="r+", remote_options=remote_options or {})
+    g = zarr.open_group(zarr_store, mode="r+", zarr_format=2)
     _inline_array(g, threshold, names=names or [])
     return fs.references
 
@@ -293,7 +316,7 @@ def subchunk(store, variable, factor):
     -------
     modified store
     """
-    fs = fsspec.filesystem("reference", fo=store)
+    fs = refs_as_fs(store)
     store = fs.references
     meta_file = f"{variable}/.zarray"
     meta = ujson.loads(fs.cat(meta_file))
