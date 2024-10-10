@@ -1,5 +1,6 @@
-import asyncio
+from typing import Any
 import fsspec
+import json
 import os.path as osp
 
 import fsspec.implementations
@@ -23,24 +24,28 @@ async def list_dir(store, path):
     [x async for x in store.list_dir(path)]
 
 
-def create_store(test_dict: dict):
+def create_store(test_dict: dict, remote_options: Any = None):
     if Version(zarr.__version__) < Version("3.0.0.a0"):
         return fsspec.get_mapper(
             "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
         )
     else:
-        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict)
+        fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict, remote_options=remote_options)
         return zarr.storage.RemoteStore(fs, mode="r")
 
 
 def test_single():
     """Test creating references for a single HDF file"""
-    url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
+    #url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
+    url = "s3://noaa-nos-ofs-pds/ngofs2/netcdf/202410/ngofs2.t03z.20241001.2ds.f020.nc"
     so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
 
     with fsspec.open(url, **so) as f:
         h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
         test_dict = h5chunks.translate()
+
+    with open("test_dict.json", "w") as f:
+        json.dump(test_dict, f)
 
     store = create_store(test_dict)
 
@@ -97,6 +102,7 @@ def test_multizarr(generate_mzz):
     """Test creating a combined reference file with MultiZarrToZarr"""
     mzz = generate_mzz
     test_dict = mzz.translate()
+
     store = create_store(test_dict)
     ds = xr.open_dataset(store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False))
 

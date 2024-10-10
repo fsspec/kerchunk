@@ -1,11 +1,13 @@
 import base64
 import copy
 import itertools
+from typing import Any, cast
 import warnings
 
 import ujson
 
 import fsspec
+import numpy as np
 import zarr
 
 
@@ -132,6 +134,48 @@ def _encode_for_JSON(store):
             except UnicodeDecodeError:
                 store[k] = "base64:" + base64.b64encode(v).decode()
     return store
+
+
+
+def encode_fill_value(v: Any, dtype: np.dtype, object_codec: Any = None) -> Any:
+    # early out
+    if v is None:
+        return v
+    if dtype.kind == "V" and dtype.hasobject:
+        if object_codec is None:
+            raise ValueError("missing object_codec for object array")
+        v = object_codec.encode(v)
+        v = str(base64.standard_b64encode(v), "ascii")
+        return v
+    if dtype.kind == "f":
+        if np.isnan(v):
+            return "NaN"
+        elif np.isposinf(v):
+            return "Infinity"
+        elif np.isneginf(v):
+            return "-Infinity"
+        else:
+            return float(v)
+    elif dtype.kind in "ui":
+        return int(v)
+    elif dtype.kind == "b":
+        return bool(v)
+    elif dtype.kind in "c":
+        c = cast(np.complex128, np.dtype(complex).type())
+        v = (
+            encode_fill_value(v.real, c.real.dtype, object_codec),
+            encode_fill_value(v.imag, c.imag.dtype, object_codec),
+        )
+        return v
+    elif dtype.kind in "SV":
+        v = str(base64.standard_b64encode(v), "ascii")
+        return v
+    elif dtype.kind == "U":
+        return v
+    elif dtype.kind in "mM":
+        return int(v.view("i8"))
+    else:
+        return v
 
 
 def do_inline(store, threshold, remote_options=None, remote_protocol=None):

@@ -1,7 +1,7 @@
 import base64
 import io
 import logging
-from typing import Union, BinaryIO, Any, cast
+from typing import Union, BinaryIO
 from packaging.version import Version
 
 import fsspec.core
@@ -11,7 +11,7 @@ import zarr
 import numcodecs
 
 from .codecs import FillStringsCodec
-from .utils import _encode_for_JSON
+from .utils import _encode_for_JSON, encode_fill_value
 
 try:
     import h5py
@@ -21,12 +21,6 @@ except ModuleNotFoundError:  # pragma: no cover
         "`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html "
         "for more details."
     )
-
-# try:
-#     from zarr.meta import encode_fill_value
-# except ModuleNotFoundError:
-#     # https://github.com/zarr-developers/zarr-python/issues/2021
-#     from zarr.v2.meta import encode_fill_value
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -504,7 +498,6 @@ class SingleHdf5ToZarr:
                 lggr.debug(f"Created Zarr array: {za}")
                 self._transfer_attrs(h5obj, za)
 
-                # za.attrs["_ARRAY_DIMENSIONS"] = adims
                 lggr.debug(f"_ARRAY_DIMENSIONS = {adims}")
 
                 if "data" in kwargs:
@@ -705,43 +698,3 @@ def _is_netcdf_variable(dataset: h5py.Dataset):
 def has_visititems_links():
     return hasattr(h5py.Group, "visititems_links")
 
-
-def encode_fill_value(v: Any, dtype: np.dtype, object_codec: Any = None) -> Any:
-    # early out
-    if v is None:
-        return v
-    if dtype.kind == "V" and dtype.hasobject:
-        if object_codec is None:
-            raise ValueError("missing object_codec for object array")
-        v = object_codec.encode(v)
-        v = str(base64.standard_b64encode(v), "ascii")
-        return v
-    if dtype.kind == "f":
-        if np.isnan(v):
-            return "NaN"
-        elif np.isposinf(v):
-            return "Infinity"
-        elif np.isneginf(v):
-            return "-Infinity"
-        else:
-            return float(v)
-    elif dtype.kind in "ui":
-        return int(v)
-    elif dtype.kind == "b":
-        return bool(v)
-    elif dtype.kind in "c":
-        c = cast(np.complex128, np.dtype(complex).type())
-        v = (
-            encode_fill_value(v.real, c.real.dtype, object_codec),
-            encode_fill_value(v.imag, c.imag.dtype, object_codec),
-        )
-        return v
-    elif dtype.kind in "SV":
-        v = str(base64.standard_b64encode(v), "ascii")
-        return v
-    elif dtype.kind == "U":
-        return v
-    elif dtype.kind in "mM":
-        return int(v.view("i8"))
-    else:
-        return v
