@@ -10,7 +10,7 @@ import zarr
 import numcodecs
 
 from .codecs import FillStringsCodec
-from .utils import _encode_for_JSON
+from .utils import _encode_for_JSON, encode_fill_value, dict_to_store, translate_refs_serializable
 
 try:
     import h5py
@@ -20,12 +20,6 @@ except ModuleNotFoundError:  # pragma: no cover
         "`pip/conda install h5py`. See https://docs.h5py.org/en/latest/build.html "
         "for more details."
     )
-
-try:
-    from zarr.meta import encode_fill_value
-except ModuleNotFoundError:
-    # https://github.com/zarr-developers/zarr-python/issues/2021
-    from zarr.v2.meta import encode_fill_value
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -111,9 +105,9 @@ class SingleHdf5ToZarr:
         if vlen_encode not in ["embed", "null", "leave", "encode"]:
             raise NotImplementedError
         self.vlen = vlen_encode
-        self.store = out or {}
-        self._zroot = zarr.group(store=self.store, overwrite=True)
-
+        self.store_dict = out or {}
+        self.store = dict_to_store(self.store_dict)
+        self._zroot = zarr.group(store=self.store, zarr_format=2, overwrite=True)
         self._uri = url
         self.error = error
         lggr.debug(f"HDF5 file URI: {self._uri}")
@@ -140,7 +134,6 @@ class SingleHdf5ToZarr:
         """
         lggr.debug("Translation begins")
         self._transfer_attrs(self._h5f, self._zroot)
-
         self._h5f.visititems(self._translator)
 
         if preserve_linked_dsets:
@@ -157,7 +150,8 @@ class SingleHdf5ToZarr:
             self.store.flush()
             return self.store
         else:
-            store = _encode_for_JSON(self.store)
+            translate_refs_serializable(self.store_dict)
+            store = _encode_for_JSON(self.store_dict)
             return {"version": 1, "refs": store}
 
     def _unref(self, ref):
@@ -465,26 +459,30 @@ class SingleHdf5ToZarr:
                     if h5py.h5ds.is_scale(h5obj.id) and not cinfo:
                         return
                     if h5obj.attrs.get("_FillValue") is not None:
+                        fill = h5obj.attrs.get("_FillValue")
                         fill = encode_fill_value(
                             h5obj.attrs.get("_FillValue"), dt or h5obj.dtype
                         )
 
-                # Create a Zarr array equivalent to this HDF5 dataset...
-                za = self._zroot.require_dataset(
-                    h5obj.name,
+                adims = self._get_array_dims(h5obj)
+
+                # Create a Zarr array equivalent to this HDF5 dataset..
+                za = self._zroot.require_array(
+                    name=h5obj.name,
                     shape=h5obj.shape,
                     dtype=dt or h5obj.dtype,
                     chunks=h5obj.chunks or False,
                     fill_value=fill,
-                    compression=None,
+                    compressor=None,
                     filters=filters,
-                    overwrite=True,
+                    attributes={
+                        "_ARRAY_DIMENSIONS": adims,
+                    },
                     **kwargs,
                 )
                 lggr.debug(f"Created Zarr array: {za}")
                 self._transfer_attrs(h5obj, za)
-                adims = self._get_array_dims(h5obj)
-                za.attrs["_ARRAY_DIMENSIONS"] = adims
+
                 lggr.debug(f"_ARRAY_DIMENSIONS = {adims}")
 
                 if "data" in kwargs:
@@ -496,6 +494,8 @@ class SingleHdf5ToZarr:
                         if h5obj.fletcher32:
                             logging.info("Discarding fletcher32 checksum")
                             v["size"] -= 4
+                        key =  str.removeprefix(h5obj.name, "/") + "/" + ".".join(map(str, k))
+
                         if (
                             self.inline
                             and isinstance(v, dict)
@@ -508,9 +508,10 @@ class SingleHdf5ToZarr:
                                 data.decode("ascii")
                             except UnicodeDecodeError:
                                 data = b"base64:" + base64.b64encode(data)
-                            self.store[za._chunk_key(k)] = data
+
+                            self.store_dict[key] = data
                         else:
-                            self.store[za._chunk_key(k)] = [
+                            self.store_dict[key] = [
                                 self._uri,
                                 v["offset"],
                                 v["size"],
@@ -681,3 +682,4 @@ def _is_netcdf_variable(dataset: h5py.Dataset):
 
 def has_visititems_links():
     return hasattr(h5py.Group, "visititems_links")
+
