@@ -323,7 +323,7 @@ def inline_array(store, threshold=1000, names=None, remote_options=None):
     amended references set (simple style)
     """
     fs = refs_as_fs(store, remote_options=remote_options or {})
-    zarr_store = fs_as_store(store, mode="r+", remote_options=remote_options or {})
+    zarr_store = fs_as_store(fs, mode="r+", remote_options=remote_options or {})
     g = zarr.open_group(zarr_store, mode="r+", zarr_format=2)
     _inline_array(g, threshold, names=names or [])
     return fs.references
