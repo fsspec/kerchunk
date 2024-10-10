@@ -27,7 +27,7 @@ async def list_dir(store, path):
 def create_store(test_dict: dict, remote_options: Any = None):
     if Version(zarr.__version__) < Version("3.0.0.a0"):
         return fsspec.get_mapper(
-            "reference://", fo=test_dict, remote_protocol="s3", remote_options=so
+            "reference://", fo=test_dict, remote_protocol="s3", remote_options=remote_options
         )
     else:
         fs = fsspec.implementations.reference.ReferenceFileSystem(fo=test_dict, remote_options=remote_options)

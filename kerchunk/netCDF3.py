@@ -1,4 +1,5 @@
 from functools import reduce
+from packaging.version import Version
 from operator import mul
 
 import numpy as np
@@ -167,7 +168,13 @@ class NetCDF3ToZarr(netcdf_file):
         import zarr
 
         out = self.out
-        z = zarr.open(out, mode="w", zarr_format=2)
+        if Version(zarr.__version__) < Version("3.0.0.a0"):
+            store = zarr.storage.KVStore(out)
+            z = zarr.group(store=store, overwrite=True)
+        else:
+            store = zarr.storage.MemoryStore(mode="a", store_dict=out)
+            z = zarr.open(store, mode="w", zarr_format=2)
+
         for dim, var in self.variables.items():
             if dim in self.chunks:
                 shape = self.chunks[dim][-1]
@@ -197,7 +204,7 @@ class NetCDF3ToZarr(netcdf_file):
                     dtype=var.data.dtype,
                     fill_value=fill,
                     chunks=shape,
-                    compression=None,
+                    compressor=None,
                 )
                 part = ".".join(["0"] * len(shape)) or "0"
                 k = f"{dim}/{part}"
@@ -251,7 +258,7 @@ class NetCDF3ToZarr(netcdf_file):
                     dtype=base,
                     fill_value=fill,
                     chunks=(1,) + dtype.shape,
-                    compression=None,
+                    compressor=None,
                 )
                 arr.attrs.update(
                     {
