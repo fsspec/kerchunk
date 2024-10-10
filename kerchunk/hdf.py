@@ -2,7 +2,6 @@ import base64
 import io
 import logging
 from typing import Union, BinaryIO
-from packaging.version import Version
 
 import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
@@ -10,10 +9,8 @@ import numpy as np
 import zarr
 import numcodecs
 
-from kerchunk.zarr import dict_to_store
-
 from .codecs import FillStringsCodec
-from .utils import _encode_for_JSON, encode_fill_value
+from .utils import _encode_for_JSON, encode_fill_value, dict_to_store
 
 try:
     import h5py

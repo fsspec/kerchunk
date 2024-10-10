@@ -1,6 +1,7 @@
 import base64
 import copy
 import itertools
+from packaging.version import Version
 from typing import Any, cast
 import warnings
 
@@ -9,8 +10,6 @@ import ujson
 import fsspec
 import numpy as np
 import zarr
-
-from kerchunk.zarr import fs_as_store
 
 
 def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
@@ -31,6 +30,38 @@ def refs_as_store(refs, remote_protocol=None, remote_options=None):
         refs, remote_protocol=remote_protocol, remote_options=remote_options
     )
     return fs_as_store(fs)
+
+
+def is_zarr3():
+    """Check if the installed zarr version is version 3"""
+    return Version(zarr.__version__) >= Version("3.0.0.a0")
+
+
+def dict_to_store(store_dict: dict):
+    """Create an in memory zarr store backed by the given dictionary"""
+    if is_zarr3():
+        return zarr.storage.MemoryStore(mode="a", store_dict=store_dict)
+    else:
+        return zarr.storage.KVStore(store_dict)
+
+
+def fs_as_store(fs, mode='r', remote_protocol=None, remote_options=None):
+    """Open the refs as a zarr store
+    
+    Parameters
+    ----------
+    refs: dict-like
+        the references to open
+    mode: str
+    
+    Returns
+    -------
+    zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
+    """
+    if is_zarr3():
+        return zarr.storage.RemoteStore(fs, mode=mode)
+    else:
+        return fs.get_mapper()
 
 
 def class_factory(func):
