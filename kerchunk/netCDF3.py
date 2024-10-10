@@ -6,7 +6,7 @@ import numpy as np
 from fsspec.implementations.reference import LazyReferenceMapper
 import fsspec
 
-from kerchunk.utils import _encode_for_JSON, inline_array
+from kerchunk.utils import _encode_for_JSON, dict_to_store, inline_array, translate_refs_serializable
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
@@ -168,12 +168,8 @@ class NetCDF3ToZarr(netcdf_file):
         import zarr
 
         out = self.out
-        if Version(zarr.__version__) < Version("3.0.0.a0"):
-            store = zarr.storage.KVStore(out)
-            z = zarr.group(store=store, overwrite=True)
-        else:
-            store = zarr.storage.MemoryStore(mode="a", store_dict=out)
-            z = zarr.open(store, mode="w", zarr_format=2)
+        store = dict_to_store(out)
+        z = zarr.open(store, mode="w", zarr_format=2, overwrite=True)
 
         for dim, var in self.variables.items():
             if dim in self.chunks:
@@ -302,6 +298,7 @@ class NetCDF3ToZarr(netcdf_file):
             out.flush()
             return out
         else:
+            translate_refs_serializable(out)
             out = _encode_for_JSON(out)
             return {"version": 1, "refs": out}
 

@@ -45,15 +45,15 @@ def dict_to_store(store_dict: dict):
         return zarr.storage.KVStore(store_dict)
 
 
-def fs_as_store(fs, mode='r', remote_protocol=None, remote_options=None):
+def fs_as_store(fs, mode="r", remote_protocol=None, remote_options=None):
     """Open the refs as a zarr store
-    
+
     Parameters
     ----------
     refs: dict-like
         the references to open
     mode: str
-    
+
     Returns
     -------
     zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
@@ -538,3 +538,34 @@ def templateize(strings, min_length=10, template_name="u"):
     else:
         template = {}
     return template, strings
+
+
+def translate_refs_serializable(refs: dict):
+    """Translate a reference set to a serializable form, given that zarr 
+    v3 memory stores store data in buffers by default. This modifies the 
+    input dictionary in place, and returns a reference to it.
+
+    It also fixes keys that have a leading slash, which is not appropriate for 
+    zarr v3 keys 
+
+    Parameters
+    ----------
+    refs: dict
+        The reference set
+    
+    Returns
+    -------
+    dict
+        A serializable form of the reference set
+    """
+    keys_to_remove = []
+    new_keys = {}
+    for k, v in refs.items():
+        if isinstance(v, zarr.core.buffer.cpu.Buffer):
+            key = k.removeprefix("/")
+            new_keys[key] = v.to_bytes()
+            keys_to_remove.append(k)
+    for k in keys_to_remove:
+        del refs[k]
+    refs.update(new_keys)
+    return refs

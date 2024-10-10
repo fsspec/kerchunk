@@ -5,6 +5,8 @@ import zarr
 import pytest
 import xarray as xr
 
+from kerchunk.utils import refs_as_store
+
 pytest.importorskip("tifffile")
 pytest.importorskip("rioxarray")
 import kerchunk.tiff
@@ -15,8 +17,8 @@ files = glob.glob(os.path.join(os.path.dirname(__file__), "lc*tif"))
 def test_one():
     fn = files[0]
     out = kerchunk.tiff.tiff_to_zarr(fn)
-    m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m, zarr_format=2)
+    store = refs_as_store(out)
+    z = zarr.open(store, zarr_format=2)
     assert list(z) == ["0", "1", "2"]
     assert z.attrs["multiscales"] == [
         {
@@ -33,8 +35,8 @@ def test_one():
 def test_coord():
     fn = files[0]
     out = kerchunk.tiff.tiff_to_zarr(fn)
-    m = fsspec.get_mapper("reference://", fo=out)
-    z = zarr.open(m, zarr_format=2)  # highest res is the one xarray picks
+    store = refs_as_store(out)
+    z = zarr.open(out, zarr_format=2)  # highest res is the one xarray picks
     out = kerchunk.tiff.generate_coords(z.attrs, z[0].shape)
 
     ds = xr.open_dataset(fn)

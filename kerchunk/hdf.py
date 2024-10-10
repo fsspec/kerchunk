@@ -10,7 +10,7 @@ import zarr
 import numcodecs
 
 from .codecs import FillStringsCodec
-from .utils import _encode_for_JSON, encode_fill_value, dict_to_store
+from .utils import _encode_for_JSON, encode_fill_value, dict_to_store, translate_refs_serializable
 
 try:
     import h5py
@@ -150,16 +150,7 @@ class SingleHdf5ToZarr:
             self.store.flush()
             return self.store
         else:
-            keys_to_remove = []
-            new_keys = {}
-            for k, v in self.store_dict.items():
-                if isinstance(v, zarr.core.buffer.cpu.Buffer):
-                    key = str.removeprefix(k, "/")
-                    new_keys[key] = v.to_bytes()
-                    keys_to_remove.append(k)
-            for k in keys_to_remove:
-                del self.store_dict[k]
-            self.store_dict.update(new_keys)
+            translate_refs_serializable(self.store_dict)
             store = _encode_for_JSON(self.store_dict)
             return {"version": 1, "refs": store}
 

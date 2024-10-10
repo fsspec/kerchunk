@@ -8,7 +8,7 @@ import zarr
 from fsspec.implementations.reference import LazyReferenceMapper
 
 
-from kerchunk.utils import class_factory
+from kerchunk.utils import class_factory, dict_to_store
 from kerchunk.codecs import AsciiTableCodec, VarArrCodec
 
 try:
@@ -72,7 +72,8 @@ def process_file(
 
     storage_options = storage_options or {}
     out = out or {}
-    g = zarr.open(out, zarr_format=2)
+    store = dict_to_store(out)
+    g = zarr.open_group(store=store, zarr_format=2)
 
     with fsspec.open(url, mode="rb", **storage_options) as f:
         infile = fits.open(f, do_not_scale_image_data=True)
@@ -164,7 +165,7 @@ def process_file(
             # TODO: we could sub-chunk on biggest dimension
             name = hdu.name or str(ext)
             arr = g.empty(
-                name, dtype=dtype, shape=shape, chunks=shape, compression=None, **kwargs
+                name=name, dtype=dtype, shape=shape, chunks=shape, compressor=None, zarr_format=2, **kwargs
             )
             arr.attrs.update(
                 {
