@@ -24,7 +24,7 @@ dependencies = [
   "numcodecs",
   "numpy",
   "ujson",
-  "zarr",
+  "zarr==3.0.0b0",
 ]
 
 [project.optional-dependencies]
