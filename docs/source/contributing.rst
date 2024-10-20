@@ -97,6 +97,12 @@ In the project's home directory run:
 
     pip install -e .
 
+To install with optional development dependencies run:
+
+.. code-block:: sh
+
+    pip install -e '.[dev]'
+
 To test that the installation was successful run:
 
 .. code-block:: sh
