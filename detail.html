@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -6,19 +8,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Detailed description &mdash; kerchunk  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=7ab3649f" />
 
   
     <link rel="shortcut icon" href="_static/kerchunk.ico"/>
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/jquery.js?v=5d32c60e"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -124,7 +122,8 @@ representation, perhaps pass it through some codecs (e.g., compression) and writ
 directly. HDF5 does this, and so do almost all other binary formats. An HDF5 is made up of
 binary chunks and metadata areas, describing the types and sizes of the binary chunks, how
 they relate to one-another and any other metadata/attributes that might be associated.</p>
-<a class="reference internal image-reference" href="_images/binary_buffer.png"><img alt="HDF5 files contain C buffers" src="_images/binary_buffer.png" style="width: 400px;" /></a>
+<a class="reference internal image-reference" href="_images/binary_buffer.png"><img alt="HDF5 files contain C buffers" src="_images/binary_buffer.png" style="width: 400px;" />
+</a>
 </section>
 <section id="fsspec-virtual-filesystem">
 <h2><code class="docutils literal notranslate"><span class="pre">fsspec</span></code> virtual filesystem<a class="headerlink" href="#fsspec-virtual-filesystem" title="Link to this heading"></a></h2>
@@ -153,7 +152,8 @@ attributes. The chunks of data themselves are expected to live at paths like <co
 <p>In the example image, we demonstrate how zarr can access data across the chunks of many HDF5 files, if
 we construct a virtual filesystem in which each binary chunk is given the exact correct filename as
 expected by <code class="docutils literal notranslate"><span class="pre">zarr</span></code>, in this case for the variable “time”.</p>
-<a class="reference internal image-reference" href="_images/multi_refs.png"><img alt="Zarr can view many files as a single dataset" src="_images/multi_refs.png" style="width: 400px;" /></a>
+<a class="reference internal image-reference" href="_images/multi_refs.png"><img alt="Zarr can view many files as a single dataset" src="_images/multi_refs.png" style="width: 400px;" />
+</a>
 <script data-goatcounter="https://kerchunk.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script></section>
 </section>
