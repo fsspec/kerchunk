@@ -1,12 +1,78 @@
 import base64
 import copy
 import itertools
+import fsspec.asyn
+from packaging.version import Version
+from typing import Any, cast
 import warnings
 
 import ujson
 
 import fsspec
+import numpy as np
 import zarr
+
+
+def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
+    """Convert a reference set to an fsspec filesystem"""
+    fs = fsspec.filesystem(
+        "reference",
+        fo=refs,
+        remote_protocol=remote_protocol,
+        remote_options=remote_options,
+        **kwargs,
+    )
+    return fs
+
+
+def refs_as_store(refs, mode="r", remote_protocol=None, remote_options=None):
+    """Convert a reference set to a zarr store"""
+    asynchronous = False
+    if is_zarr3():
+        asynchronous = True
+        if remote_options is None:
+            remote_options = {"asynchronous": True}
+        else:
+            remote_options["asynchronous"] = True
+
+    fs = refs_as_fs(
+        refs,
+        remote_protocol=remote_protocol,
+        remote_options=remote_options,
+        asynchronous=asynchronous,
+    )
+    return fs_as_store(fs, mode=mode)
+
+
+def is_zarr3():
+    """Check if the installed zarr version is version 3"""
+    return Version(zarr.__version__) >= Version("3.0.0.a0")
+
+
+def dict_to_store(store_dict: dict):
+    """Create an in memory zarr store backed by the given dictionary"""
+    if is_zarr3():
+        return zarr.storage.MemoryStore(mode="w", store_dict=store_dict)
+    else:
+        return zarr.storage.KVStore(store_dict)
+
+
+def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, mode="r"):
+    """Open the refs as a zarr store
+
+    Parameters
+    ----------
+    fs: fsspec.async.AsyncFileSystem
+    mode: str
+
+    Returns
+    -------
+    zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
+    """
+    if is_zarr3():
+        return zarr.storage.RemoteStore(fs, mode=mode)
+    else:
+        return fs.get_mapper()
 
 
 def class_factory(func):
@@ -72,7 +138,7 @@ def rename_target(refs, renames):
     -------
     dict: the altered reference set, which can be saved
     """
-    fs = fsspec.filesystem("reference", fo=refs)  # to produce normalised refs
+    fs = refs_as_fs(refs)  # to produce normalised refs
     refs = fs.references
     out = {}
     for k, v in refs.items():
@@ -134,6 +200,47 @@ def _encode_for_JSON(store):
     return store
 
 
+def encode_fill_value(v: Any, dtype: np.dtype, object_codec: Any = None) -> Any:
+    # early out
+    if v is None:
+        return v
+    if dtype.kind == "V" and dtype.hasobject:
+        if object_codec is None:
+            raise ValueError("missing object_codec for object array")
+        v = object_codec.encode(v)
+        v = str(base64.standard_b64encode(v), "ascii")
+        return v
+    if dtype.kind == "f":
+        if np.isnan(v):
+            return "NaN"
+        elif np.isposinf(v):
+            return "Infinity"
+        elif np.isneginf(v):
+            return "-Infinity"
+        else:
+            return float(v)
+    elif dtype.kind in "ui":
+        return int(v)
+    elif dtype.kind == "b":
+        return bool(v)
+    elif dtype.kind in "c":
+        c = cast(np.complex128, np.dtype(complex).type())
+        v = (
+            encode_fill_value(v.real, c.real.dtype, object_codec),
+            encode_fill_value(v.imag, c.imag.dtype, object_codec),
+        )
+        return v
+    elif dtype.kind in "SV":
+        v = str(base64.standard_b64encode(v), "ascii")
+        return v
+    elif dtype.kind == "U":
+        return v
+    elif dtype.kind in "mM":
+        return int(v.view("i8"))
+    else:
+        return v
+
+
 def do_inline(store, threshold, remote_options=None, remote_protocol=None):
     """Replace short chunks with the value of that chunk and inline metadata
 
@@ -145,6 +252,9 @@ def do_inline(store, threshold, remote_options=None, remote_protocol=None):
         fo=store,
         remote_options=remote_options,
         remote_protocol=remote_protocol,
+    )
+    fs = refs_as_fs(
+        store, remote_protocol=remote_protocol, remote_options=remote_options
     )
     out = fs.references.copy()
 
@@ -223,10 +333,9 @@ def inline_array(store, threshold=1000, names=None, remote_options=None):
     -------
     amended references set (simple style)
     """
-    fs = fsspec.filesystem(
-        "reference", fo=store, **(remote_options or {}), skip_instance_cache=True
-    )
-    g = zarr.open_group(fs.get_mapper(), mode="r+")
+    fs = refs_as_fs(store, remote_options=remote_options or {})
+    zarr_store = fs_as_store(fs, mode="r+", remote_options=remote_options or {})
+    g = zarr.open_group(zarr_store, mode="r+", zarr_format=2)
     _inline_array(g, threshold, names=names or [])
     return fs.references
 
@@ -249,7 +358,7 @@ def subchunk(store, variable, factor):
     -------
     modified store
     """
-    fs = fsspec.filesystem("reference", fo=store)
+    fs = refs_as_fs(store)
     store = fs.references
     meta_file = f"{variable}/.zarray"
     meta = ujson.loads(fs.cat(meta_file))
@@ -440,3 +549,34 @@ def templateize(strings, min_length=10, template_name="u"):
     else:
         template = {}
     return template, strings
+
+
+def translate_refs_serializable(refs: dict):
+    """Translate a reference set to a serializable form, given that zarr
+    v3 memory stores store data in buffers by default. This modifies the
+    input dictionary in place, and returns a reference to it.
+
+    It also fixes keys that have a leading slash, which is not appropriate for
+    zarr v3 keys
+
+    Parameters
+    ----------
+    refs: dict
+        The reference set
+
+    Returns
+    -------
+    dict
+        A serializable form of the reference set
+    """
+    keys_to_remove = []
+    new_keys = {}
+    for k, v in refs.items():
+        if isinstance(v, zarr.core.buffer.cpu.Buffer):
+            key = k.removeprefix("/")
+            new_keys[key] = v.to_bytes()
+            keys_to_remove.append(k)
+    for k in keys_to_remove:
+        del refs[k]
+    refs.update(new_keys)
+    return refs
