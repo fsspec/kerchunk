@@ -1,6 +1,7 @@
 import base64
 import io
 import logging
+import pathlib
 from typing import Union, BinaryIO
 
 import fsspec.core
@@ -91,7 +92,7 @@ class SingleHdf5ToZarr:
 
         # Open HDF5 file in read mode...
         lggr.debug(f"HDF5 file: {h5f}")
-        if isinstance(h5f, str):
+        if isinstance(h5f, (pathlib.Path, str)):
             fs, path = fsspec.core.url_to_fs(h5f, **(storage_options or {}))
             self.input_file = fs.open(path, "rb")
             url = h5f
