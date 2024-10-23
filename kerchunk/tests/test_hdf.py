@@ -199,6 +199,21 @@ def test_string_embed():
     assert (z.vlen_str[1:] == "").all()
 
 
+def test_string_pathlib():
+    # essentially copied test above
+    import pathlib
+
+    fn = osp.join(here, "vlen.h5")
+    h = kerchunk.hdf.SingleHdf5ToZarr(pathlib.Path(fn), vlen_encode="embed")
+    out = h.translate()
+    fs = fsspec.filesystem("reference", fo=out)
+    assert txt in fs.references["vlen_str/0"]
+    z = zarr.open(fs.get_mapper())
+    assert z.vlen_str.dtype == "O"
+    assert z.vlen_str[0] == txt
+    assert (z.vlen_str[1:] == "").all()
+
+
 def test_string_null():
     fn = osp.join(here, "vlen.h5")
     h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="null", inline_threshold=0)
