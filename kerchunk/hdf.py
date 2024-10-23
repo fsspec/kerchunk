@@ -461,7 +461,7 @@ class SingleHdf5ToZarr:
                     if h5obj.attrs.get("_FillValue") is not None:
                         fill = h5obj.attrs.get("_FillValue")
                         fill = encode_fill_value(
-                            h5obj.attrs.get("_FillValue"), dt or h5obj.dtype
+                            fill, dt or h5obj.dtype
                         )
 
                 adims = self._get_array_dims(h5obj)

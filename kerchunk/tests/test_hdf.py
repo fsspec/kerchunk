@@ -1,6 +1,11 @@
+import asyncio
 import fsspec
 import json
 import os.path as osp
+
+import zarr.core
+import zarr.core.buffer
+import zarr.core.group
 
 import kerchunk.hdf
 import numpy as np
@@ -11,33 +16,28 @@ import zarr
 from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
 from kerchunk.combine import MultiZarrToZarr, drop
 from kerchunk.utils import refs_as_fs, refs_as_store
-from kerchunk.zarr import fs_as_store
+from kerchunk.utils import fs_as_store
 
 here = osp.dirname(__file__)
 
 
 def test_single():
     """Test creating references for a single HDF file"""
-    # url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
-    url = "s3://noaa-nos-ofs-pds/ngofs2/netcdf/202410/ngofs2.t03z.20241001.2ds.f020.nc"
+    url = "s3://noaa-nwm-retro-v2.0-pds/full_physics/2017/201704010000.CHRTOUT_DOMAIN1.comp"
     so = dict(anon=True, default_fill_cache=False, default_cache_type="none")
 
     with fsspec.open(url, **so) as f:
-        h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
+        h5chunks = SingleHdf5ToZarr(f, url, storage_options=so, inline_threshold=1)
         test_dict = h5chunks.translate()
 
     with open("test_dict.json", "w") as f:
         json.dump(test_dict, f)
 
-    store = refs_as_store(test_dict)
-
-    ds = xr.open_dataset(
-        store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
-    )
+    store = refs_as_store(test_dict, remote_options=dict(asynchronous=True, anon=True))
+    ds = xr.open_zarr(store, zarr_format=2, consolidated=False)
 
     with fsspec.open(url, **so) as f:
         expected = xr.open_dataset(f, engine="h5netcdf")
-
         xr.testing.assert_equal(ds.drop_vars("crs"), expected.drop_vars("crs"))
 
 
@@ -164,7 +164,7 @@ def test_times(times_data):
         h5chunks = SingleHdf5ToZarr(f, url)
         test_dict = h5chunks.translate()
 
-    store = refs_as_store(test_dict)
+    store = refs_as_store(test_dict, remote_protocol="file")
     result = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
     )

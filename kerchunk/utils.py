@@ -1,6 +1,7 @@
 import base64
 import copy
 import itertools
+import fsspec.asyn
 from packaging.version import Version
 from typing import Any, cast
 import warnings
@@ -24,12 +25,23 @@ def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
     return fs
 
 
-def refs_as_store(refs, remote_protocol=None, remote_options=None):
+def refs_as_store(refs, mode="r", remote_protocol=None, remote_options=None):
     """Convert a reference set to a zarr store"""
+    asynchronous = False
+    if is_zarr3():
+        asynchronous = True
+        if remote_options is None:
+            remote_options = {"asynchronous": True}
+        else:
+            remote_options["asynchronous"] = True
+
     fs = refs_as_fs(
-        refs, remote_protocol=remote_protocol, remote_options=remote_options
+        refs,
+        remote_protocol=remote_protocol,
+        remote_options=remote_options,
+        asynchronous=asynchronous,
     )
-    return fs_as_store(fs)
+    return fs_as_store(fs, mode=mode)
 
 
 def is_zarr3():
@@ -40,18 +52,17 @@ def is_zarr3():
 def dict_to_store(store_dict: dict):
     """Create an in memory zarr store backed by the given dictionary"""
     if is_zarr3():
-        return zarr.storage.MemoryStore(mode="a", store_dict=store_dict)
+        return zarr.storage.MemoryStore(mode="w", store_dict=store_dict)
     else:
         return zarr.storage.KVStore(store_dict)
 
 
-def fs_as_store(fs, mode="r", remote_protocol=None, remote_options=None):
+def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, mode="r"):
     """Open the refs as a zarr store
 
     Parameters
     ----------
-    refs: dict-like
-        the references to open
+    fs: fsspec.async.AsyncFileSystem
     mode: str
 
     Returns
@@ -541,18 +552,18 @@ def templateize(strings, min_length=10, template_name="u"):
 
 
 def translate_refs_serializable(refs: dict):
-    """Translate a reference set to a serializable form, given that zarr 
-    v3 memory stores store data in buffers by default. This modifies the 
+    """Translate a reference set to a serializable form, given that zarr
+    v3 memory stores store data in buffers by default. This modifies the
     input dictionary in place, and returns a reference to it.
 
-    It also fixes keys that have a leading slash, which is not appropriate for 
-    zarr v3 keys 
+    It also fixes keys that have a leading slash, which is not appropriate for
+    zarr v3 keys
 
     Parameters
     ----------
     refs: dict
         The reference set
-    
+
     Returns
     -------
     dict
