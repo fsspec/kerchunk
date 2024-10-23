@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-#import datatree
+import datatree
 import zarr
 import ujson
 from kerchunk.grib2 import (
@@ -75,7 +75,7 @@ def test_archives(tmpdir, url):
     ours = xr.open_zarr(
         store,
         zarr_format=2,
-        consolidated=False,
+        consolidated=False
     )
 
     data = _fetch_first(url)
@@ -263,22 +263,22 @@ def test_hrrr_sfcf_grib_tree():
     assert zg.u.instant.isobaricInhPa.time.shape == (1,)
 
 
-# def test_hrrr_sfcf_grib_datatree():
-#     fpath = os.path.join(here, "hrrr.wrfsfcf.subset.json")
-#     with open(fpath, "rb") as fobj:
-#         scanned_msgs = ujson.load(fobj)
-#     merged = grib_tree(scanned_msgs)
-#     dt = datatree.open_datatree(
-#         fsspec.filesystem("reference", fo=merged).get_mapper(""),
-#         engine="zarr",
-#         consolidated=False,
-#     )
-#     # Assert a few things... but if it loads we are mostly done.
-#     np.testing.assert_array_equal(
-#         dt.u.instant.heightAboveGround.step.values[:],
-#         np.array([0, 3600 * 10**9], dtype="timedelta64[ns]"),
-#     )
-#     assert dt.u.attrs == dict(name="U component of wind")
+def test_hrrr_sfcf_grib_datatree():
+    fpath = os.path.join(here, "hrrr.wrfsfcf.subset.json")
+    with open(fpath, "rb") as fobj:
+        scanned_msgs = ujson.load(fobj)
+    merged = grib_tree(scanned_msgs)
+    dt = datatree.open_datatree(
+        fsspec.filesystem("reference", fo=merged).get_mapper(""),
+        engine="zarr",
+        consolidated=False,
+    )
+    # Assert a few things... but if it loads we are mostly done.
+    np.testing.assert_array_equal(
+        dt.u.instant.heightAboveGround.step.values[:],
+        np.array([0, 3600 * 10**9], dtype="timedelta64[ns]"),
+    )
+    assert dt.u.attrs == dict(name="U component of wind")
 
 
 def test_parse_grib_idx_invalid_url():
@@ -342,17 +342,17 @@ def test_parse_grib_idx_content(idx_url, storage_options):
     assert idx_df.iloc[message_no]["length"] == output[message_no]["refs"][variable][2]
 
 
-# @pytest.fixture
-# def zarr_tree_and_datatree_instance():
-#     fn = os.path.join(here, "gfs.t00z.pgrb2.0p25.f006.test-limit-100")
-#     tree_store = tree_store = grib_tree(scan_grib(fn))
-#     dt_instance = datatree.open_datatree(
-#         fsspec.filesystem("reference", fo=tree_store).get_mapper(""),
-#         engine="zarr",
-#         consolidated=False,
-#     )
+@pytest.fixture
+def zarr_tree_and_datatree_instance():
+    fn = os.path.join(here, "gfs.t00z.pgrb2.0p25.f006.test-limit-100")
+    tree_store = tree_store = grib_tree(scan_grib(fn))
+    dt_instance = datatree.open_datatree(
+        fsspec.filesystem("reference", fo=tree_store).get_mapper(""),
+        engine="zarr",
+        consolidated=False,
+    )
 
-#     return tree_store, dt_instance, fn
+    return tree_store, dt_instance, fn
 
 
 def test_extract_dataset_chunk_index(zarr_tree_and_datatree_instance):
