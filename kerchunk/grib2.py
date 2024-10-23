@@ -97,8 +97,8 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
             chunks=shape,
             dtype=data.dtype,
             fill_value=attr.get("missingValue", None),
-            filters=[GRIBCodec(var=var, dtype=str(data.dtype))],
-            compressor=None,
+            filters=[],
+            compressor=GRIBCodec(var=var, dtype=str(data.dtype)),
         )
         store[f"{var}/" + ".".join(["0"] * len(shape))] = ["{{u}}", offset, size]
     d.attrs.update(attr)
