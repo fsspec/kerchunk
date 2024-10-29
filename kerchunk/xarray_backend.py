@@ -43,4 +43,6 @@ def open_reference_dataset(
 
     m = fsspec.get_mapper("reference://", fo=filename_or_obj, **storage_options)
 
-    return xr.open_dataset(m, engine="zarr", consolidated=False, **open_dataset_options)
+    return xr.open_dataset(
+        m, engine="zarr", zarr_format=2, consolidated=False, **open_dataset_options
+    )

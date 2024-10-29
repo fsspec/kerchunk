@@ -7,6 +7,8 @@ from packaging.version import Version
 import pytest
 from kerchunk import netCDF3
 
+from kerchunk.utils import refs_as_store
+
 xr = pytest.importorskip("xarray")
 
 
@@ -28,12 +30,15 @@ def test_one(m):
     m.pipe("data.nc3", bdata)
     h = netCDF3.netcdf_recording_file("memory://data.nc3")
     out = h.translate()
+
+    store = refs_as_store(out, remote_protocol="memory")
+
     ds = xr.open_dataset(
-        "reference://",
+        store,
         engine="zarr",
         backend_kwargs={
             "consolidated": False,
-            "storage_options": {"fo": out, "remote_protocol": "memory"},
+            "zarr_format": 2,
         },
     )
     assert (ds.data == data).all()
