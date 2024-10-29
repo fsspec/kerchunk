@@ -1,22 +1,18 @@
 import ast
 from dataclasses import dataclass
 import io
-from typing import TYPE_CHECKING
+from typing import Self, TYPE_CHECKING
 
 import numcodecs
 from numcodecs.abc import Codec
 import numpy as np
 import threading
 import zlib
+from zarr.core.array_spec import ArraySpec
 from zarr.abc.codec import ArrayBytesCodec
 from zarr.core.buffer import Buffer, NDArrayLike, NDBuffer
 from zarr.core.common import JSON, parse_enum, parse_named_configuration
 from zarr.registry import register_codec
-
-if TYPE_CHECKING:
-    from typing import Self
-
-    from zarr.core.array_spec import ArraySpec
 
 
 class FillStringsCodec(Codec):
