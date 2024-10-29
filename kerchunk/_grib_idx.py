@@ -82,9 +82,9 @@ import warnings
 from typing import Iterable, Dict, Optional, Callable, Any
 import numpy as np
 import pandas as pd
+import xarray as xr
 import base64
 import copy
-import datatree
 
 
 class DynamicZarrStoreError(ValueError):
@@ -551,7 +551,7 @@ def build_path(path: Iterable[str | None], suffix: Optional[str] = None) -> str:
 
 
 def extract_dataset_chunk_index(
-    dset: "datatree.DataTree",
+    dset: "xr.DataTree",
     ref_store: Dict,
     grib: bool = False,
 ) -> list[dict]:
@@ -575,13 +575,12 @@ def extract_dataset_chunk_index(
     -------
     list[dict] : returns the extracted grib metadata in the form of key-value pairs inside a list
     """
-    import datatree
 
     result: list[dict] = []
     attributes = dset.attrs.copy()
 
     dpath = None
-    if isinstance(dset, datatree.DataTree):
+    if isinstance(dset, xr.DataTree):
         dpath = dset.path
         walk_group = dset.parent
         while walk_group:
@@ -656,7 +655,7 @@ def extract_dataset_chunk_index(
 
 
 def extract_datatree_chunk_index(
-    dtree: "datatree.DataTree", kerchunk_store: dict, grib: bool = False
+    dtree: "xr.DataTree", kerchunk_store: dict, grib: bool = False
 ) -> "pd.DataFrame":
     """
     Recursive method to iterate over the data tree and extract the data variable chunks with index metadata
@@ -732,7 +731,6 @@ def _map_grib_file_by_group(
 
 
 def _extract_single_group(grib_group: dict, idx: int, storage_options: Dict):
-    import datatree
     from kerchunk.grib2 import grib_tree
 
     grib_tree_store = grib_tree(
@@ -746,7 +744,7 @@ def _extract_single_group(grib_group: dict, idx: int, storage_options: Dict):
         logger.info("Empty DT: %s", grib_tree_store)
         return None
 
-    dt = datatree.open_datatree(
+    dt = xr.open_datatree(
         fsspec.filesystem("reference", fo=grib_tree_store).get_mapper(""),
         engine="zarr",
         consolidated=False,
