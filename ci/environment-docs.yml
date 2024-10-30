@@ -7,7 +7,6 @@ dependencies:
   - dask
   - zarr
   - xarray
-  - xarray-datatree
   - h5netcdf
   - h5py
   - pandas

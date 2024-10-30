@@ -45,7 +45,6 @@ dev = [
     "s3fs",
     "types-ujson",
     "xarray",
-    "xarray-datatree",
     "cfgrib",
     "scipy",
     "netcdf4"
