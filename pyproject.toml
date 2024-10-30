@@ -44,7 +44,7 @@ dev = [
     "pytest",
     "s3fs",
     "types-ujson",
-    "xarray",
+    "xarray>=2024.10.0",
     "cfgrib",
     "scipy",
     "netcdf4"

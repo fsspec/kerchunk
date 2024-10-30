@@ -6,7 +6,7 @@ dependencies:
   - python=3.10
   - dask
   - zarr
-  - xarray>2024.10.0
+  - xarray>=2024.10.0
   - h5netcdf
   - h5py
   - pandas
