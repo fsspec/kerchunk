@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-import datatree
 import zarr
 import ujson
 from kerchunk.grib2 import (
@@ -271,7 +270,7 @@ def test_hrrr_sfcf_grib_datatree():
     with open(fpath, "rb") as fobj:
         scanned_msgs = ujson.load(fobj)
     merged = grib_tree(scanned_msgs)
-    dt = datatree.open_datatree(
+    dt = xr.open_datatree(
         fsspec.filesystem("reference", fo=merged).get_mapper(""),
         engine="zarr",
         consolidated=False,
@@ -349,7 +348,7 @@ def test_parse_grib_idx_content(idx_url, storage_options):
 def zarr_tree_and_datatree_instance():
     fn = os.path.join(here, "gfs.t00z.pgrb2.0p25.f006.test-limit-100")
     tree_store = tree_store = grib_tree(scan_grib(fn))
-    dt_instance = datatree.open_datatree(
+    dt_instance = xr.open_datatree(
         fsspec.filesystem("reference", fo=tree_store).get_mapper(""),
         engine="zarr",
         consolidated=False,
