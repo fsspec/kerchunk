@@ -9,6 +9,7 @@ import warnings
 import ujson
 
 import fsspec
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 import numpy as np
 import zarr
 
@@ -70,6 +71,8 @@ def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, mode="r"):
     zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
     """
     if is_zarr3():
+        if not fs.async_impl:
+            fs = AsyncFileSystemWrapper(fs)
         return zarr.storage.RemoteStore(fs, mode=mode)
     else:
         return fs.get_mapper()
