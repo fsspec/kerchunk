@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kerchunk.grib2 &mdash; kerchunk  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=7ab3649f" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
     <link rel="shortcut icon" href="../../_static/kerchunk.ico"/>
@@ -97,7 +97,17 @@
 <span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span><span class="p">,</span> <span class="n">_encode_for_JSON</span>
 <span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">GRIBCodec</span>
 <span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span><span class="p">,</span> <span class="n">drop</span>
-<span class="kn">from</span> <span class="nn">kerchunk._grib_idx</span> <span class="kn">import</span> <span class="n">parse_grib_idx</span><span class="p">,</span> <span class="n">build_idx_grib_mapping</span><span class="p">,</span> <span class="n">map_from_index</span>
+<span class="kn">from</span> <span class="nn">kerchunk._grib_idx</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">parse_grib_idx</span><span class="p">,</span>
+    <span class="n">build_idx_grib_mapping</span><span class="p">,</span>
+    <span class="n">map_from_index</span><span class="p">,</span>
+    <span class="n">strip_datavar_chunks</span><span class="p">,</span>
+    <span class="n">reinflate_grib_store</span><span class="p">,</span>
+    <span class="n">extract_datatree_chunk_index</span><span class="p">,</span>
+    <span class="n">AggregationType</span><span class="p">,</span>
+    <span class="n">read_store</span><span class="p">,</span>
+    <span class="n">write_store</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="k">try</span><span class="p">:</span>
@@ -679,6 +689,12 @@
     <span class="s2">&quot;parse_grib_idx&quot;</span><span class="p">,</span>
     <span class="s2">&quot;build_idx_grib_mapping&quot;</span><span class="p">,</span>
     <span class="s2">&quot;map_from_index&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;strip_datavar_chunks&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;reinflate_grib_store&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;extract_datatree_chunk_index&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;AggregationType&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;read_store&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;write_store&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 </pre></div>
 
