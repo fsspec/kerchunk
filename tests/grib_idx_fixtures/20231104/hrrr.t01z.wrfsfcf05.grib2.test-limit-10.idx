@@ -1,0 +1,11 @@
+1:0:d=2023110401:REFC:entire atmosphere:5 hour fcst:
+2:449315:d=2023110401:RETOP:cloud top:5 hour fcst:
+3:650542:d=2023110401:var discipline=0 center=7 local_table=1 parmcat=16 parm=201:entire atmosphere:5 hour fcst:
+4:1152939:d=2023110401:VIL:entire atmosphere:5 hour fcst:
+5:1507003:d=2023110401:VIS:surface:5 hour fcst:
+6:2971440:d=2023110401:REFD:1000 m above ground:5 hour fcst:
+7:3255959:d=2023110401:REFD:4000 m above ground:5 hour fcst:
+8:3448790:d=2023110401:REFD:263 K level:5 hour fcst:
+9:3651102:d=2023110401:GUST:surface:5 hour fcst:
+10:4998107:d=2023110401:UGRD:250 mb:5 hour fcst:
+11:5748405:d=2023110401:VGRD:250 mb:5 hour fcst:

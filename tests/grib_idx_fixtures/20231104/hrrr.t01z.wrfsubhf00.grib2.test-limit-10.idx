@@ -1,0 +1,11 @@
+1:0:d=2023110401:REFC:entire atmosphere:anl:
+2:283521:d=2023110401:RETOP:cloud top:anl:
+3:455125:d=2023110401:var discipline=0 center=7 local_table=1 parmcat=16 parm=201:entire atmosphere:anl:
+4:769774:d=2023110401:VIL:entire atmosphere:anl:
+5:1003128:d=2023110401:VIS:surface:anl:
+6:2410548:d=2023110401:REFD:1000 m above ground:anl:
+7:2562772:d=2023110401:REFD:4000 m above ground:anl:
+8:2731640:d=2023110401:GUST:surface:anl:
+9:3966534:d=2023110401:UPHL:5000-2000 m above ground:anl:
+10:4024102:d=2023110401:UGRD:80 m above ground:anl:
+11:5141538:d=2023110401:VGRD:80 m above ground:anl:

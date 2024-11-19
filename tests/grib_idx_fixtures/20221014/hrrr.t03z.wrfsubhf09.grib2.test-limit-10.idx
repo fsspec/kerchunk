@@ -1,0 +1,11 @@
+1:0:d=2022101403:REFC:entire atmosphere:495 min fcst:
+2:673634:d=2022101403:RETOP:cloud top:495 min fcst:
+3:972668:d=2022101403:var discipline=0 center=7 local_table=1 parmcat=16 parm=201:entire atmosphere:495 min fcst:
+4:1595732:d=2022101403:VIL:entire atmosphere:495 min fcst:
+5:2037511:d=2022101403:VIS:surface:495 min fcst:
+6:3618808:d=2022101403:REFD:1000 m above ground:495 min fcst:
+7:4005177:d=2022101403:REFD:4000 m above ground:495 min fcst:
+8:4246364:d=2022101403:GUST:surface:495 min fcst:
+9:5596949:d=2022101403:UPHL:5000-2000 m above ground:495 min fcst:
+10:5614214:d=2022101403:UGRD:80 m above ground:495 min fcst:
+11:6858508:d=2022101403:VGRD:80 m above ground:495 min fcst:

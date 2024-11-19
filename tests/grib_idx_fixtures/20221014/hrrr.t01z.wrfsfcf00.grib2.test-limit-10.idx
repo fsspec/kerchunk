@@ -1,0 +1,11 @@
+1:0:d=2022101401:REFC:entire atmosphere:anl:
+2:464700:d=2022101401:RETOP:cloud top:anl:
+3:797270:d=2022101401:var discipline=0 center=7 local_table=1 parmcat=16 parm=201:entire atmosphere:anl:
+4:1279418:d=2022101401:VIL:entire atmosphere:anl:
+5:1629309:d=2022101401:VIS:surface:anl:
+6:3031911:d=2022101401:REFD:1000 m above ground:anl:
+7:3324038:d=2022101401:REFD:4000 m above ground:anl:
+8:3573815:d=2022101401:REFD:263 K level:anl:
+9:3860080:d=2022101401:GUST:surface:anl:
+10:5058926:d=2022101401:UGRD:250 mb:anl:
+11:5853053:d=2022101401:VGRD:250 mb:anl:
