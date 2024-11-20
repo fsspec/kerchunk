@@ -21,7 +21,7 @@ from kerchunk._grib_idx import (
     extract_dataset_chunk_index,
     extract_datatree_chunk_index,
 )
-from kerchunk.utils import refs_as_store
+from kerchunk.utils import fs_as_store, refs_as_store
 
 eccodes_ver = tuple(int(i) for i in eccodes.__version__.split("."))
 cfgrib = pytest.importorskip("cfgrib")
@@ -70,7 +70,7 @@ def test_archives(tmpdir, url):
     grib = GribToZarr(url, storage_options={"anon": True}, skip=1)
     out = grib.translate()[0]
 
-    store = refs_as_store(out)
+    store = refs_as_store(out, remote_options={"anon": True})
 
     ours = xr.open_zarr(
         store,
@@ -116,7 +116,8 @@ def test_grib_tree():
     corrected_msg_groups = [correct_hrrr_subhf_step(msg) for msg in scanned_msg_groups]
     result = grib_tree(corrected_msg_groups)
     fs = fsspec.filesystem("reference", fo=result)
-    zg = zarr.open_group(fs.get_mapper(""), zarr_format=2)
+    store = fs_as_store(fs)
+    zg = zarr.open_group(store, mode="r", zarr_format=2)
     assert isinstance(zg["refc/instant/atmosphere/refc"], zarr.Array)
     assert isinstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
     assert set(zg["vbdsf/avg/surface"].attrs["coordinates"].split()) == set(
@@ -126,7 +127,7 @@ def test_grib_tree():
         "atmosphere latitude longitude step time valid_time".split()
     )
     # Assert that the fill value is set correctly
-    assert zg.refc.instant.atmosphere.step.fill_value is np.nan
+    assert np.isnan(zg['refc/instant/atmosphere/step'].fill_value)
 
 
 # The following two tests use json fixture data generated from calling scan grib
@@ -144,14 +145,14 @@ def test_correct_hrrr_subhf_group_step():
         scanned_msgs = ujson.load(fobj)
 
     original_zg = [
-        zarr.open_group(fsspec.filesystem("reference", fo=val).get_mapper(""), zarr_format=2)
+        zarr.open_group(fs_as_store(fsspec.filesystem("reference", fo=val)), mode="r", zarr_format=2)
         for val in scanned_msgs
     ]
 
     corrected_msgs = [correct_hrrr_subhf_step(msg) for msg in scanned_msgs]
 
     corrected_zg = [
-        zarr.open_group(fsspec.filesystem("reference", fo=val).get_mapper(""), zarr_format=2)
+        zarr.open_group(fs_as_store(fsspec.filesystem("reference", fo=val)), mode="r", zarr_format=2)
         for val in corrected_msgs
     ]
 
@@ -160,10 +161,10 @@ def test_correct_hrrr_subhf_group_step():
     assert not all(["step" in zg.array_keys() for zg in original_zg])
 
     # The step values are corrected to floating point hour
-    assert all([zg.step[()] <= 1.0 for zg in corrected_zg])
+    assert all([zg["step"][()] <= 1.0 for zg in corrected_zg])
     # The original seems to have values in minutes for some step variables!
     assert not all(
-        [zg.step[()] <= 1.0 for zg in original_zg if "step" in zg.array_keys()]
+        [zg["step"][()] <= 1.0 for zg in original_zg if "step" in zg.array_keys()]
     )
 
 
@@ -174,36 +175,32 @@ def test_hrrr_subhf_corrected_grib_tree():
 
     corrected_msgs = [correct_hrrr_subhf_step(msg) for msg in scanned_msgs]
     merged = grib_tree(corrected_msgs)
-    zg = zarr.open_group(fsspec.filesystem("reference", fo=merged).get_mapper(""), zarr_format=2)
+    z_fs = fsspec.filesystem("reference", fo=merged, asynchronous=True)
+    zstore = fs_as_store(z_fs)
+    zg = zarr.open_group(zstore, mode="r", zarr_format=2)
     # Check the values and shape of the time coordinates
-    assert zg.u.instant.heightAboveGround.step[:].tolist() == [
+    assert zg['u/instant/heightAboveGround/step'][:].tolist() == [
         0.0,
         0.25,
         0.5,
         0.75,
         1.0,
     ]
-    assert zg.u.instant.heightAboveGround.step.shape == (5,)
-
-    assert zg.u.instant.heightAboveGround.valid_time[:].tolist() == [
+    assert zg['u/instant/heightAboveGround/step'].shape == (5,)
+    assert zg['u/instant/heightAboveGround/valid_time'][:].tolist() == [
         [1695862800, 1695863700, 1695864600, 1695865500, 1695866400]
     ]
-    assert zg.u.instant.heightAboveGround.valid_time.shape == (1, 5)
-
-    assert zg.u.instant.heightAboveGround.time[:].tolist() == [1695862800]
-    assert zg.u.instant.heightAboveGround.time.shape == (1,)
-
-    assert zg.dswrf.avg.surface.step[:].tolist() == [0.0, 0.25, 0.5, 0.75, 1.0]
-    assert zg.dswrf.avg.surface.step.shape == (5,)
-
-    assert zg.dswrf.avg.surface.valid_time[:].tolist() == [
+    assert zg['u/instant/heightAboveGround/valid_time'].shape == (1, 5)
+    assert zg['u/instant/heightAboveGround/time'][:].tolist() == [1695862800]
+    assert zg['u/instant/heightAboveGround/time'].shape == (1,)
+    assert zg['dswrf/avg/surface/step'][:].tolist() == [0.0, 0.25, 0.5, 0.75, 1.0]
+    assert zg['dswrf/avg/surface/step'].shape == (5,)
+    assert zg['dswrf/avg/surface/valid_time'][:].tolist() == [
         [1695862800, 1695863700, 1695864600, 1695865500, 1695866400]
     ]
-    assert zg.dswrf.avg.surface.valid_time.shape == (1, 5)
-
-    assert zg.dswrf.avg.surface.time[:].tolist() == [1695862800]
-    assert zg.dswrf.avg.surface.time.shape == (1,)
-
+    assert zg['dswrf/avg/surface/valid_time'].shape == (1, 5)
+    assert zg['dswrf/avg/surface/time'][:].tolist() == [1695862800]
+    assert zg['dswrf/avg/surface/time'].shape == (1,)
 
 # The following two test use json fixture data generated from calling scan grib
 #   scan_grib("testdata/hrrr.t01z.wrfsfcf00.grib2")
@@ -217,24 +214,22 @@ def test_hrrr_sfcf_grib_tree():
     with open(fpath, "rb") as fobj:
         scanned_msgs = ujson.load(fobj)
     merged = grib_tree(scanned_msgs)
-    zg = zarr.open_group(fsspec.filesystem("reference", fo=merged).get_mapper(""), zarr_format=2)
+    store = fs_as_store(fsspec.filesystem("reference", fo=merged))
+    zg = zarr.open_group(store, mode="r", zarr_format=2)
     # Check the heightAboveGround level shape of the time coordinates
-    assert zg.u.instant.heightAboveGround.heightAboveGround[()] == 80.0
-    assert zg.u.instant.heightAboveGround.heightAboveGround.shape == ()
-
-    assert zg.u.instant.heightAboveGround.step[:].tolist() == [0.0, 1.0]
-    assert zg.u.instant.heightAboveGround.step.shape == (2,)
-
-    assert zg.u.instant.heightAboveGround.valid_time[:].tolist() == [
+    assert zg['u/instant/heightAboveGround/heightAboveGround'][()] == 80.0
+    assert zg['u/instant/heightAboveGround/heightAboveGround'].shape == ()
+    assert zg['u/instant/heightAboveGround/step'][:].tolist() == [0.0, 1.0]
+    assert zg['u/instant/heightAboveGround/step'].shape == (2,)
+    assert zg['u/instant/heightAboveGround/valid_time'][:].tolist() == [
         [1695862800, 1695866400]
     ]
-    assert zg.u.instant.heightAboveGround.valid_time.shape == (1, 2)
-
-    assert zg.u.instant.heightAboveGround.time[:].tolist() == [1695862800]
-    assert zg.u.instant.heightAboveGround.time.shape == (1,)
+    assert zg['u/instant/heightAboveGround/valid_time'].shape == (1, 2)
+    assert zg['u/instant/heightAboveGround/time'][:].tolist() == [1695862800]
+    assert zg['u/instant/heightAboveGround/time'].shape == (1,)
 
     # Check the isobaricInhPa level shape and time coordinates
-    assert zg.u.instant.isobaricInhPa.isobaricInhPa[:].tolist() == [
+    assert zg['u/instant/isobaricInhPa/isobaricInhPa'][:].tolist() == [
         250.0,
         300.0,
         500.0,
@@ -243,10 +238,9 @@ def test_hrrr_sfcf_grib_tree():
         925.0,
         1000.0,
     ]
-    assert zg.u.instant.isobaricInhPa.isobaricInhPa.shape == (7,)
-
-    assert zg.u.instant.isobaricInhPa.step[:].tolist() == [0.0, 1.0]
-    assert zg.u.instant.isobaricInhPa.step.shape == (2,)
+    assert zg['u/instant/isobaricInhPa/isobaricInhPa'].shape == (7,)
+    assert zg['u/instant/isobaricInhPa/step'][:].tolist() == [0.0, 1.0]
+    assert zg['u/instant/isobaricInhPa/step'].shape == (2,)
 
     # Valid time values get exploded by isobaricInhPa aggregation
     # Is this a feature or a bug?
@@ -256,11 +250,11 @@ def test_hrrr_sfcf_grib_tree():
             [1695866400 for _ in range(7)],
         ]
     ]
-    assert zg.u.instant.isobaricInhPa.valid_time[:].tolist() == expected_valid_times
-    assert zg.u.instant.isobaricInhPa.valid_time.shape == (1, 2, 7)
+    assert zg['u/instant/isobaricInhPa/valid_time'][:].tolist() == expected_valid_times
+    assert zg['u/instant/isobaricInhPa/valid_time'].shape == (1, 2, 7)
 
-    assert zg.u.instant.isobaricInhPa.time[:].tolist() == [1695862800]
-    assert zg.u.instant.isobaricInhPa.time.shape == (1,)
+    assert zg['u/instant/isobaricInhPa/time'][:].tolist() == [1695862800]
+    assert zg['u/instant/isobaricInhPa/time'].shape == (1,)
 
 
 # def test_hrrr_sfcf_grib_datatree():
@@ -290,11 +284,14 @@ def test_parse_grib_idx_invalid_url():
 
 
 def test_parse_grib_idx_no_file():
-    with pytest.raises(FileNotFoundError):
+    # How did this ever work? 403s are returned for anonymous calls to non-existent
+    #  files iirc as a security measure to obscure results/avoid tests for existence 
+    #with pytest.raises(FileNotFoundError):
+    with pytest.raises(PermissionError):
         # the url is spelled wrong
         parse_grib_idx(
             "s3://noaahrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
-            storage_options=dict(anon=True),
+            storage_options={"anon": True},
         )
 
 
@@ -355,6 +352,7 @@ def test_parse_grib_idx_content(idx_url, storage_options):
 #     return tree_store, dt_instance, fn
 
 
+@pytest.mark.skip(reason="datatree support should be updated to use xarray.Datatree")
 def test_extract_dataset_chunk_index(zarr_tree_and_datatree_instance):
     tree_store, dt_instance, fn = zarr_tree_and_datatree_instance
 
@@ -385,6 +383,7 @@ def test_extract_dataset_chunk_index(zarr_tree_and_datatree_instance):
     )
 
 
+@pytest.mark.skip(reason="datatree support should be updated to use xarray.Datatree")
 def test_extract_datatree_chunk_index(zarr_tree_and_datatree_instance):
     tree_store, dt_instance, fn = zarr_tree_and_datatree_instance
 
@@ -438,6 +437,7 @@ def test_extract_datatree_chunk_index(zarr_tree_and_datatree_instance):
     ).all()
 
 
+@pytest.mark.skip(reason="datatree support should be updated to use xarray.Datatree")
 def test_extract_methods_grib_parameter(zarr_tree_and_datatree_instance):
     tree_store, dt_instance, _ = zarr_tree_and_datatree_instance
 

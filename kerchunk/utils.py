@@ -22,11 +22,12 @@ def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
         remote_protocol=remote_protocol,
         remote_options=remote_options,
         **kwargs,
+        asynchronous=True
     )
     return fs
 
 
-def refs_as_store(refs, mode="r", remote_protocol=None, remote_options=None):
+def refs_as_store(refs, read_only=True, remote_protocol=None, remote_options=None):
     """Convert a reference set to a zarr store"""
     asynchronous = False
     if is_zarr3():
@@ -39,10 +40,9 @@ def refs_as_store(refs, mode="r", remote_protocol=None, remote_options=None):
     fs = refs_as_fs(
         refs,
         remote_protocol=remote_protocol,
-        remote_options=remote_options,
-        asynchronous=asynchronous,
+        remote_options=remote_options
     )
-    return fs_as_store(fs, mode=mode)
+    return fs_as_store(fs, read_only=True)
 
 
 def is_zarr3():
@@ -53,12 +53,12 @@ def is_zarr3():
 def dict_to_store(store_dict: dict):
     """Create an in memory zarr store backed by the given dictionary"""
     if is_zarr3():
-        return zarr.storage.MemoryStore(mode="w", store_dict=store_dict)
+        return zarr.storage.MemoryStore(read_only=False, store_dict=store_dict)
     else:
         return zarr.storage.KVStore(store_dict)
 
 
-def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, mode="r"):
+def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=True):
     """Open the refs as a zarr store
 
     Parameters
@@ -73,7 +73,8 @@ def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, mode="r"):
     if is_zarr3():
         if not fs.async_impl:
             fs = AsyncFileSystemWrapper(fs)
-        return zarr.storage.RemoteStore(fs, mode=mode)
+        fs.asynchronous = True
+        return zarr.storage.RemoteStore(fs, read_only=read_only)
     else:
         return fs.get_mapper()
 
