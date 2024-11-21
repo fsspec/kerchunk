@@ -1,3 +1,4 @@
+import asyncio
 import collections.abc
 import logging
 import re
@@ -10,6 +11,7 @@ import numpy as np
 import numcodecs
 import ujson
 import zarr
+from zarr.core.buffer.core import default_buffer_prototype
 
 from kerchunk.utils import consolidate, fs_as_store, translate_refs_serializable
 
@@ -349,6 +351,16 @@ class MultiZarrToZarr:
         logger.debug("Decode: %s -> %s", (selector, index, var, fn), o)
         return o
 
+    async def _read_meta_files(self, m, files):
+        """Helper to load multiple metadata files asynchronously"""
+        res = {}
+        for fn in files:
+            exists = await m.exists(fn)
+            if exists:
+                content = await m.get(fn, prototype=default_buffer_prototype())
+                res[fn] = ujson.dumps(ujson.loads(content.to_bytes()))
+        return res
+
     def first_pass(self):
         """Accumulate the set of concat coords values across all inputs"""
 
@@ -444,10 +456,9 @@ class MultiZarrToZarr:
             # TODO: rewrite .zarray/.zattrs with ujson to save space. Maybe make them by hand anyway.
         self.out.update(kv)
         logger.debug("Written coordinates")
-        for fn in [".zgroup", ".zattrs"]:
-            # top-level group attributes from first input
-            if m.fs.exists(fn):
-                self.out[fn] = ujson.dumps(ujson.loads(m.fs.cat(fn)))
+
+        metadata = asyncio.run(self._read_meta_files(m, [".zgroup", ".zattrs"]))
+        self.out.update(metadata)
         logger.debug("Written global metadata")
         self.done.add(2)
 
@@ -494,9 +505,8 @@ class MultiZarrToZarr:
                 if f"{v}/.zgroup" in fns:
                     # recurse into groups - copy meta, add to dirs to process and don't look
                     # for references in this dir
-                    self.out[f"{v}/.zgroup"] = m.fs.cat(f"{v}/.zgroup")
-                    if f"{v}/.zattrs" in fns:
-                        self.out[f"{v}/.zattrs"] = m.fs.cat(f"{v}/.zattrs")
+                    metadata = asyncio.run(self._read_meta_files(m, [f"{v}/.zgroup", f"{v}/.zattrs"]))
+                    self.out.update(metadata)
                     dirs.extend([f for f in fns if not f.startswith(f"{v}/.z")])
                     continue
                 if v in self.identical_dims:
@@ -507,8 +517,9 @@ class MultiZarrToZarr:
                             self.out[k] = fs.references[k]
                     continue
                 logger.debug("Second pass: %s, %s", i, v)
-
-                zarray = ujson.loads(m.fs.cat(f"{v}/.zarray"))
+                
+                zarray = asyncio.run(self._read_meta_files(m, [f"{v}/.zarray"]))[f"{v}/.zarray"]
+                zarray = ujson.loads(zarray)
                 if v not in chunk_sizes:
                     chunk_sizes[v] = zarray["chunks"]
                 elif chunk_sizes[v] != zarray["chunks"]:
@@ -519,10 +530,8 @@ class MultiZarrToZarr:
                         chunks so far: {zarray["chunks"]}"""
                     )
                 chunks = chunk_sizes[v]
-                if m.fs.exists(f"{v}/.zattrs"):
-                    zattrs = ujson.loads(m.fs.cat(f"{v}/.zattrs"))
-                else:
-                    zattrs = ujson.loads({})
+                zattr_meta = asyncio.run(self._read_meta_files(m, [f"{v}/.zattrs"]))
+                zattrs = ujson.loads(zattr_meta.get(f"{v}/.zattrs", {}))
                 coords = zattrs.get("_ARRAY_DIMENSIONS", [])
                 if zarray["shape"] and not coords:
                     coords = list("ikjlm")[: len(zarray["shape"])]
