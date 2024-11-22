@@ -49,20 +49,42 @@ References
 For more information on indexing, check out this
 link: https://github.com/asascience-open/nextgen-dmac/pull/57
 
-"""
+
+Original license
+----------------
+MIT License Copyright (c) 2023 Camus Energy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""  # noqa: E501
 
 
 import ujson
 import itertools
+import os
+import gzip
+import re
 import logging
 import fsspec
+from enum import unique, Enum
+from functools import cache
 import warnings
-from typing import Iterable, Dict, TYPE_CHECKING, Optional, Callable
-
-
-if TYPE_CHECKING:
-    import pandas as pd
-    import datatree
+from typing import Iterable, Dict, Optional, Callable, Any
+import numpy as np
+import pandas as pd
+import xarray as xr
+import base64
+import copy
 
 
 class DynamicZarrStoreError(ValueError):
@@ -70,6 +92,383 @@ class DynamicZarrStoreError(ValueError):
 
 
 logger = logging.getLogger("grib-indexing")
+
+COORD_DIM_MAPPING: dict[str, str] = dict(
+    time="run_times",
+    valid_time="valid_times",
+    step="model_horizons",
+)
+
+ZARR_TREE_STORE = "zarr_tree_store.json.gz"
+
+
+def repeat_steps(step_index: pd.TimedeltaIndex, to_length: int) -> np.array:
+    return np.tile(step_index.to_numpy(), int(np.ceil(to_length / len(step_index))))[
+        :to_length
+    ]
+
+
+def create_steps(steps_index: pd.Index, to_length) -> np.array:
+    return np.vstack([repeat_steps(si, to_length) for si in steps_index])
+
+
+def store_coord_var(key: str, zstore: dict, coords: tuple[str, ...], data: np.array):
+    if np.isnan(data).any():
+        if f"{key}/.zarray" not in zstore:
+            logger.debug("Skipping nan coordinate with no variable %s", key)
+            return
+        else:
+            logger.info("Trying to add coordinate var %s with nan value!", key)
+
+    zattrs = ujson.loads(zstore[f"{key}/.zattrs"])
+    zarray = ujson.loads(zstore[f"{key}/.zarray"])
+    # Use list not tuple
+    zarray["chunks"] = [*data.shape]
+    zarray["shape"] = [*data.shape]
+
+    if key.endswith("step"):
+        zarray["dtype"] = "<f8"
+        zattrs["units"] = "hours"
+
+    zattrs["_ARRAY_DIMENSIONS"] = [
+        COORD_DIM_MAPPING[v] if v in COORD_DIM_MAPPING else v for v in coords
+    ]
+
+    zstore[f"{key}/.zarray"] = ujson.dumps(zarray)
+    zstore[f"{key}/.zattrs"] = ujson.dumps(zattrs)
+
+    vkey = ".".join(["0" for _ in coords])
+    logger.info("COOORD %s DATA!: %s", key, data.dtype)
+    data_bytes = data.tobytes()
+    try:
+        enocded_val = data_bytes.decode("ascii")
+    except UnicodeDecodeError:
+        enocded_val = (b"base64:" + base64.b64encode(data_bytes)).decode("ascii")
+    zstore[f"{key}/{vkey}"] = enocded_val
+
+
+def store_data_var(
+    key: str,
+    zstore: dict,
+    dims: dict[str, int],
+    coords: dict[str, tuple[str, ...]],
+    data: pd.DataFrame,
+    steps: np.array,
+    times: np.array,
+    lvals: Optional[np.array],
+):
+    zattrs = ujson.loads(zstore[f"{key}/.zattrs"])
+    zarray = ujson.loads(zstore[f"{key}/.zarray"])
+
+    dcoords = coords["datavar"]
+
+    # The lat/lon y/x coordinates are always the last two
+    lat_lon_dims = {
+        k: v for k, v in zip(zattrs["_ARRAY_DIMENSIONS"][-2:], zarray["shape"][-2:])
+    }
+    full_coords = dcoords + tuple(lat_lon_dims.keys())
+    full_dims = dict(**dims, **lat_lon_dims)
+
+    # all chunk dimensions are 1 except for lat/lon or x/y
+    zarray["chunks"] = [
+        1 if c not in lat_lon_dims else lat_lon_dims[c] for c in full_coords
+    ]
+    zarray["shape"] = [full_dims[k] for k in full_coords]
+    if zarray["fill_value"] is None:
+        # Check dtype first?
+        zarray["fill_value"] = np.nan
+
+    zattrs["_ARRAY_DIMENSIONS"] = [
+        COORD_DIM_MAPPING[v] if v in COORD_DIM_MAPPING else v for v in full_coords
+    ]
+
+    zstore[f"{key}/.zarray"] = ujson.dumps(zarray)
+    zstore[f"{key}/.zattrs"] = ujson.dumps(zattrs)
+
+    idata = data.set_index(["time", "step", "level"]).sort_index()
+
+    for idx in itertools.product(*[range(dims[k]) for k in dcoords]):
+        # Build an iterator over each of the single dimension chunks
+        # TODO if the .loc call is slow inside the loop replace with a reindex operation and iterate that.
+        dim_idx = {k: v for k, v in zip(dcoords, idx)}
+
+        iloc: tuple[Any, ...] = (
+            times[tuple([dim_idx[k] for k in coords["time"]])],
+            steps[tuple([dim_idx[k] for k in coords["step"]])],
+        )
+        if lvals is not None:
+            iloc = iloc + (lvals[idx[-1]],)  # type:ignore[assignment]
+
+        try:
+            # Squeeze if needed to get a series. Noop if already a series Df has multiple rows
+            dval = idata.loc[iloc].squeeze()
+        except KeyError:
+            logger.info(f"Error getting vals {iloc} for in path {key}")
+            continue
+
+        assert isinstance(
+            dval, pd.Series
+        ), f"Got multiple values for iloc {iloc} in key {key}: {dval}"
+
+        if pd.isna(dval.inline_value):
+            # List of [URI(Str), offset(Int), length(Int)] using python (not numpy) types.
+            record = [dval.uri, dval.offset.item(), dval.length.item()]
+        else:
+            record = dval.inline_value
+        # lat/lon y/x have only the zero chunk
+        vkey = ".".join([str(v) for v in (idx + (0, 0))])
+        zstore[f"{key}/{vkey}"] = record
+
+
+@unique
+class AggregationType(Enum):
+    """
+    ENUM for aggregation types
+    TODO is this useful elsewhere?
+    """
+
+    HORIZON = "horizon"
+    VALID_TIME = "valid_time"
+    RUN_TIME = "run_time"
+    BEST_AVAILABLE = "best_available"
+
+
+def reinflate_grib_store(
+    axes: list[pd.Index],
+    aggregation_type: AggregationType,
+    chunk_index: pd.DataFrame,
+    zarr_ref_store: dict,
+) -> dict:
+    """
+    Given a zarr_store hierarchy, pull out the variables present in the chunks dataframe and reinflate the
+    zarr variables adding any needed dimensions. This is a select operation - based on the time axis
+    provided.
+    Assumes everything is stored in hours per grib convention.
+
+    :param axes: a list of new axes for aggregation
+    :param aggregation_type: the type of fmrc aggregation
+    :param chunk_index: a dataframe containing the kerchunk index
+    :param zarr_ref_store: the deflated (chunks removed) zarr store
+    :return: the inflated zarr store
+    """
+    # Make a deep copy to avoid modifying the input
+    zstore = copy.deepcopy(zarr_ref_store["refs"])
+
+    axes_by_name: dict[str, pd.Index] = {pdi.name: pdi for pdi in axes}
+    # Validate axis names
+    time_dims: dict[str, int] = {}
+    time_coords: dict[str, tuple[str, ...]] = {}
+    # TODO: add a data class or other method of typing and validating the variables created in this if block
+    if aggregation_type.value == AggregationType.HORIZON.value:
+        # Use index length horizons containing timedelta ranges for the set of steps
+        time_dims["step"] = len(axes_by_name["step"])
+        time_dims["valid_time"] = len(axes_by_name["valid_time"])
+
+        time_coords["step"] = ("step", "valid_time")
+        time_coords["valid_time"] = ("step", "valid_time")
+        time_coords["time"] = ("step", "valid_time")
+        time_coords["datavar"] = ("step", "valid_time")
+
+        steps = create_steps(axes_by_name["step"], time_dims["valid_time"])
+        valid_times = np.tile(
+            axes_by_name["valid_time"].to_numpy(), (time_dims["step"], 1)
+        )
+        times = valid_times - steps
+
+    elif aggregation_type.value == AggregationType.VALID_TIME.value:
+        # Provide an index of steps and an index of valid times
+        time_dims["step"] = len(axes_by_name["step"])
+        time_dims["valid_time"] = len(axes_by_name["valid_time"])
+
+        time_coords["step"] = ("step",)
+        time_coords["valid_time"] = ("valid_time",)
+        time_coords["time"] = ("valid_time", "step")
+        time_coords["datavar"] = ("valid_time", "step")
+
+        steps = axes_by_name["step"].to_numpy()
+        valid_times = axes_by_name["valid_time"].to_numpy()
+
+        steps2d = np.tile(axes_by_name["step"], (time_dims["valid_time"], 1))
+        valid_times2d = np.tile(
+            np.reshape(axes_by_name["valid_time"], (-1, 1)), (1, time_dims["step"])
+        )
+        times = valid_times2d - steps2d
+
+    elif aggregation_type.value == AggregationType.RUN_TIME.value:
+        # Provide an index of steps and an index of run times.
+        time_dims["step"] = len(axes_by_name["step"])
+        time_dims["time"] = len(axes_by_name["time"])
+
+        time_coords["step"] = ("step",)
+        time_coords["valid_time"] = ("time", "step")
+        time_coords["time"] = ("time",)
+        time_coords["datavar"] = ("time", "step")
+
+        steps = axes_by_name["step"].to_numpy()
+        times = axes_by_name["time"].to_numpy()
+
+        # The valid times will be runtimes by steps
+        steps2d = np.tile(axes_by_name["step"], (time_dims["time"], 1))
+        times2d = np.tile(
+            np.reshape(axes_by_name["time"], (-1, 1)), (1, time_dims["step"])
+        )
+        valid_times = times2d + steps2d
+
+    elif aggregation_type.value == AggregationType.BEST_AVAILABLE.value:
+        time_dims["valid_time"] = len(axes_by_name["valid_time"])
+        assert (
+            len(axes_by_name["time"]) == 1
+        ), "The time axes must describe a single 'as of' date for best available"
+        reference_time = axes_by_name["time"].to_numpy()[0]
+
+        time_coords["step"] = ("valid_time",)
+        time_coords["valid_time"] = ("valid_time",)
+        time_coords["time"] = ("valid_time",)
+        time_coords["datavar"] = ("valid_time",)
+
+        valid_times = axes_by_name["valid_time"].to_numpy()
+        times = np.where(valid_times <= reference_time, valid_times, reference_time)
+        steps = valid_times - times
+    else:
+        raise RuntimeError(f"Invalid aggregation_type argument: {aggregation_type}")
+
+    # Copy all the groups that contain variables in the chunk dataset
+    unique_groups = chunk_index.set_index(
+        ["varname", "stepType", "typeOfLevel"]
+    ).index.unique()
+
+    # Drop keys not in the unique groups
+    for key in list(zstore.keys()):
+        # Separate the key as a path keeping only: varname, stepType and typeOfLevel
+        # Treat root keys like ".zgroup" as special and return an empty tuple
+        lookup = tuple(
+            [val for val in os.path.dirname(key).split("/")[:3] if val != ""]
+        )
+        if lookup not in unique_groups:
+            del zstore[key]
+
+    # Now update the zstore for each variable.
+    for key, group in chunk_index.groupby(["varname", "stepType", "typeOfLevel"]):
+        base_path = "/".join(key)
+        lvals = group.level.unique()
+        dims = time_dims.copy()
+        coords = time_coords.copy()
+        if len(lvals) == 1:
+            lvals = lvals.squeeze()
+            dims[key[2]] = 0
+        elif len(lvals) > 1:
+            lvals = np.sort(lvals)
+            # multipel levels
+            dims[key[2]] = len(lvals)
+            coords["datavar"] += (key[2],)
+        else:
+            raise ValueError("")
+
+        # Convert to floating point seconds
+        # td.astype("timedelta64[s]").astype(float) / 3600  # Convert to floating point hours
+        store_coord_var(
+            key=f"{base_path}/time",
+            zstore=zstore,
+            coords=time_coords["time"],
+            data=times.astype("datetime64[s]"),
+        )
+
+        store_coord_var(
+            key=f"{base_path}/valid_time",
+            zstore=zstore,
+            coords=time_coords["valid_time"],
+            data=valid_times.astype("datetime64[s]"),
+        )
+
+        store_coord_var(
+            key=f"{base_path}/step",
+            zstore=zstore,
+            coords=time_coords["step"],
+            data=steps.astype("timedelta64[s]").astype("float64") / 3600.0,
+        )
+
+        store_coord_var(
+            key=f"{base_path}/{key[2]}",
+            zstore=zstore,
+            coords=(key[2],) if lvals.shape else (),
+            data=lvals,  # all grib levels are floats
+        )
+
+        store_data_var(
+            key=f"{base_path}/{key[0]}",
+            zstore=zstore,
+            dims=dims,
+            coords=coords,
+            data=group,
+            steps=steps,
+            times=times,
+            lvals=lvals if lvals.shape else None,
+        )
+
+    return dict(refs=zstore, version=1)
+
+
+def strip_datavar_chunks(
+    kerchunk_store: dict, keep_list: tuple[str, ...] = ("latitude", "longitude")
+) -> None:
+    """
+    Modify in place a kerchunk reference store to strip the kerchunk references for variables not in the
+    keep list.
+    :param kerchunk_store: a kerchunk ref spec store
+    :param keep_list: the list of variables to keep references
+    """
+    zarr_store = kerchunk_store["refs"]
+
+    zchunk_matcher = re.compile(r"^(?P<name>.*)\/(?P<zchunk>\d+[\.\d+]*)$")
+    for key in list(zarr_store.keys()):
+        matched = zchunk_matcher.match(key)
+        if matched:
+            logger.debug("Matched! %s", matched)
+            if any([matched.group("name").endswith(keeper) for keeper in keep_list]):
+                logger.debug("Skipping key %s", matched.group("name"))
+                continue
+            del zarr_store[key]
+
+
+def write_store(metadata_path: str, store: dict):
+    fpath = os.path.join(metadata_path, ZARR_TREE_STORE)
+    compressed = gzip.compress(ujson.dumps(store).encode())
+    with fsspec.open(fpath, "wb") as f:
+        f.write(compressed)
+    logger.info("Wrote %d bytes to %s", len(compressed), fpath)
+
+
+@cache
+def read_store(metadata_path: str) -> dict:
+    """
+    Cached method for loading the static zarr store from a metadata path
+    :param metadata_path: the path (usually gcs) to the metadata directory
+    :return: a kerchunk zarr store reference spec dictionary (defalated)
+    """
+    fpath = os.path.join(metadata_path, ZARR_TREE_STORE)
+    with fsspec.open(fpath, "rb") as f:
+        compressed = f.read()
+    logger.info("Read %d bytes from %s", len(compressed), fpath)
+    zarr_store = ujson.loads(gzip.decompress(compressed).decode())
+    return zarr_store
+
+
+def grib_coord(name: str) -> str:
+    """
+    Take advantage of gribs strict coordinate name structure
+    Use the known level names and assume everything else is "level" which is described by the
+    gribLevelAttribute
+    This is helpful because there are a lot of named levels but they are all float values
+    and each variable can have only one level coordinate.
+    By mapping all of these levels to level the sparse chunk index becomes dense.
+    :param name:
+    :return:
+    """
+
+    if name in ("valid_time", "time", "step", "latitude", "longitude"):
+        return name
+    else:
+        return "level"
 
 
 def parse_grib_idx(
@@ -152,7 +551,7 @@ def build_path(path: Iterable[str | None], suffix: Optional[str] = None) -> str:
 
 
 def extract_dataset_chunk_index(
-    dset: "datatree.DataTree",
+    dset: "xr.DataTree",
     ref_store: Dict,
     grib: bool = False,
 ) -> list[dict]:
@@ -176,13 +575,12 @@ def extract_dataset_chunk_index(
     -------
     list[dict] : returns the extracted grib metadata in the form of key-value pairs inside a list
     """
-    import datatree
 
     result: list[dict] = []
     attributes = dset.attrs.copy()
 
     dpath = None
-    if isinstance(dset, datatree.DataTree):
+    if isinstance(dset, xr.DataTree):
         dpath = dset.path
         walk_group = dset.parent
         while walk_group:
@@ -257,7 +655,7 @@ def extract_dataset_chunk_index(
 
 
 def extract_datatree_chunk_index(
-    dtree: "datatree.DataTree", kerchunk_store: dict, grib: bool = False
+    dtree: "xr.DataTree", kerchunk_store: dict, grib: bool = False
 ) -> "pd.DataFrame":
     """
     Recursive method to iterate over the data tree and extract the data variable chunks with index metadata
@@ -333,7 +731,6 @@ def _map_grib_file_by_group(
 
 
 def _extract_single_group(grib_group: dict, idx: int, storage_options: Dict):
-    import datatree
     from kerchunk.grib2 import grib_tree
 
     grib_tree_store = grib_tree(
@@ -347,7 +744,7 @@ def _extract_single_group(grib_group: dict, idx: int, storage_options: Dict):
         logger.info("Empty DT: %s", grib_tree_store)
         return None
 
-    dt = datatree.open_datatree(
+    dt = xr.open_datatree(
         fsspec.filesystem("reference", fo=grib_tree_store).get_mapper(""),
         engine="zarr",
         consolidated=False,
