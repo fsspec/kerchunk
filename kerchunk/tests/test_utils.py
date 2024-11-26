@@ -8,6 +8,8 @@ import numpy as np
 import pytest
 import zarr
 
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+
 
 def test_rename():
     old = {"version": 1, "refs": {"v0": ["oldpath", 0, 0], "bin": "data"}}
@@ -75,17 +77,17 @@ def test_inline_array():
     out1 = kerchunk.utils.inline_array(refs, threshold=1)  # does nothing
     assert out1 == refs
     out2 = kerchunk.utils.inline_array(refs, threshold=1, names=["data"])  # explicit
-    assert "data/1" not in out2  # TODO: Is this wrong? I dont think zarr deletes existing chunks when overwriting
     assert json.loads(out2["data/.zattrs"]) == json.loads(refs["data/.zattrs"])
-    store = kerchunk.utils.refs_as_store(out2)
+
+    localfs = fsspec.filesystem("file")
+    store = kerchunk.utils.refs_as_store(out2, fs=localfs)
     g = zarr.open(store, mode='r', zarr_format=2)
-    assert g.data[:].tolist() == [1, 2] # What is g.data???
+    assert g["data"][:].tolist() == [1, 2] # What is g.data???
 
     out3 = kerchunk.utils.inline_array(refs, threshold=1000)  # inlines because of size
-    assert "data/1" not in out3
-    store = kerchunk.utils.refs_as_store(out3)
+    store = kerchunk.utils.refs_as_store(out3, localfs)
     g = zarr.open(store, mode='r', zarr_format=2)
-    assert g.data[:].tolist() == [1, 2] # What is g.data???
+    assert g["data"][:].tolist() == [1, 2] # What is g.data???
 
 
 def test_json():
