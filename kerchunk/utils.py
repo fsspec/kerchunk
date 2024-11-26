@@ -27,7 +27,7 @@ def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
     return fs
 
 
-def refs_as_store(refs, read_only=True, remote_protocol=None, remote_options=None):
+def refs_as_store(refs, read_only=False, remote_protocol=None, remote_options=None):
     """Convert a reference set to a zarr store"""
     if is_zarr3():
         if remote_options is None:
@@ -69,7 +69,6 @@ def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=True):
     zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
     """
     if is_zarr3():
-        print(fs.async_impl is None)
         if not fs.async_impl:
             fs = AsyncFileSystemWrapper(fs)
         fs.asynchronous = True

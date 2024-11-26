@@ -255,6 +255,7 @@ class NetCDF3ToZarr(netcdf_file):
                     fill_value=fill,
                     chunks=(1,) + dtype.shape,
                     compressor=None,
+                    exists_ok=True,
                 )
                 arr.attrs.update(
                     {
