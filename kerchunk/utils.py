@@ -58,7 +58,7 @@ def dict_to_store(store_dict: dict):
         return zarr.storage.KVStore(store_dict)
 
 
-def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=True):
+def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=False):
     """Open the refs as a zarr store
 
     Parameters
@@ -204,14 +204,14 @@ def _encode_for_JSON(store):
     return store
 
 
-def encode_fill_value(v: Any, dtype: np.dtype, object_codec: Any = None) -> Any:
+def encode_fill_value(v: Any, dtype: np.dtype, compressor: Any = None) -> Any:
     # early out
     if v is None:
         return v
     if dtype.kind == "V" and dtype.hasobject:
-        if object_codec is None:
-            raise ValueError("missing object_codec for object array")
-        v = object_codec.encode(v)
+        if compressor is None:
+            raise ValueError("missing compressor for object array")
+        v = compressor.encode(v)
         v = str(base64.standard_b64encode(v), "ascii")
         return v
     if dtype.kind == "f":
@@ -230,8 +230,8 @@ def encode_fill_value(v: Any, dtype: np.dtype, object_codec: Any = None) -> Any:
     elif dtype.kind in "c":
         c = cast(np.complex128, np.dtype(complex).type())
         v = (
-            encode_fill_value(v.real, c.real.dtype, object_codec),
-            encode_fill_value(v.imag, c.imag.dtype, object_codec),
+            encode_fill_value(v.real, c.real.dtype, compressor),
+            encode_fill_value(v.imag, c.imag.dtype, compressor),
         )
         return v
     elif dtype.kind in "SV":

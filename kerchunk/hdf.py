@@ -325,11 +325,11 @@ class SingleHdf5ToZarr:
                                             for v in val
                                         ]
                             kwargs["data"] = out
-                            kwargs["object_codec"] = numcodecs.JSON()
+                            kwargs["compressor"] = numcodecs.JSON()
                             fill = None
                         elif self.vlen == "null":
                             dt = "O"
-                            kwargs["object_codec"] = FillStringsCodec(dtype="S16")
+                            kwargs["compressor"] = FillStringsCodec(dtype="S16")
                             fill = " "
                         elif self.vlen == "leave":
                             dt = "S16"
@@ -344,7 +344,7 @@ class SingleHdf5ToZarr:
                                 index.decode(): label.decode()
                                 for index, label in zip(indexes, labels)
                             }
-                            kwargs["object_codec"] = FillStringsCodec(
+                            kwargs["compressor"] = FillStringsCodec(
                                 dtype="S16", id_map=mapping
                             )
                             fill = " "
@@ -384,7 +384,7 @@ class SingleHdf5ToZarr:
                                             )
                                         }
                                     )
-                            kwargs["object_codec"] = FillStringsCodec(
+                            kwargs["compressor"] = FillStringsCodec(
                                 dtype=str(dt), id_map=mapping
                             )
                             dt = [
@@ -410,7 +410,7 @@ class SingleHdf5ToZarr:
                                 )
                                 for v in h5obj.dtype.names
                             ]
-                            kwargs["object_codec"] = FillStringsCodec(dtype=str(dt))
+                            kwargs["compressor"] = FillStringsCodec(dtype=str(dt))
                             dt = [
                                 (
                                     v,
@@ -451,7 +451,7 @@ class SingleHdf5ToZarr:
                                 )
                             dt = "O"
                             kwargs["data"] = data2
-                            kwargs["object_codec"] = numcodecs.JSON()
+                            kwargs["compressor"] = numcodecs.JSON()
                             fill = None
                         else:
                             raise NotImplementedError
@@ -473,7 +473,6 @@ class SingleHdf5ToZarr:
                     dtype=dt or h5obj.dtype,
                     chunks=h5obj.chunks or False,
                     fill_value=fill,
-                    compressor=None,
                     filters=filters,
                     attributes={
                         "_ARRAY_DIMENSIONS": adims,

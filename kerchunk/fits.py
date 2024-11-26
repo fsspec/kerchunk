@@ -151,7 +151,7 @@ def process_file(
                         for name in dtype.names
                         if hdu.columns[name].format.startswith(("P", "Q"))
                     }
-                    kwargs["object_codec"] = VarArrCodec(
+                    kwargs["compressor"] = VarArrCodec(
                         str(dtype), str(dt2), nrows, types
                     )
                     dtype = dt2
@@ -165,7 +165,7 @@ def process_file(
             # TODO: we could sub-chunk on biggest dimension
             name = hdu.name or str(ext)
             arr = g.empty(
-                name=name, dtype=dtype, shape=shape, chunks=shape, compressor=None, zarr_format=2, **kwargs
+                name=name, dtype=dtype, shape=shape, chunks=shape, zarr_format=2, **kwargs
             )
             arr.attrs.update(
                 {
