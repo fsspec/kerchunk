@@ -14,20 +14,21 @@ import numpy as np
 import zarr
 
 
-def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
+def refs_as_fs(refs, fs=None, remote_protocol=None, remote_options=None, **kwargs):
     """Convert a reference set to an fsspec filesystem"""
     fs = fsspec.filesystem(
         "reference",
         fo=refs,
+        fs=fs,
         remote_protocol=remote_protocol,
-        # remote_options=remote_options,
+        remote_options=remote_options,
         **kwargs,
         asynchronous=True
     )
     return fs
 
 
-def refs_as_store(refs, read_only=False, remote_protocol=None, remote_options=None):
+def refs_as_store(refs, read_only=False, fs=None, remote_protocol=None, remote_options=None):
     """Convert a reference set to a zarr store"""
     if is_zarr3():
         if remote_options is None:
@@ -35,12 +36,13 @@ def refs_as_store(refs, read_only=False, remote_protocol=None, remote_options=No
         else:
             remote_options["asynchronous"] = True
 
-    fs = refs_as_fs(
+    fss = refs_as_fs(
         refs,
+        fs=fs,
         remote_protocol=remote_protocol,
         remote_options=remote_options, 
     )
-    return fs_as_store(fs, read_only=read_only)
+    return fs_as_store(fss, read_only=read_only)
 
 
 def is_zarr3():

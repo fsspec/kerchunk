@@ -13,6 +13,7 @@ import pytest
 import xarray as xr
 import zarr
 
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
 from kerchunk.combine import MultiZarrToZarr, drop
 from kerchunk.utils import refs_as_fs, refs_as_store
@@ -164,7 +165,8 @@ def test_times(times_data):
         h5chunks = SingleHdf5ToZarr(f, url)
         test_dict = h5chunks.translate()
 
-    store = refs_as_store(test_dict, remote_protocol="file")
+    localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
+    store = refs_as_store(test_dict, fs=localfs)
     result = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
     )
@@ -179,7 +181,8 @@ def test_times_str(times_data):
     h5chunks = SingleHdf5ToZarr(url)
     test_dict = h5chunks.translate()
 
-    store = refs_as_store(test_dict)
+    localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
+    store = refs_as_store(test_dict, fs=localfs)
     result = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
     )
