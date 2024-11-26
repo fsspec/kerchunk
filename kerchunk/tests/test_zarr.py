@@ -54,6 +54,7 @@ def test_zarr_in_zip(zarr_in_zip, ds):
     out = kerchunk.zarr.ZarrToZarr(
         url="zip://", storage_options={"fo": zarr_in_zip}
     ).translate()
+
     ds2 = xr.open_dataset(
         out,
         engine="kerchunk",
