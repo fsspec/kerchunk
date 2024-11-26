@@ -72,21 +72,20 @@ def test_inline_array():
         "data/1": b"\x02\x00\x00\x00",
         "data/.zattrs": '{"foo": "bar"}',
     }
-    fs = fsspec.filesystem("reference", fo=refs)
     out1 = kerchunk.utils.inline_array(refs, threshold=1)  # does nothing
     assert out1 == refs
     out2 = kerchunk.utils.inline_array(refs, threshold=1, names=["data"])  # explicit
-    assert "data/1" not in out2
+    assert "data/1" not in out2  # TODO: Is this wrong? I dont think zarr deletes existing chunks when overwriting
     assert json.loads(out2["data/.zattrs"]) == json.loads(refs["data/.zattrs"])
-    fs = fsspec.filesystem("reference", fo=out2)
-    g = zarr.open(fs.get_mapper(), zarr_format=2)
-    assert g.data[:].tolist() == [1, 2]
+    store = kerchunk.utils.refs_as_store(out2)
+    g = zarr.open(store, mode='r', zarr_format=2)
+    assert g.data[:].tolist() == [1, 2] # What is g.data???
 
     out3 = kerchunk.utils.inline_array(refs, threshold=1000)  # inlines because of size
     assert "data/1" not in out3
-    fs = fsspec.filesystem("reference", fo=out3)
-    g = zarr.open(fs.get_mapper(), zarr_format=2)
-    assert g.data[:].tolist() == [1, 2]
+    store = kerchunk.utils.refs_as_store(out3)
+    g = zarr.open(store, mode='r', zarr_format=2)
+    assert g.data[:].tolist() == [1, 2] # What is g.data???
 
 
 def test_json():
@@ -113,9 +112,12 @@ def test_subchunk_exact(m, chunks):
         f"data/{_}.0" for _ in range(nchunk)
     ]
 
-    g2 = zarr.open_group(
-        "reference://", storage_options={"fo": out, "remote_protocol": "memory"}, zarr_format=2
-    )
+    store = kerchunk.utils.refs_as_store(out, remote_protocol="memory")
+    g2 = zarr.open_group(store, mode='r', zarr_format=2)
+
+    # g2 = zarr.open_group(
+    #     "reference://", storage_options={"fo": out, "remote_protocol": "memory"}, zarr_format=2
+    # )
     assert (g2.data[:] == data).all()
 
 

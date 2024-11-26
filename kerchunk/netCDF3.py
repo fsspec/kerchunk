@@ -169,7 +169,7 @@ class NetCDF3ToZarr(netcdf_file):
 
         out = self.out
         store = dict_to_store(out)
-        z = zarr.open(store, mode="w", zarr_format=2, overwrite=True)
+        z = zarr.open_group(store, mode="w", zarr_format=2)
 
         for dim, var in self.variables.items():
             if dim in self.chunks:

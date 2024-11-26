@@ -107,7 +107,7 @@ class SingleHdf5ToZarr:
         self.vlen = vlen_encode
         self.store_dict = out or {}
         self.store = dict_to_store(self.store_dict)
-        self._zroot = zarr.group(store=self.store, zarr_format=2, overwrite=True)
+        self._zroot = zarr.group(store=self.store, zarr_format=2)
         self._uri = url
         self.error = error
         lggr.debug(f"HDF5 file URI: {self._uri}")

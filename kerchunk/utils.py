@@ -20,7 +20,7 @@ def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
         "reference",
         fo=refs,
         remote_protocol=remote_protocol,
-        remote_options=remote_options,
+        # remote_options=remote_options,
         **kwargs,
         asynchronous=True
     )
@@ -29,9 +29,7 @@ def refs_as_fs(refs, remote_protocol=None, remote_options=None, **kwargs):
 
 def refs_as_store(refs, read_only=True, remote_protocol=None, remote_options=None):
     """Convert a reference set to a zarr store"""
-    asynchronous = False
     if is_zarr3():
-        asynchronous = True
         if remote_options is None:
             remote_options = {"asynchronous": True}
         else:
@@ -40,14 +38,14 @@ def refs_as_store(refs, read_only=True, remote_protocol=None, remote_options=Non
     fs = refs_as_fs(
         refs,
         remote_protocol=remote_protocol,
-        remote_options=remote_options
+        remote_options=remote_options, 
     )
-    return fs_as_store(fs, read_only=True)
+    return fs_as_store(fs, read_only=read_only)
 
 
 def is_zarr3():
     """Check if the installed zarr version is version 3"""
-    return Version(zarr.__version__) >= Version("3.0.0.a0")
+    return Version(zarr.__version__) >= Version("3.0.0.b2")
 
 
 def dict_to_store(store_dict: dict):
@@ -71,6 +69,7 @@ def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=True):
     zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
     """
     if is_zarr3():
+        print(fs.async_impl is None)
         if not fs.async_impl:
             fs = AsyncFileSystemWrapper(fs)
         fs.asynchronous = True
@@ -288,7 +287,7 @@ def do_inline(store, threshold, remote_options=None, remote_protocol=None):
 
 
 def _inline_array(group, threshold, names, prefix=""):
-    for name, thing in group.items():
+    for name, thing in group.members():
         if prefix:
             prefix1 = f"{prefix}.{name}"
         else:
@@ -306,9 +305,8 @@ def _inline_array(group, threshold, names, prefix=""):
                     shape=thing.shape,
                     data=thing[:],
                     chunks=thing.shape,
-                    compression=None,
-                    overwrite=True,
                     fill_value=thing.fill_value,
+                    exists_ok=True,
                 )
                 arr.attrs.update(original_attrs)
 
@@ -338,8 +336,8 @@ def inline_array(store, threshold=1000, names=None, remote_options=None):
     amended references set (simple style)
     """
     fs = refs_as_fs(store, remote_options=remote_options or {})
-    zarr_store = fs_as_store(fs, mode="r+", remote_options=remote_options or {})
-    g = zarr.open_group(zarr_store, mode="r+", zarr_format=2)
+    zarr_store = fs_as_store(fs, read_only=False)
+    g = zarr.open_group(zarr_store, zarr_format=2)
     _inline_array(g, threshold, names=names or [])
     return fs.references
 

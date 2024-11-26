@@ -155,7 +155,6 @@ class HDF4ToZarr:
                     dtype=v["dtype"],
                     chunks=v.get("chunks", v["dims"]),
                     compressor=compression,
-                    overwrite=True,
                 )
                 arr.attrs.update(
                     dict(

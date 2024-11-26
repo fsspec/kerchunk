@@ -249,7 +249,7 @@ def add_wcs_coords(hdu, zarr_group=None, dataset=None, dtype="float32"):
         }
         if zarr_group is not None:
             arr = zarr_group.empty(
-                name, shape=shape, chunks=shape, overwrite=True, dtype=dtype
+                name, shape=shape, chunks=shape, dtype=dtype
             )
             arr.attrs.update(attrs)
             arr[:] = world_coord.value.reshape(shape)
