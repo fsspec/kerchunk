@@ -11,7 +11,7 @@ import zarr
 import xarray
 import numpy as np
 
-from kerchunk.utils import class_factory, _encode_for_JSON, dict_to_store, translate_refs_serializable
+from kerchunk.utils import class_factory, _encode_for_JSON, dict_to_store, fs_as_store, translate_refs_serializable
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
 from kerchunk._grib_idx import parse_grib_idx, build_idx_grib_mapping, map_from_index
@@ -520,17 +520,18 @@ def grib_tree(
 
         for key, value in group["refs"].items():
             if key not in [".zattrs", ".zgroup"]:
-                zarr_store[f"{path}/{key}"] = value
+                zarr_store._store_dict[f"{path}/{key}"] = value
 
     # Force all stored values to decode as string, not bytes. String should be correct.
     # ujson will reject bytes values by default.
     # Using 'reject_bytes=False' one write would fail an equality check on read.
-    zarr_store = {
+    zarr_dict = {
         key: (val.decode() if isinstance(val, bytes) else val)
-        for key, val in zarr_store.items()
+        for key, val in zarr_store._store_dict.items()
     }
     # TODO handle other kerchunk reference spec versions?
-    result = dict(refs=zarr_store, version=1)
+    translate_refs_serializable(zarr_dict)
+    result = dict(refs=zarr_dict, version=1)
 
     return result
 
@@ -571,7 +572,8 @@ def correct_hrrr_subhf_step(group: Dict) -> Dict:
     group["refs"][".zattrs"] = ujson.dumps(attrs)
 
     fo = fsspec.filesystem("reference", fo=group, mode="r")
-    xd = xarray.open_dataset(fo.get_mapper(), engine="zarr", consolidated=False)
+    fstore = fs_as_store(fo, read_only=True)
+    xd = xarray.open_dataset(fstore, engine="zarr", consolidated=False)
 
     correct_step = xd.valid_time.values - xd.time.values
 
