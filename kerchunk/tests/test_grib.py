@@ -9,6 +9,7 @@ import xarray as xr
 #import datatree
 import zarr
 import ujson
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 from kerchunk.grib2 import (
     scan_grib,
     _split_file,
@@ -32,10 +33,13 @@ def test_one():
     # from https://dd.weather.gc.ca/model_gem_regional/10km/grib2/00/000
     fn = os.path.join(here, "CMC_reg_DEPR_ISBL_10_ps10km_2022072000_P000.grib2")
     out = scan_grib(fn)
-    ds = xr.open_dataset(
-        "reference://",
-        engine="zarr",
-        backend_kwargs={"consolidated": False, "storage_options": {"fo": out[0]}},
+
+    fs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
+    store = refs_as_store(out[0], fs=fs)
+    ds = xr.open_zarr(
+        store, 
+        zarr_format=2,
+        consolidated=False
     )
 
     assert ds.attrs["GRIB_centre"] == "cwao"
