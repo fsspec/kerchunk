@@ -323,7 +323,7 @@ def test_compress():
         localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
         store = refs_as_store(out, fs=localfs)
         g = zarr.open(store, zarr_format=2)
-        assert np.mean(g.data) == 49.5
+        assert np.mean(g["data"]) == 49.5
 
 
 def test_embed():
