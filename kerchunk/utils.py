@@ -9,7 +9,6 @@ import warnings
 import ujson
 
 import fsspec
-from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 import numpy as np
 import zarr
 
@@ -23,12 +22,14 @@ def refs_as_fs(refs, fs=None, remote_protocol=None, remote_options=None, **kwarg
         remote_protocol=remote_protocol,
         remote_options=remote_options,
         **kwargs,
-        asynchronous=True
+        asynchronous=True,
     )
     return fs
 
 
-def refs_as_store(refs, read_only=False, fs=None, remote_protocol=None, remote_options=None):
+def refs_as_store(
+    refs, read_only=False, fs=None, remote_protocol=None, remote_options=None
+):
     """Convert a reference set to a zarr store"""
     if is_zarr3():
         if remote_options is None:
@@ -40,7 +41,7 @@ def refs_as_store(refs, read_only=False, fs=None, remote_protocol=None, remote_o
         refs,
         fs=fs,
         remote_protocol=remote_protocol,
-        remote_options=remote_options, 
+        remote_options=remote_options,
     )
     return fs_as_store(fss, read_only=read_only)
 
@@ -72,7 +73,14 @@ def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=False):
     """
     if is_zarr3():
         if not fs.async_impl:
-            fs = AsyncFileSystemWrapper(fs)
+            try:
+                from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+
+                fs = AsyncFileSystemWrapper(fs)
+            except ImportError:
+                raise ImportError(
+                    "Only fsspec>2024.10.0 supports the async filesystem wrapper required for working with reference filesystems. "
+                )
         fs.asynchronous = True
         return zarr.storage.RemoteStore(fs, read_only=read_only)
     else:
