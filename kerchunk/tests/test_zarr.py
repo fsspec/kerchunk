@@ -37,7 +37,7 @@ def zarr_in_zip(tmpdir, ds):
 
         filename = file + os.path.extsep + "zip"
         with zipfile.ZipFile(
-            filename, "w", compression=zipfile.ZIP_STORED, allowZip64=True
+            filename, "w", compressor=zipfile.ZIP_STORED, allowZip64=True
         ) as fh:
             for root, _, filenames in os.walk(file):
                 for each_filename in filenames:

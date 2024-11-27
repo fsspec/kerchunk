@@ -148,13 +148,13 @@ class HDF4ToZarr:
         refs = {}
         for k, v in output.items():
             if isinstance(v, dict):
-                compression = ZlibCodec() if "refs" in v else None
+                compressor = ZlibCodec() if "refs" in v else None
                 arr = g.create_dataset(
                     name=k,
                     shape=v["dims"],
                     dtype=v["dtype"],
                     chunks=v.get("chunks", v["dims"]),
-                    compressor=compression,
+                    compressor=compressor,
                     exists_ok=True,
                 )
                 arr.attrs.update(

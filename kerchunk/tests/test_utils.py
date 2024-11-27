@@ -102,7 +102,7 @@ def test_subchunk_exact(m, chunks):
     store = m.get_mapper("test.zarr")
     g = zarr.open_group(store, mode="w", zarr_format=2)
     data = np.arange(100).reshape(10, 10)
-    arr = g.create_dataset("data", data=data, chunks=chunks, compression=None)
+    arr = g.create_dataset("data", data=data, chunks=chunks, compressor=None)
     ref = kerchunk.zarr.single_zarr("memory://test.zarr")["refs"]
 
     extra = [] if chunks[0] == 10 else ["data/1.0"]
@@ -162,7 +162,7 @@ def test_deflate_zip_archive(m):
 
     data = b"piece of data"
     with fsspec.open("memory://archive", "wb") as f:
-        arc = zipfile.ZipFile(file=f, mode="w", compression=zipfile.ZIP_DEFLATED)
+        arc = zipfile.ZipFile(file=f, mode="w", compressor=zipfile.ZIP_DEFLATED)
         arc.writestr("data1", data)
         arc.close()
     refs = {

@@ -409,7 +409,7 @@ class MultiZarrToZarr:
                 # The names of the variables to write in the second pass, not a coordinate
                 continue
             # parametrize the threshold value below?
-            compression = numcodecs.Zstd() if len(v) > 100 else None
+            compressor = numcodecs.Zstd() if len(v) > 100 else None
             kw = {}
             if self.cf_units and k in self.cf_units:
                 if "M" not in self.coo_dtypes.get(k, ""):
@@ -439,7 +439,7 @@ class MultiZarrToZarr:
                 data=data,
                 shape=data.shape,
                 exists_ok=True,
-                compressor=compression,
+                compressor=compressor,
                 dtype=self.coo_dtypes.get(k, data.dtype),
                 **kw,
             )
