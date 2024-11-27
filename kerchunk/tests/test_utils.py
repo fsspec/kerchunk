@@ -162,7 +162,7 @@ def test_deflate_zip_archive(m):
 
     data = b"piece of data"
     with fsspec.open("memory://archive", "wb") as f:
-        arc = zipfile.ZipFile(file=f, mode="w", compressor=zipfile.ZIP_DEFLATED)
+        arc = zipfile.ZipFile(file=f, mode="w", compression=zipfile.ZIP_DEFLATED)
         arc.writestr("data1", data)
         arc.close()
     refs = {

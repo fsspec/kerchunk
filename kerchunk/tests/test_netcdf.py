@@ -31,6 +31,8 @@ def test_one(m):
     h = netCDF3.netcdf_recording_file("memory://data.nc3")
     out = h.translate()
 
+    print(out)
+
     store = refs_as_store(out)
 
     ds = xr.open_dataset(
