@@ -28,8 +28,8 @@ BITPIX2DTYPE = {
     16: ">i2",
     32: ">i4",
     64: ">i8",
-    -32: "float32",
-    -64: "float64",
+    -32: ">f4",
+    -64: ">f8",
 }  # always bigendian
 
 
