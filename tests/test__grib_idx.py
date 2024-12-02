@@ -54,7 +54,7 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 class DataExtractorTests(unittest.TestCase):
     def test_integration(self):
         # Small test file...
-        uri = "grib_idx_fixtures/hrrr.wrfsubhf.sample.grib2"
+        uri = f"{THIS_DIR}/grib_idx_fixtures/hrrr.wrfsubhf.sample.grib2"
 
         scanned_msg_groups = scan_grib(uri)
         corrected_msg_groups = [
@@ -67,14 +67,14 @@ class DataExtractorTests(unittest.TestCase):
         self.assertIsInstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
         self.assertEqual(
             zg["vbdsf/avg/surface"].attrs["coordinates"],
-            "surface latitude longitude time valid_time step",
+            "surface latitude longitude step time valid_time",
         )
         self.assertEqual(
             zg["refc/instant/atmosphere"].attrs["coordinates"],
             "atmosphere latitude longitude step time valid_time",
         )
         # Assert that the fill value is set correctly
-        self.assertIs(zg.refc.instant.atmosphere.step.fill_value, np.NaN)
+        self.assertIs(zg.refc.instant.atmosphere.step.fill_value, np.nan)
 
         np.testing.assert_array_equal(
             zg.refc.instant.atmosphere.time[:], np.array([1665709200])
@@ -223,6 +223,12 @@ class DataExtractorTests(unittest.TestCase):
                         mapper=correct_hrrr_subhf_step,
                     )
 
+                    mapping = mapping.assign(
+                        uri=lambda x: x.uri.str.replace(THIS_DIR, ""),
+                        grib_uri=lambda x: x.uri.str.replace(THIS_DIR, ""),
+                        idx_uri=lambda x: x.uri.str.replace(THIS_DIR, ""),
+                    )
+
                     # # To update the test fixture
                     # write_path = os.path.join(
                     #     THIS_DIR,
@@ -249,7 +255,6 @@ class DataExtractorTests(unittest.TestCase):
 
                     idxdf = parse_grib_idx(
                         basename=basename,
-                        tstamp=pd.to_datetime("2023-12-31T23:59:00"),
                     )
 
                     # Get the runtime hour from the filename as we would in prod
@@ -263,6 +268,10 @@ class DataExtractorTests(unittest.TestCase):
                     # 2022-10-14 mapping for 2023-11-04 idx file!
                     mapped_index = map_from_index(
                         pd.Timestamp(f"2023-11-04T{runtime_hour}"), mapping, idxdf
+                    )
+
+                    mapped_index = mapped_index.assign(
+                        uri=lambda x: x.uri.str.replace(THIS_DIR, "")
                     )
 
                     # Read the expected fixture - created by test_kerchunk_indexing
@@ -351,6 +360,11 @@ class DataExtractorTests(unittest.TestCase):
                         dt, grib_tree_store, grib=True
                     )
 
+                    # Strip the current working directory
+                    kindex = kindex.assign(
+                        uri=lambda x: x.uri.str.replace(THIS_DIR, "")
+                    )
+
                     # # To update the test fixture
                     # write_path = os.path.join(
                     #     THIS_DIR,
@@ -406,18 +420,14 @@ class DataExtractorTests(unittest.TestCase):
 
         # # To update the test fixture
         # write_path = os.path.join(
-        #     TESTS_DIR, "grib_idx_fixtures", sample_prefix, "kerchunk_index.parquet"
+        #     THIS_DIR, "grib_idx_fixtures", sample_prefix, "kerchunk_index.parquet"
         # )
-        # k_index.to_parquet(fpath)
+        # k_index.to_parquet(write_path)
 
         test_path = os.path.join(
             THIS_DIR, "grib_idx_fixtures", sample_prefix, "kerchunk_index.parquet"
         )
         expected = pd.read_parquet(test_path)
-        # adjust datetime resolution
-        for col in ["time", "valid_time"]:
-            expected[col] = expected[col].dt.as_unit("ns")
-
         pd.testing.assert_frame_equal(k_index, expected)
 
     def test_strip_datavar_chunks(self):
@@ -622,7 +632,7 @@ class DataExtractorTests(unittest.TestCase):
                         )
 
                         # # To update test grib_idx_fixtures
-                        # write_path = os.path.join(TESTS_DIR, "grib_idx_fixtures", dataset, "reinflate", aggregation.value, f"{vpath}_chunks.json")
+                        # write_path = os.path.join(THIS_DIR, "grib_idx_fixtures", dataset, "reinflate", aggregation.value, f"{vpath}_chunks.json")
                         # with fsspec.open(write_path, "w",) as f:
                         #     f.write(ujson.dumps(key_set, indent=2))
 
@@ -636,6 +646,9 @@ class DataExtractorTests(unittest.TestCase):
                         )
                         with fsspec.open(test_path, "r") as f:
                             expected_keys = ujson.loads(f.read())
+
+                        if key_set != expected_keys:
+                            print("hello")
 
                         self.assertListEqual(key_set, expected_keys)
 
