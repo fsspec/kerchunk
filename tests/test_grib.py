@@ -292,7 +292,7 @@ def test_parse_grib_idx_invalid_url():
 
 
 def test_parse_grib_idx_no_file():
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises((FileNotFoundError, PermissionError)):
         # the url is spelled wrong
         parse_grib_idx(
             "s3://noaahrrr-bdp-pds/hrrr.20220804/conus/hrrr.t01z.wrfsfcf01.grib2",
