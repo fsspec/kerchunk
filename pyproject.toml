@@ -36,7 +36,7 @@ netcdf3 = ["scipy"]
 dev = [
     "cftime",
     "dask",
-    "fastparquet",
+    "fastparquet>=2024.11.0",
     "h5netcdf",
     "h5py",
     "jinja2",
