@@ -16,6 +16,7 @@ WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEM
 COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
+
 import copy
 import re
 import unittest
@@ -247,7 +248,13 @@ class DataExtractorTests(unittest.TestCase):
                         f"{mapping_fname}.idx_grib_mapping.parquet",
                     )
                     # Build the mapping from idx to cfgrib metadata and assert it matches the fixture
-                    pd.testing.assert_frame_equal(mapping, pd.read_parquet(test_path))
+                    expected = pd.read_parquet(test_path)
+                    pd.testing.assert_frame_equal(
+                        mapping,
+                        expected.assign(
+                            step=lambda x: x.step.astype("timedelta64[ns]")
+                        ),
+                    )
 
                     # parse the idx files for 20231104 and compare the mapped result to the direct indexed result
                     test_name = fnames["20231104"]
@@ -283,6 +290,10 @@ class DataExtractorTests(unittest.TestCase):
                         f"{test_name}.kindex.parquet",
                     )
                     expected = pd.read_parquet(kindex_test_path)
+
+                    expected = expected.assign(
+                        step=lambda x: x.step.astype("timedelta64[ns]")
+                    )
 
                     expected = expected.set_index(
                         ["varname", "typeOfLevel", "stepType", "step", "level"]
@@ -382,7 +393,13 @@ class DataExtractorTests(unittest.TestCase):
                         TEST_DATE,
                         f"{fname}.kindex.parquet",
                     )
-                    pd.testing.assert_frame_equal(kindex, pd.read_parquet(test_path))
+                    expected = pd.read_parquet(test_path)
+                    pd.testing.assert_frame_equal(
+                        kindex,
+                        expected.assign(
+                            step=lambda x: x.step.astype("timedelta64[ns]")
+                        ),
+                    )
 
     @unittest.skip("TODO")
     def test_extract_dataset_chunk_index(self):
@@ -428,7 +445,9 @@ class DataExtractorTests(unittest.TestCase):
             THIS_DIR, "grib_idx_fixtures", sample_prefix, "kerchunk_index.parquet"
         )
         expected = pd.read_parquet(test_path)
-        pd.testing.assert_frame_equal(k_index, expected)
+        pd.testing.assert_frame_equal(
+            k_index, expected.assign(step=lambda x: x.step.astype("timedelta64[ns]"))
+        )
 
     def test_strip_datavar_chunks(self):
         for sample_prefix, pre, post in [
@@ -587,7 +606,7 @@ class DataExtractorTests(unittest.TestCase):
             with self.subTest(node_path=node.path):
 
                 match aggregation:
-                    case (AggregationType.HORIZON | AggregationType.BEST_AVAILABLE):
+                    case AggregationType.HORIZON | AggregationType.BEST_AVAILABLE:
 
                         self.assertEqual(node.time.dims, node.valid_time.dims)
                         self.assertEqual(node.time.dims, node.step.dims)
