@@ -387,11 +387,6 @@ class DataExtractorTests(unittest.TestCase):
                     expected = pd.read_parquet(test_path, engine="fastparquet")
                     pd.testing.assert_frame_equal(kindex, expected)
 
-    @unittest.skip("TODO")
-    def test_extract_dataset_chunk_index(self):
-        # TODO add test for chunk indexing a single dataset not from a grib file or tree
-        pass
-
     def test_index_extraction(self):
         for sample_prefix in ["hrrr.wrfsubhf", "hrrr.wrfsfcf", "gfs.pgrb2.0p25"]:
             with self.subTest(sample_prefix):
