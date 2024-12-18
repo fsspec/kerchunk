@@ -248,13 +248,8 @@ class DataExtractorTests(unittest.TestCase):
                         f"{mapping_fname}.idx_grib_mapping.parquet",
                     )
                     # Build the mapping from idx to cfgrib metadata and assert it matches the fixture
-                    expected = pd.read_parquet(test_path)
-                    pd.testing.assert_frame_equal(
-                        mapping,
-                        expected.assign(
-                            step=lambda x: x.step.astype("timedelta64[ns]")
-                        ),
-                    )
+                    expected = pd.read_parquet(test_path, engine="fastparquet")
+                    pd.testing.assert_frame_equal(mapping, expected)
 
                     # parse the idx files for 20231104 and compare the mapped result to the direct indexed result
                     test_name = fnames["20231104"]
@@ -289,11 +284,7 @@ class DataExtractorTests(unittest.TestCase):
                         "20231104",
                         f"{test_name}.kindex.parquet",
                     )
-                    expected = pd.read_parquet(kindex_test_path)
-
-                    expected = expected.assign(
-                        step=lambda x: x.step.astype("timedelta64[ns]")
-                    )
+                    expected = pd.read_parquet(kindex_test_path, engine="fastparquet")
 
                     expected = expected.set_index(
                         ["varname", "typeOfLevel", "stepType", "step", "level"]
@@ -393,13 +384,8 @@ class DataExtractorTests(unittest.TestCase):
                         TEST_DATE,
                         f"{fname}.kindex.parquet",
                     )
-                    expected = pd.read_parquet(test_path)
-                    pd.testing.assert_frame_equal(
-                        kindex,
-                        expected.assign(
-                            step=lambda x: x.step.astype("timedelta64[ns]")
-                        ),
-                    )
+                    expected = pd.read_parquet(test_path, engine="fastparquet")
+                    pd.testing.assert_frame_equal(kindex, expected)
 
     @unittest.skip("TODO")
     def test_extract_dataset_chunk_index(self):
@@ -444,10 +430,8 @@ class DataExtractorTests(unittest.TestCase):
         test_path = os.path.join(
             THIS_DIR, "grib_idx_fixtures", sample_prefix, "kerchunk_index.parquet"
         )
-        expected = pd.read_parquet(test_path)
-        pd.testing.assert_frame_equal(
-            k_index, expected.assign(step=lambda x: x.step.astype("timedelta64[ns]"))
-        )
+        expected = pd.read_parquet(test_path, engine="fastparquet")
+        pd.testing.assert_frame_equal(k_index, expected)
 
     def test_strip_datavar_chunks(self):
         for sample_prefix, pre, post in [
@@ -583,7 +567,8 @@ class DataExtractorTests(unittest.TestCase):
         kind = pd.read_parquet(
             os.path.join(
                 THIS_DIR, "grib_idx_fixtures", dataset, "test_reinflate.parquet"
-            )
+            ),
+            engine="fastparquet",
         )
 
         zstore = reinflate_grib_store(
@@ -665,9 +650,6 @@ class DataExtractorTests(unittest.TestCase):
                         )
                         with fsspec.open(test_path, "r") as f:
                             expected_keys = ujson.loads(f.read())
-
-                        if key_set != expected_keys:
-                            print("hello")
 
                         self.assertListEqual(key_set, expected_keys)
 
