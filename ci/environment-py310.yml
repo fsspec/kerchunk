@@ -23,6 +23,7 @@ dependencies:
   - dask
   - scipy
   - s3fs
+  - gcsfs
   - python-blosc
   - flake8
   - black
@@ -31,6 +32,6 @@ dependencies:
   - pyopenssl
   - tifffile
   - netCDF4
-  - pip:
-      - git+https://github.com/fsspec/filesystem_spec
-      - ipfsspec
+#  - pip:
+#      - git+https://github.com/fsspec/filesystem_spec
+#      - ipfsspec

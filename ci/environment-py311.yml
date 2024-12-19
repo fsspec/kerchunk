@@ -23,6 +23,7 @@ dependencies:
   - dask
   - scipy
   - s3fs
+  - gcsfs
   - python-blosc
   - flake8
   - fastparquet
@@ -32,5 +33,5 @@ dependencies:
   - tifffile
   - rioxarray
   - netCDF4
-  - pip:
-      - git+https://github.com/fsspec/filesystem_spec
+#  - pip:
+#      - git+https://github.com/fsspec/filesystem_spec
