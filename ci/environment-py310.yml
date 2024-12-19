@@ -32,6 +32,6 @@ dependencies:
   - pyopenssl
   - tifffile
   - netCDF4
-  - pip:
-      - git+https://github.com/fsspec/filesystem_spec
-      - ipfsspec
+#  - pip:
+#      - git+https://github.com/fsspec/filesystem_spec
+#      - ipfsspec
