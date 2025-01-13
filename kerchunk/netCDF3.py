@@ -197,7 +197,7 @@ class NetCDF3ToZarr(netcdf_file):
                     dtype=var.data.dtype,
                     fill_value=fill,
                     chunks=shape,
-                    compression=None,
+                    compressor=None,
                 )
                 part = ".".join(["0"] * len(shape)) or "0"
                 k = f"{dim}/{part}"
@@ -251,7 +251,7 @@ class NetCDF3ToZarr(netcdf_file):
                     dtype=base,
                     fill_value=fill,
                     chunks=(1,) + dtype.shape,
-                    compression=None,
+                    compressor=None,
                 )
                 arr.attrs.update(
                     {
