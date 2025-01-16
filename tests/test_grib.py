@@ -288,9 +288,6 @@ def test_parse_grib_idx_invalid_url():
 
 
 def test_parse_grib_idx_no_file():
-    # How did this ever work? 403s are returned for anonymous calls to non-existent
-    #  files iirc as a security measure to obscure results/avoid tests for existence 
-    #with pytest.raises(FileNotFoundError):
     with pytest.raises(PermissionError):
         # the url is spelled wrong
         parse_grib_idx(

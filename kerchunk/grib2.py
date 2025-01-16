@@ -14,7 +14,17 @@ import numpy as np
 from kerchunk.utils import class_factory, _encode_for_JSON, dict_to_store, fs_as_store, translate_refs_serializable
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
-from kerchunk._grib_idx import parse_grib_idx, build_idx_grib_mapping, map_from_index
+from kerchunk._grib_idx import (
+    parse_grib_idx,
+    build_idx_grib_mapping,
+    map_from_index,
+    strip_datavar_chunks,
+    reinflate_grib_store,
+    extract_datatree_chunk_index,
+    AggregationType,
+    read_store,
+    write_store,
+)
 
 
 try:
@@ -598,4 +608,10 @@ __all__ = [
     "parse_grib_idx",
     "build_idx_grib_mapping",
     "map_from_index",
+    "strip_datavar_chunks",
+    "reinflate_grib_store",
+    "extract_datatree_chunk_index",
+    "AggregationType",
+    "read_store",
+    "write_store",
 ]

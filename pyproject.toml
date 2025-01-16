@@ -36,6 +36,7 @@ netcdf3 = ["scipy"]
 dev = [
     "cftime",
     "dask",
+    "fastparquet",
     "h5netcdf",
     "h5py",
     "jinja2",
@@ -43,8 +44,7 @@ dev = [
     "pytest",
     "s3fs",
     "types-ujson",
-    "xarray",
-    "xarray-datatree",
+    "xarray>=2024.10.0",
     "cfgrib",
     "scipy",
     "netcdf4"

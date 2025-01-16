@@ -15,6 +15,20 @@ range_im = os.path.join(testdir, "arange.fits")
 var = os.path.join(testdir, "variable_length_table.fits")
 
 
+def test_image():
+    # this one directly hits a remote server - should cache?
+    url = "https://fits.gsfc.nasa.gov/samples/WFPC2ASSNu5780205bx.fits"
+    out = kerchunk.fits.process_file(url)
+    m = fsspec.get_mapper("reference://", fo=out, remote_protocol="https")
+    g = zarr.open(m)
+    arr = g["PRIMARY"][:]
+    with fsspec.open(
+        "https://fits.gsfc.nasa.gov/samples/WFPC2ASSNu5780205bx.fits"
+    ) as f:
+        hdu = fits.getdata(f)
+        assert (hdu == arr).all()
+
+
 def test_ascii_table():
     # this one directly hits a remote server - should cache?
     url = "https://fits.gsfc.nasa.gov/samples/WFPC2u5780205r_c0fx.fits"

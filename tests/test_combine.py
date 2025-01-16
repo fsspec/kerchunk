@@ -774,7 +774,7 @@ def test_inline(refs):
     assert ref.references["data/0.0.0"].startswith("base64:")
 
 
-def test_no_inline(refs):
+def test_no_inline():
     """Ensure that inline_threshold=0 disables MultiZarrToZarr checking file size."""
     ds = xr.Dataset(dict(x=[1, 2, 3]))
     ds["y"] = 3 + ds["x"]
