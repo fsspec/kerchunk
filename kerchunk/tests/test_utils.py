@@ -81,13 +81,13 @@ def test_inline_array():
 
     localfs = fsspec.filesystem("file")
     store = kerchunk.utils.refs_as_store(out2, fs=localfs)
-    g = zarr.open(store, mode='r', zarr_format=2)
-    assert g["data"][:].tolist() == [1, 2] # What is g.data???
+    g = zarr.open(store, mode="r", zarr_format=2)
+    assert g["data"][:].tolist() == [1, 2]  # What is g.data???
 
     out3 = kerchunk.utils.inline_array(refs, threshold=1000)  # inlines because of size
     store = kerchunk.utils.refs_as_store(out3, localfs)
-    g = zarr.open(store, mode='r', zarr_format=2)
-    assert g["data"][:].tolist() == [1, 2] # What is g.data???
+    g = zarr.open(store, mode="r", zarr_format=2)
+    assert g["data"][:].tolist() == [1, 2]  # What is g.data???
 
 
 def test_json():
@@ -99,28 +99,30 @@ def test_json():
 
 @pytest.mark.parametrize("chunks", [[10, 10], [5, 10]])
 def test_subchunk_exact(m, chunks):
-    store = m.get_mapper("test.zarr")
-    g = zarr.open_group(store, mode="w", zarr_format=2)
+    g = zarr.open_group("memory://test.zarr", mode="w", zarr_format=2)
     data = np.arange(100).reshape(10, 10)
-    arr = g.create_dataset("data", data=data, chunks=chunks, compressor=None)
+    arr = g.create_array(
+        "data", dtype=data.dtype, shape=data.shape, chunks=chunks, compressor=None
+    )
+    arr[:] = data
     ref = kerchunk.zarr.single_zarr("memory://test.zarr")["refs"]
 
     extra = [] if chunks[0] == 10 else ["data/1.0"]
-    assert list(ref) == [".zgroup", "data/.zarray", "data/0.0"] + extra
+    ref2 = list(_ for _ in ref if not _.endswith("zattrs"))  # ignore empty attrs
+    assert ref2 == [".zgroup", "data/.zarray", "data/0.0"] + extra
 
     out = kerchunk.utils.subchunk(ref, "data", 5)
     nchunk = 10 // chunks[0] * 5
-    assert list(out) == [".zgroup", "data/.zarray"] + [
-        f"data/{_}.0" for _ in range(nchunk)
-    ]
+    out2 = list(_ for _ in out if not _.endswith("zattrs"))
+    assert out2 == [".zgroup", "data/.zarray"] + [f"data/{_}.0" for _ in range(nchunk)]
 
     store = kerchunk.utils.refs_as_store(out, remote_protocol="memory")
-    g2 = zarr.open_group(store, mode='r', zarr_format=2)
+    g2 = zarr.open_group(store, mode="r", zarr_format=2)
 
     # g2 = zarr.open_group(
     #     "reference://", storage_options={"fo": out, "remote_protocol": "memory"}, zarr_format=2
     # )
-    assert (g2.data[:] == data).all()
+    assert (g2["data"][:] == data).all()
 
 
 @pytest.mark.parametrize("archive", ["zip", "tar"])

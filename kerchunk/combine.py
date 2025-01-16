@@ -201,7 +201,7 @@ class MultiZarrToZarr:
             remote_protocol=remote_protocol,
             remote_options=remote_options,
             target_options=target_options,
-            asynchronous=True
+            asynchronous=True,
         )
         ds = xr.open_dataset(
             fs.get_mapper(), engine="zarr", backend_kwargs={"consolidated": False}
@@ -267,7 +267,9 @@ class MultiZarrToZarr:
                 self._paths = []
                 for of in fsspec.open_files(self.path, **self.target_options):
                     self._paths.append(of.full_name)
-                fs = fsspec.core.url_to_fs(self.path[0], asynchronous=True, **self.target_options)[0]
+                fs = fsspec.core.url_to_fs(
+                    self.path[0], asynchronous=True, **self.target_options
+                )[0]
                 try:
                     # JSON path
                     fo_list = fs.cat(self.path)
@@ -436,13 +438,13 @@ class MultiZarrToZarr:
                     kw["fill_value"] = z[k].fill_value
             arr = group.create_array(
                 name=k,
-                data=data,
                 shape=data.shape,
-                exists_ok=True,
+                overwrite=True,
                 compressor=compressor,
                 dtype=self.coo_dtypes.get(k, data.dtype),
                 **kw,
             )
+            arr[:] = data
             if k in z:
                 # copy attributes if values came from an original variable
                 arr.attrs.update(z[k].attrs)
@@ -505,7 +507,9 @@ class MultiZarrToZarr:
                 if f"{v}/.zgroup" in fns:
                     # recurse into groups - copy meta, add to dirs to process and don't look
                     # for references in this dir
-                    metadata = asyncio.run(self._read_meta_files(m, [f"{v}/.zgroup", f"{v}/.zattrs"]))
+                    metadata = asyncio.run(
+                        self._read_meta_files(m, [f"{v}/.zgroup", f"{v}/.zattrs"])
+                    )
                     self.out.update(metadata)
                     dirs.extend([f for f in fns if not f.startswith(f"{v}/.z")])
                     continue
@@ -517,8 +521,10 @@ class MultiZarrToZarr:
                             self.out[k] = fs.references[k]
                     continue
                 logger.debug("Second pass: %s, %s", i, v)
-                
-                zarray = asyncio.run(self._read_meta_files(m, [f"{v}/.zarray"]))[f"{v}/.zarray"]
+
+                zarray = asyncio.run(self._read_meta_files(m, [f"{v}/.zarray"]))[
+                    f"{v}/.zarray"
+                ]
                 zarray = ujson.loads(zarray)
                 if v not in chunk_sizes:
                     chunk_sizes[v] = zarray["chunks"]

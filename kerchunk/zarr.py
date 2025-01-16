@@ -2,6 +2,7 @@ import fsspec
 from fsspec.implementations.reference import LazyReferenceMapper
 
 import kerchunk.utils
+import ujson
 
 
 def single_zarr(
@@ -35,11 +36,20 @@ def single_zarr(
     """
     if isinstance(uri_or_store, str):
         mapper = fsspec.get_mapper(uri_or_store, **(storage_options or {}))
+        protocol = mapper.fs.unstrip_protocol("").rstrip("://")
     else:
         mapper = uri_or_store
         if isinstance(mapper, fsspec.FSMap) and storage_options is None:
             storage_options = mapper.fs.storage_options
+            protocol = mapper.fs.unstrip_protocol("").rstrip("://")
+        else:
+            protocol = None
 
+    try:
+        check = ujson.loads(mapper[".zgroup"])
+        assert check["zarr_format"] == 2
+    except (KeyError, ValueError, TypeError) as e:
+        raise ValueError("Failed to load dataset as V2 zarr") from e
     refs = out or {}
     for k in mapper:
         if k.startswith("."):
@@ -50,7 +60,12 @@ def single_zarr(
 
     inline_threshold = inline or inline_threshold
     if inline_threshold:
-        refs = do_inline(refs, inline_threshold, remote_options=storage_options)
+        refs = do_inline(
+            refs,
+            inline_threshold,
+            remote_options=storage_options,
+            remote_protocol=protocol,
+        )
     if isinstance(refs, LazyReferenceMapper):
         refs.flush()
     refs = kerchunk.utils.consolidate(refs)

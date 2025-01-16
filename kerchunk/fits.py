@@ -8,7 +8,7 @@ import zarr
 from fsspec.implementations.reference import LazyReferenceMapper
 
 
-from kerchunk.utils import class_factory, dict_to_store
+from kerchunk.utils import class_factory, dict_to_store, translate_refs_serializable
 from kerchunk.codecs import AsciiTableCodec, VarArrCodec
 
 try:
@@ -94,7 +94,7 @@ def process_file(
             hdu.header.__str__()  # causes fixing of invalid cards
 
             attrs = dict(hdu.header)
-            kwargs = {}
+            kwargs = {"compressor": None}
             if hdu.is_image:
                 # for images/cubes (i.e., ndarrays with simple type)
                 nax = hdu.header["NAXIS"]
@@ -164,8 +164,8 @@ def process_file(
             # one chunk for whole thing.
             # TODO: we could sub-chunk on biggest dimension
             name = hdu.name or str(ext)
-            arr = g.empty(
-                name=name, dtype=dtype, shape=shape, chunks=shape, zarr_format=2, **kwargs
+            arr = g.create_array(
+                name=name, dtype=dtype, shape=shape, chunks=shape, **kwargs
             )
             arr.attrs.update(
                 {
@@ -191,6 +191,7 @@ def process_file(
             )
     if isinstance(out, LazyReferenceMapper):
         out.flush()
+    out = translate_refs_serializable(out)
     return out
 
 

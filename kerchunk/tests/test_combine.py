@@ -4,7 +4,7 @@ import numpy as np
 import dask.array as da
 import pytest
 import xarray as xr
-import zarr
+import zarr.storage
 
 import kerchunk.combine
 from kerchunk.zarr import single_zarr
@@ -132,20 +132,23 @@ data = xr.DataArray(
 xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk2.zarr")
 
 # simple time arrays - xarray can't make these!
-m = fs.get_mapper("time1.zarr")
-z = zarr.open(m, mode="w", zarr_format=2)
+z = zarr.open("memory://time1.zarr", mode="w", zarr_format=2)
 time1_array = np.array([1], dtype="M8[s]")
-ar = z.create_array("time", data=time1_array, shape=time1_array.shape)
+ar = z.create_array("time", shape=time1_array.shape, dtype=time1_array.dtype)
+ar[:] = time1_array
 ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
-ar = z.create_array("data", data=arr, shape=arr.shape)
+ar = z.create_array("data", dtype=arr.dtype, shape=arr.shape)
+ar[:] = arr
 ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
 
-m = fs.get_mapper("time2.zarr")
-z = zarr.open(m, mode="w", zarr_format=2)
+
+z = zarr.open("memory://ime2.zarr", mode="w", zarr_format=2)
 time2_array = np.array([2], dtype="M8[s]")
-ar = z.create_array("time", data=time2_array, shape=time2_array.shape)
+ar = z.create_array("time", dtype=time2_array.dtype, shape=time2_array.shape)
+ar[:] = time2_array
 ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
-ar = z.create_array("data", data=arr, shape=arr.shape)
+ar = z.create_array("data", dtype=arr.dtype, shape=arr.shape)
+ar[:] = arr
 ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
 
 
@@ -228,8 +231,9 @@ def refs():
 def test_fixture(refs):
     # effectively checks that single_zarr works
     assert "single1" in refs
-    m = fsspec.get_mapper("reference://", fo=refs["single1"], remote_protocol="memory")
-    g = xr.open_dataset(m, engine="zarr", backend_kwargs={"consolidated": False})
+    fs = fsspec.filesystem("reference", fo=refs["single1"], remote_protocol="memory")
+    store = zarr.storage.FsspecStore(fs)
+    g = xr.open_dataset(store, engine="zarr", backend_kwargs={"consolidated": False})
     assert g.time.values.tolist() == [1]
     assert (g.data.values == arr).all()
     assert g.attrs["attr1"] == 5

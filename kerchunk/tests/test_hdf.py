@@ -51,7 +51,7 @@ def test_single_direct_open():
         h5f=url, inline_threshold=300, storage_options=so
     ).translate()
 
-    store = refs_as_store(test_dict)
+    store = refs_as_store(test_dict, remote_options=dict(asynchronous=True, anon=True))
 
     ds_direct = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
@@ -61,7 +61,7 @@ def test_single_direct_open():
         h5chunks = SingleHdf5ToZarr(f, url, storage_options=so)
         test_dict = h5chunks.translate()
 
-    store = refs_as_store(test_dict)
+    store = refs_as_store(test_dict, remote_options=dict(asynchronous=True, anon=True))
 
     ds_from_file_opener = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
@@ -88,7 +88,7 @@ def test_multizarr(generate_mzz):
     mzz = generate_mzz
     test_dict = mzz.translate()
 
-    store = refs_as_store(test_dict)
+    store = refs_as_store(test_dict, remote_options=dict(asynchronous=True, anon=True))
     ds = xr.open_dataset(
         store, engine="zarr", zarr_format=2, backend_kwargs=dict(consolidated=False)
     )
@@ -196,12 +196,12 @@ txt = "the change of water into water vapour"
 
 def test_string_embed():
     fn = osp.join(here, "vlen.h5")
-    h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="embed")
+    h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="embed", error="pdb")
     out = h.translate()
 
     localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
     fs = refs_as_fs(out, fs=localfs)
-    #assert txt in fs.references["vlen_str/0"]
+    # assert txt in fs.references["vlen_str/0"]
     store = fs_as_store(fs)
     z = zarr.open(store, zarr_format=2)
     assert z["vlen_str"].dtype == "O"
@@ -227,7 +227,7 @@ def test_string_leave():
             f, fn, vlen_encode="leave", inline_threshold=0
         )
         out = h.translate()
-    
+
     localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
     store = refs_as_store(out, fs=localfs)
     z = zarr.open(store, zarr_format=2)
@@ -328,7 +328,7 @@ def test_compress():
 
 def test_embed():
     fn = osp.join(here, "NEONDSTowerTemperatureData.hdf5")
-    h = kerchunk.hdf.SingleHdf5ToZarr(fn, vlen_encode="embed")
+    h = kerchunk.hdf.SingleHdf5ToZarr(fn, vlen_encode="embed", error="pdb")
     out = h.translate()
 
     localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))

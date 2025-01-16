@@ -10,7 +10,12 @@ import zarr
 import numcodecs
 
 from .codecs import FillStringsCodec
-from .utils import _encode_for_JSON, encode_fill_value, dict_to_store, translate_refs_serializable
+from .utils import (
+    _encode_for_JSON,
+    encode_fill_value,
+    dict_to_store,
+    translate_refs_serializable,
+)
 
 try:
     import h5py
@@ -32,6 +37,7 @@ _HIDDEN_ATTRS = {  # from h5netcdf.attrs
     "_nc3_strict",
     "_NCProperties",
 }
+fsspec.utils.setup_logging(lggr)
 
 
 class SingleHdf5ToZarr:
@@ -173,6 +179,7 @@ class SingleHdf5ToZarr:
             An equivalent Zarr group or array to the HDF5 group or dataset with
             attributes.
         """
+        upd = {}
         for n, v in h5obj.attrs.items():
             if n in _HIDDEN_ATTRS:
                 continue
@@ -196,11 +203,19 @@ class SingleHdf5ToZarr:
             if v == "DIMENSION_SCALE":
                 continue
             try:
-                zobj.attrs[n] = v
+                if isinstance(v, (str, int, float)):
+                    upd[n] = v
+                elif isinstance(v, (tuple, set, list)) and all(
+                    isinstance(_, (str, int, float)) for _ in v
+                ):
+                    upd[n] = list(v)
+                else:
+                    upd[n] = str(v)
             except TypeError:
                 lggr.debug(
                     f"TypeError transferring attr, skipping:\n {n}@{h5obj.name} = {v} ({type(v)})"
                 )
+        zobj.attrs.update(upd)
 
     def _decode_filters(self, h5obj: Union[h5py.Dataset, h5py.Group]):
         if h5obj.scaleoffset:
@@ -272,7 +287,7 @@ class SingleHdf5ToZarr:
     ):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
         try:  # method must not raise exception
-            kwargs = {}
+            kwargs = {"compressor": None}
 
             if isinstance(h5obj, (h5py.SoftLink, h5py.HardLink)):
                 h5obj = self._h5f[name]
@@ -289,9 +304,9 @@ class SingleHdf5ToZarr:
                 if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
                     # Only do if h5obj.nbytes < self.inline??
                     kwargs["data"] = h5obj[:]
-                    filters = []
+                    kwargs["filters"] = []
                 else:
-                    filters = self._decode_filters(h5obj)
+                    kwargs["filters"] = self._decode_filters(h5obj)
                 dt = None
                 # Get storage info of this HDF5 dataset...
                 cinfo = self._storage_info(h5obj)
@@ -325,11 +340,11 @@ class SingleHdf5ToZarr:
                                             for v in val
                                         ]
                             kwargs["data"] = out
-                            kwargs["compressor"] = numcodecs.JSON()
+                            kwargs["filters"] = [numcodecs.JSON()]
                             fill = None
                         elif self.vlen == "null":
                             dt = "O"
-                            kwargs["compressor"] = FillStringsCodec(dtype="S16")
+                            kwargs["filters"] = [FillStringsCodec(dtype="S16")]
                             fill = " "
                         elif self.vlen == "leave":
                             dt = "S16"
@@ -344,9 +359,9 @@ class SingleHdf5ToZarr:
                                 index.decode(): label.decode()
                                 for index, label in zip(indexes, labels)
                             }
-                            kwargs["compressor"] = FillStringsCodec(
-                                dtype="S16", id_map=mapping
-                            )
+                            kwargs["filters"] = [
+                                FillStringsCodec(dtype="S16", id_map=mapping)
+                            ]
                             fill = " "
                         else:
                             raise NotImplementedError
@@ -384,9 +399,9 @@ class SingleHdf5ToZarr:
                                             )
                                         }
                                     )
-                            kwargs["compressor"] = FillStringsCodec(
-                                dtype=str(dt), id_map=mapping
-                            )
+                            kwargs["filters"] = [
+                                FillStringsCodec(dtype=str(dt), id_map=mapping)
+                            ]
                             dt = [
                                 (
                                     v,
@@ -410,7 +425,7 @@ class SingleHdf5ToZarr:
                                 )
                                 for v in h5obj.dtype.names
                             ]
-                            kwargs["compressor"] = FillStringsCodec(dtype=str(dt))
+                            kwargs["filters"] = [FillStringsCodec(dtype=str(dt))]
                             dt = [
                                 (
                                     v,
@@ -451,7 +466,7 @@ class SingleHdf5ToZarr:
                                 )
                             dt = "O"
                             kwargs["data"] = data2
-                            kwargs["compressor"] = numcodecs.JSON()
+                            kwargs["filters"] = [numcodecs.JSON()]
                             fill = None
                         else:
                             raise NotImplementedError
@@ -460,20 +475,18 @@ class SingleHdf5ToZarr:
                         return
                     if h5obj.attrs.get("_FillValue") is not None:
                         fill = h5obj.attrs.get("_FillValue")
-                        fill = encode_fill_value(
-                            fill, dt or h5obj.dtype
-                        )
+                        fill = encode_fill_value(fill, dt or h5obj.dtype)
 
                 adims = self._get_array_dims(h5obj)
 
-                # Create a Zarr array equivalent to this HDF5 dataset..
-                za = self._zroot.require_array(
+                # Create a Zarr array equivalent to this HDF5 dataset.
+                data = kwargs.pop("data", None)
+                za = self._zroot.create_array(
                     name=h5obj.name,
                     shape=h5obj.shape,
                     dtype=dt or h5obj.dtype,
-                    chunks=h5obj.chunks or False,
+                    chunks=h5obj.chunks or h5obj.shape,
                     fill_value=fill,
-                    filters=filters,
                     attributes={
                         "_ARRAY_DIMENSIONS": adims,
                     },
@@ -483,9 +496,14 @@ class SingleHdf5ToZarr:
                 self._transfer_attrs(h5obj, za)
 
                 lggr.debug(f"_ARRAY_DIMENSIONS = {adims}")
-
-                if "data" in kwargs:
-                    return  # embedded bytes, no chunks to copy
+                if data is not None:
+                    try:
+                        za[:] = data
+                    except (ValueError, TypeError):
+                        self.store_dict[f"{za.path}/0"] = kwargs["filters"][0].encode(
+                            data
+                        )
+                    return
 
                 # Store chunk location metadata...
                 if cinfo:
@@ -493,7 +511,11 @@ class SingleHdf5ToZarr:
                         if h5obj.fletcher32:
                             logging.info("Discarding fletcher32 checksum")
                             v["size"] -= 4
-                        key =  str.removeprefix(h5obj.name, "/") + "/" + ".".join(map(str, k))
+                        key = (
+                            str.removeprefix(h5obj.name, "/")
+                            + "/"
+                            + ".".join(map(str, k))
+                        )
 
                         if (
                             self.inline
@@ -681,4 +703,3 @@ def _is_netcdf_variable(dataset: h5py.Dataset):
 
 def has_visititems_links():
     return hasattr(h5py.Group, "visititems_links")
-

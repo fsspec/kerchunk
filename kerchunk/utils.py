@@ -8,12 +8,19 @@ import warnings
 
 import ujson
 
-import fsspec
+import fsspec.implementations.asyn_wrapper
 import numpy as np
-import zarr
+import zarr.storage
 
 
-def refs_as_fs(refs, fs=None, remote_protocol=None, remote_options=None, **kwargs):
+def refs_as_fs(
+    refs,
+    fs=None,
+    remote_protocol=None,
+    remote_options=None,
+    asynchronous=True,
+    **kwargs,
+):
     """Convert a reference set to an fsspec filesystem"""
     fs = fsspec.filesystem(
         "reference",
@@ -22,7 +29,7 @@ def refs_as_fs(refs, fs=None, remote_protocol=None, remote_options=None, **kwarg
         remote_protocol=remote_protocol,
         remote_options=remote_options,
         **kwargs,
-        asynchronous=True,
+        asynchronous=asynchronous,
     )
     return fs
 
@@ -31,11 +38,8 @@ def refs_as_store(
     refs, read_only=False, fs=None, remote_protocol=None, remote_options=None
 ):
     """Convert a reference set to a zarr store"""
-    if is_zarr3():
-        if remote_options is None:
-            remote_options = {"asynchronous": True}
-        else:
-            remote_options["asynchronous"] = True
+    remote_options = remote_options or {}
+    remote_options["asynchronous"] = True
 
     fss = refs_as_fs(
         refs,
@@ -65,26 +69,23 @@ def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=False):
     Parameters
     ----------
     fs: fsspec.async.AsyncFileSystem
-    mode: str
+    read_only: bool
 
     Returns
     -------
     zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
     """
-    if is_zarr3():
-        if not fs.async_impl:
-            try:
-                from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+    if not fs.async_impl:
+        try:
+            from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 
-                fs = AsyncFileSystemWrapper(fs)
-            except ImportError:
-                raise ImportError(
-                    "Only fsspec>2024.10.0 supports the async filesystem wrapper required for working with reference filesystems. "
-                )
-        fs.asynchronous = True
-        return zarr.storage.RemoteStore(fs, read_only=read_only)
-    else:
-        return fs.get_mapper()
+            fs = AsyncFileSystemWrapper(fs)
+        except ImportError:
+            raise ImportError(
+                "Only fsspec>2024.10.0 supports the async filesystem wrapper required for working with reference filesystems. "
+            )
+    fs.asynchronous = True
+    return zarr.storage.FsspecStore(fs, read_only=read_only)
 
 
 def class_factory(func):
@@ -259,14 +260,11 @@ def do_inline(store, threshold, remote_options=None, remote_protocol=None):
     The chunk may need encoding with base64 if not ascii, so actual
     length may be larger than threshold.
     """
-    fs = fsspec.filesystem(
-        "reference",
-        fo=store,
-        remote_options=remote_options,
-        remote_protocol=remote_protocol,
-    )
     fs = refs_as_fs(
-        store, remote_protocol=remote_protocol, remote_options=remote_options
+        store,
+        remote_protocol=remote_protocol,
+        remote_options=remote_options,
+        asynchronous=False,
     )
     out = fs.references.copy()
 
@@ -308,15 +306,15 @@ def _inline_array(group, threshold, names, prefix=""):
             cond2 = prefix1 in names
             if cond1 or cond2:
                 original_attrs = dict(thing.attrs)
-                arr = group.create_dataset(
+                arr = group.create_array(
                     name=name,
                     dtype=thing.dtype,
                     shape=thing.shape,
-                    data=thing[:],
                     chunks=thing.shape,
                     fill_value=thing.fill_value,
-                    exists_ok=True,
+                    overwrite=True,
                 )
+                arr[:] = thing[:]
                 arr.attrs.update(original_attrs)
 
 
@@ -369,7 +367,7 @@ def subchunk(store, variable, factor):
     -------
     modified store
     """
-    fs = refs_as_fs(store)
+    fs = fsspec.filesystem("reference", fo=store)
     store = fs.references
     meta_file = f"{variable}/.zarray"
     meta = ujson.loads(fs.cat(meta_file))
@@ -419,7 +417,7 @@ def subchunk(store, variable, factor):
             else:
                 (url,) = v
                 offset = 0
-                size = fs.size(k)
+                size = fs.info(k)["size"]
             for subpart in range(factor):
                 new_index = (
                     chunk_index[:ind]

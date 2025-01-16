@@ -134,7 +134,7 @@ class GRIBZarrCodec(ArrayBytesCodec):
         object.__setattr__(self, "dtype", dtype)
 
     @classmethod
-    def from_dict(cls, data: dict[str, JSON]) -> Self:
+    def from_dict(cls, data: dict[str, JSON]) -> "GRIBZarrCodec":
         _, configuration_parsed = parse_named_configuration(
             data, "bytes", require_configuration=True
         )
@@ -149,7 +149,7 @@ class GRIBZarrCodec(ArrayBytesCodec):
                 "name": "grib",
                 "configuration": {"var": self.var, "dtype": self.dtype},
             }
-        
+
     async def _decode_single(
         self,
         chunk_bytes: Buffer,
@@ -322,7 +322,8 @@ class DeflateCodec(Codec):
 class ZlibCodec(Codec):
     codec_id = "zlib"
 
-    def __init__(self): ...
+    def __init__(self):
+        ...
 
     def decode(self, data, out=None):
         if out:

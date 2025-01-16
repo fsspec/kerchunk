@@ -6,7 +6,13 @@ import numpy as np
 from fsspec.implementations.reference import LazyReferenceMapper
 import fsspec
 
-from kerchunk.utils import _encode_for_JSON, dict_to_store, inline_array, translate_refs_serializable
+import kerchunk.utils
+from kerchunk.utils import (
+    _encode_for_JSON,
+    dict_to_store,
+    inline_array,
+    translate_refs_serializable,
+)
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
@@ -255,7 +261,7 @@ class NetCDF3ToZarr(netcdf_file):
                     fill_value=fill,
                     chunks=(1,) + dtype.shape,
                     compressor=None,
-                    exists_ok=True,
+                    overwrite=True,
                 )
                 arr.attrs.update(
                     {
@@ -288,13 +294,13 @@ class NetCDF3ToZarr(netcdf_file):
                 if k != "filename"  # special "attribute"
             }
         )
+        out = kerchunk.utils.translate_refs_serializable(out)
         if self.threshold:
             out = inline_array(
                 out,
                 self.threshold,
                 remote_options=dict(remote_options=self.storage_options),
             )
-
         if isinstance(out, LazyReferenceMapper):
             out.flush()
             return out

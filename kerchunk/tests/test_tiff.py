@@ -36,8 +36,8 @@ def test_coord():
     fn = files[0]
     out = kerchunk.tiff.tiff_to_zarr(fn)
     store = refs_as_store(out)
-    z = zarr.open(out, zarr_format=2)  # highest res is the one xarray picks
-    out = kerchunk.tiff.generate_coords(z.attrs, z[0].shape)
+    z = zarr.open(store, zarr_format=2)  # highest res is the one xarray picks
+    out = kerchunk.tiff.generate_coords(z.attrs, z["0"].shape)
 
     ds = xr.open_dataset(fn)
     assert (ds.x == out["x"]).all()
