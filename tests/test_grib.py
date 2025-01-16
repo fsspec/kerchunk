@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-#import datatree
 import zarr
 import ujson
 from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
@@ -36,11 +35,7 @@ def test_one():
 
     fs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
     store = refs_as_store(out[0], fs=fs)
-    ds = xr.open_zarr(
-        store, 
-        zarr_format=2,
-        consolidated=False
-    )
+    ds = xr.open_zarr(store, zarr_format=2, consolidated=False)
 
     assert ds.attrs["GRIB_centre"] == "cwao"
     ds2 = xr.open_dataset(fn, engine="cfgrib", backend_kwargs={"indexpath": ""})
@@ -76,11 +71,7 @@ def test_archives(tmpdir, url):
 
     store = refs_as_store(out, remote_options={"anon": True})
 
-    ours = xr.open_zarr(
-        store,
-        zarr_format=2,
-        consolidated=False
-    )
+    ours = xr.open_zarr(store, zarr_format=2, consolidated=False)
 
     data = _fetch_first(url)
     fn = os.path.join(tmpdir, "grib.grib2")
@@ -131,7 +122,7 @@ def test_grib_tree():
         "atmosphere latitude longitude step time valid_time".split()
     )
     # Assert that the fill value is set correctly
-    assert np.isnan(zg['refc/instant/atmosphere/step'].fill_value)
+    assert np.isnan(zg["refc/instant/atmosphere/step"].fill_value)
 
 
 # The following two tests use json fixture data generated from calling scan grib
@@ -149,14 +140,18 @@ def test_correct_hrrr_subhf_group_step():
         scanned_msgs = ujson.load(fobj)
 
     original_zg = [
-        zarr.open_group(fs_as_store(fsspec.filesystem("reference", fo=val)), mode="r", zarr_format=2)
+        zarr.open_group(
+            fs_as_store(fsspec.filesystem("reference", fo=val)), mode="r", zarr_format=2
+        )
         for val in scanned_msgs
     ]
 
     corrected_msgs = [correct_hrrr_subhf_step(msg) for msg in scanned_msgs]
 
     corrected_zg = [
-        zarr.open_group(fs_as_store(fsspec.filesystem("reference", fo=val)), mode="r", zarr_format=2)
+        zarr.open_group(
+            fs_as_store(fsspec.filesystem("reference", fo=val)), mode="r", zarr_format=2
+        )
         for val in corrected_msgs
     ]
 
@@ -183,28 +178,29 @@ def test_hrrr_subhf_corrected_grib_tree():
     zstore = fs_as_store(z_fs)
     zg = zarr.open_group(zstore, mode="r", zarr_format=2)
     # Check the values and shape of the time coordinates
-    assert zg['u/instant/heightAboveGround/step'][:].tolist() == [
+    assert zg["u/instant/heightAboveGround/step"][:].tolist() == [
         0.0,
         0.25,
         0.5,
         0.75,
         1.0,
     ]
-    assert zg['u/instant/heightAboveGround/step'].shape == (5,)
-    assert zg['u/instant/heightAboveGround/valid_time'][:].tolist() == [
+    assert zg["u/instant/heightAboveGround/step"].shape == (5,)
+    assert zg["u/instant/heightAboveGround/valid_time"][:].tolist() == [
         [1695862800, 1695863700, 1695864600, 1695865500, 1695866400]
     ]
-    assert zg['u/instant/heightAboveGround/valid_time'].shape == (1, 5)
-    assert zg['u/instant/heightAboveGround/time'][:].tolist() == [1695862800]
-    assert zg['u/instant/heightAboveGround/time'].shape == (1,)
-    assert zg['dswrf/avg/surface/step'][:].tolist() == [0.0, 0.25, 0.5, 0.75, 1.0]
-    assert zg['dswrf/avg/surface/step'].shape == (5,)
-    assert zg['dswrf/avg/surface/valid_time'][:].tolist() == [
+    assert zg["u/instant/heightAboveGround/valid_time"].shape == (1, 5)
+    assert zg["u/instant/heightAboveGround/time"][:].tolist() == [1695862800]
+    assert zg["u/instant/heightAboveGround/time"].shape == (1,)
+    assert zg["dswrf/avg/surface/step"][:].tolist() == [0.0, 0.25, 0.5, 0.75, 1.0]
+    assert zg["dswrf/avg/surface/step"].shape == (5,)
+    assert zg["dswrf/avg/surface/valid_time"][:].tolist() == [
         [1695862800, 1695863700, 1695864600, 1695865500, 1695866400]
     ]
-    assert zg['dswrf/avg/surface/valid_time'].shape == (1, 5)
-    assert zg['dswrf/avg/surface/time'][:].tolist() == [1695862800]
-    assert zg['dswrf/avg/surface/time'].shape == (1,)
+    assert zg["dswrf/avg/surface/valid_time"].shape == (1, 5)
+    assert zg["dswrf/avg/surface/time"][:].tolist() == [1695862800]
+    assert zg["dswrf/avg/surface/time"].shape == (1,)
+
 
 # The following two test use json fixture data generated from calling scan grib
 #   scan_grib("testdata/hrrr.t01z.wrfsfcf00.grib2")
@@ -221,19 +217,19 @@ def test_hrrr_sfcf_grib_tree():
     store = fs_as_store(fsspec.filesystem("reference", fo=merged))
     zg = zarr.open_group(store, mode="r", zarr_format=2)
     # Check the heightAboveGround level shape of the time coordinates
-    assert zg['u/instant/heightAboveGround/heightAboveGround'][()] == 80.0
-    assert zg['u/instant/heightAboveGround/heightAboveGround'].shape == ()
-    assert zg['u/instant/heightAboveGround/step'][:].tolist() == [0.0, 1.0]
-    assert zg['u/instant/heightAboveGround/step'].shape == (2,)
-    assert zg['u/instant/heightAboveGround/valid_time'][:].tolist() == [
+    assert zg["u/instant/heightAboveGround/heightAboveGround"][()] == 80.0
+    assert zg["u/instant/heightAboveGround/heightAboveGround"].shape == ()
+    assert zg["u/instant/heightAboveGround/step"][:].tolist() == [0.0, 1.0]
+    assert zg["u/instant/heightAboveGround/step"].shape == (2,)
+    assert zg["u/instant/heightAboveGround/valid_time"][:].tolist() == [
         [1695862800, 1695866400]
     ]
-    assert zg['u/instant/heightAboveGround/valid_time'].shape == (1, 2)
-    assert zg['u/instant/heightAboveGround/time'][:].tolist() == [1695862800]
-    assert zg['u/instant/heightAboveGround/time'].shape == (1,)
+    assert zg["u/instant/heightAboveGround/valid_time"].shape == (1, 2)
+    assert zg["u/instant/heightAboveGround/time"][:].tolist() == [1695862800]
+    assert zg["u/instant/heightAboveGround/time"].shape == (1,)
 
     # Check the isobaricInhPa level shape and time coordinates
-    assert zg['u/instant/isobaricInhPa/isobaricInhPa'][:].tolist() == [
+    assert zg["u/instant/isobaricInhPa/isobaricInhPa"][:].tolist() == [
         250.0,
         300.0,
         500.0,
@@ -242,9 +238,9 @@ def test_hrrr_sfcf_grib_tree():
         925.0,
         1000.0,
     ]
-    assert zg['u/instant/isobaricInhPa/isobaricInhPa'].shape == (7,)
-    assert zg['u/instant/isobaricInhPa/step'][:].tolist() == [0.0, 1.0]
-    assert zg['u/instant/isobaricInhPa/step'].shape == (2,)
+    assert zg["u/instant/isobaricInhPa/isobaricInhPa"].shape == (7,)
+    assert zg["u/instant/isobaricInhPa/step"][:].tolist() == [0.0, 1.0]
+    assert zg["u/instant/isobaricInhPa/step"].shape == (2,)
 
     # Valid time values get exploded by isobaricInhPa aggregation
     # Is this a feature or a bug?
@@ -254,11 +250,11 @@ def test_hrrr_sfcf_grib_tree():
             [1695866400 for _ in range(7)],
         ]
     ]
-    assert zg['u/instant/isobaricInhPa/valid_time'][:].tolist() == expected_valid_times
-    assert zg['u/instant/isobaricInhPa/valid_time'].shape == (1, 2, 7)
+    assert zg["u/instant/isobaricInhPa/valid_time"][:].tolist() == expected_valid_times
+    assert zg["u/instant/isobaricInhPa/valid_time"].shape == (1, 2, 7)
 
-    assert zg['u/instant/isobaricInhPa/time'][:].tolist() == [1695862800]
-    assert zg['u/instant/isobaricInhPa/time'].shape == (1,)
+    assert zg["u/instant/isobaricInhPa/time"][:].tolist() == [1695862800]
+    assert zg["u/instant/isobaricInhPa/time"].shape == (1,)
 
 
 # def test_hrrr_sfcf_grib_datatree():

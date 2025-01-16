@@ -2,7 +2,7 @@
 name = "kerchunk"
 description = "Functions to make reference descriptions for ReferenceFileSystem"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 dynamic = ["version"]
 license = {text = "MIT"}
 authors = [
