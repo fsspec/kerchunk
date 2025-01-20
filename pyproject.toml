@@ -48,7 +48,8 @@ dev = [
     "xarray>=2024.10.0",
     "cfgrib",
     "scipy",
-    "netcdf4"
+    "netcdf4",
+    "pytest-subtests",
 ]
 
 [project.urls]

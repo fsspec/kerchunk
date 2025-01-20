@@ -19,6 +19,7 @@ dependencies:
   - requests
   - aiohttp
   - pytest-cov
+  - pytest-subtests
   - fsspec
   - gcsfs
   - dask
