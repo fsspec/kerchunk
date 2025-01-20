@@ -20,7 +20,7 @@ dependencies:
   - aiohttp
   - pytest-cov
   - pytest-subtests
-  - fsspec
+  - fsspec<=2024.12.0
   - gcsfs
   - dask
   - scipy
