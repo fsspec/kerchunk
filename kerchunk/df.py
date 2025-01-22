@@ -22,7 +22,9 @@ logger = logging.getLogger("kerchunk.df")
 
 
 def _proc_raw(r):
-    if not isinstance(r, bytes):
+    if hasattr(r, "to_bytes"):
+        r = r.to_bytes()
+    elif not isinstance(r, bytes):
         r = r.encode()
     if r.startswith(b"base64:"):
         return base64.b64decode(r[7:])

@@ -154,6 +154,7 @@ def process_file(
                     kwargs["compressor"] = VarArrCodec(
                         str(dtype), str(dt2), nrows, types
                     )
+                    kwargs["fill_value"] = None
                     dtype = dt2
                 else:
                     length = dtype.itemsize * nrows

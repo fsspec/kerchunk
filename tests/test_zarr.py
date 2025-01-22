@@ -76,7 +76,7 @@ def test_zarr_in_zip(zarr_in_zip, ds):
 
 def test_zarr_combine(tmpdir, ds):
     fn1 = f"{tmpdir}/test1.zarr"
-    ds.to_zarr(fn1)
+    ds.to_zarr(fn1, zarr_format=2)
 
     one = kerchunk.zarr.ZarrToZarr(fn1, inline_threshold=0).translate()
     fn = f"{tmpdir}/out.parq"

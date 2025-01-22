@@ -9,215 +9,231 @@ import zarr.storage
 import kerchunk.combine
 from kerchunk.zarr import single_zarr
 from kerchunk.combine import MultiZarrToZarr
+from kerchunk.utils import fs_as_store, refs_as_store
+
 
 fs = fsspec.filesystem("memory")
 arr = np.random.rand(1, 10, 10)
 
-static = xr.DataArray(data=np.random.rand(10, 10), dims=["x", "y"], name="static")
-data = xr.DataArray(
-    data=arr.squeeze(),
-    dims=["x", "y"],
-    name="data",
-)
-xr.Dataset({"data": data}, attrs={"attr0": 3}).to_zarr("memory://simple1.zarr")
 
-data = xr.DataArray(
-    data=arr.squeeze() + 1,
-    dims=["x", "y"],
-    name="data",
-)
-xr.Dataset({"data": data}, attrs={"attr0": 4}).to_zarr("memory://simple2.zarr")
+@pytest.fixture(scope="module", autouse=True)
+def datasets():
+    # if something fails here, it won't crash the test run
+    static = xr.DataArray(data=np.random.rand(10, 10), dims=["x", "y"], name="static")
+    data = xr.DataArray(
+        data=arr.squeeze(),
+        dims=["x", "y"],
+        name="data",
+    )
+    xr.Dataset({"data": data}, attrs={"attr0": 3}).to_zarr(
+        "memory://simple1.zarr", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=arr.squeeze(),
-    dims=["x", "y"],
-    name="datum",
-)
-xr.Dataset({"datum": data}, attrs={"attr0": 3}).to_zarr("memory://simple_var1.zarr")
+    data = xr.DataArray(
+        data=arr.squeeze() + 1,
+        dims=["x", "y"],
+        name="data",
+    )
+    xr.Dataset({"data": data}, attrs={"attr0": 4}).to_zarr(
+        "memory://simple2.zarr", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=arr.squeeze() + 1,
-    dims=["x", "y"],
-    name="datum",
-)
-xr.Dataset({"datum": data}, attrs={"attr0": 4}).to_zarr("memory://simple_var2.zarr")
+    data = xr.DataArray(
+        data=arr.squeeze(),
+        dims=["x", "y"],
+        name="datum",
+    )
+    xr.Dataset({"datum": data}, attrs={"attr0": 3}).to_zarr(
+        "memory://simple_var1.zarr", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=arr,
-    coords={"time": np.array([1])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 3},
-)
-xr.Dataset({"data": data, "static": static}, attrs={"attr1": 5}).to_zarr(
-    "memory://single1.zarr"
-)
+    data = xr.DataArray(
+        data=arr.squeeze() + 1,
+        dims=["x", "y"],
+        name="datum",
+    )
+    xr.Dataset({"datum": data}, attrs={"attr0": 4}).to_zarr(
+        "memory://simple_var2.zarr", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=arr,
-    coords={"time": np.array([2])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 4},
-)
-xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr(
-    "memory://single2.zarr"
-)
+    data = xr.DataArray(
+        data=arr,
+        coords={"time": np.array([1])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 3},
+    )
+    xr.Dataset({"data": data, "static": static}, attrs={"attr1": 5}).to_zarr(
+        "memory://single1.zarr", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=arr,
-    coords={"time": np.array([3])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 4},
-)
-xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr(
-    "memory://single3.zarr"
-)
+    data = xr.DataArray(
+        data=arr,
+        coords={"time": np.array([2])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 4},
+    )
+    xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr(
+        "memory://single2.zarr", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=np.vstack([arr] * 4),
-    coords={"time": np.array([1, 2, 3, 4])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 0},
-)
-xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk1.zarr")
-xr.Dataset({"data": data}).to_zarr("memory://group1.zarr", group="group")
+    data = xr.DataArray(
+        data=arr,
+        coords={"time": np.array([3])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 4},
+    )
+    xr.Dataset({"data": data, "static": static}, attrs={"attr1": 6}).to_zarr(
+        "memory://single3.zarr", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=np.vstack([arr] * 4),
-    coords={"time": np.array([5, 6, 7, 8])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 0},
-)
-xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk2.zarr")
-xr.Dataset({"data": data}).to_zarr("memory://group2.zarr", group="group")
+    data = xr.DataArray(
+        data=np.vstack([arr] * 4),
+        coords={"time": np.array([1, 2, 3, 4])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 0},
+    )
+    xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk1.zarr", zarr_format=2)
+    xr.Dataset({"data": data}).to_zarr(
+        "memory://group1.zarr", group="group", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=da.from_array(np.vstack([arr] * 4), chunks=(1, 10, 10)),
-    coords={"time": np.array([1, 2, 3, 4])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 0},
-)
-xr.Dataset({"data": data}).to_zarr("memory://quad_1chunk1.zarr")
+    data = xr.DataArray(
+        data=np.vstack([arr] * 4),
+        coords={"time": np.array([5, 6, 7, 8])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 0},
+    )
+    xr.Dataset({"data": data}).to_zarr("memory://quad_nochunk2.zarr", zarr_format=2)
+    xr.Dataset({"data": data}).to_zarr(
+        "memory://group2.zarr", group="group", zarr_format=2
+    )
 
-data = xr.DataArray(
-    data=da.from_array(np.vstack([arr] * 4), chunks=(1, 10, 10)),
-    coords={"time": np.array([5, 6, 7, 8])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 0},
-)
-xr.Dataset({"data": data}).to_zarr("memory://quad_1chunk2.zarr")
+    data = xr.DataArray(
+        data=da.from_array(np.vstack([arr] * 4), chunks=(1, 10, 10)),
+        coords={"time": np.array([1, 2, 3, 4])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 0},
+    )
+    xr.Dataset({"data": data}).to_zarr("memory://quad_1chunk1.zarr", zarr_format=2)
 
-data = xr.DataArray(
-    data=da.from_array(np.vstack([arr] * 4), chunks=(2, 10, 10)),
-    coords={"time": np.array([1, 2, 3, 4])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 0},
-)
-xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk1.zarr")
+    data = xr.DataArray(
+        data=da.from_array(np.vstack([arr] * 4), chunks=(1, 10, 10)),
+        coords={"time": np.array([5, 6, 7, 8])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 0},
+    )
+    xr.Dataset({"data": data}).to_zarr("memory://quad_1chunk2.zarr", zarr_format=2)
 
-data = xr.DataArray(
-    data=da.from_array(np.vstack([arr] * 4), chunks=(2, 10, 10)),
-    coords={"time": np.array([5, 6, 7, 8])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"attr0": 0},
-)
-xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk2.zarr")
+    data = xr.DataArray(
+        data=da.from_array(np.vstack([arr] * 4), chunks=(2, 10, 10)),
+        coords={"time": np.array([1, 2, 3, 4])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 0},
+    )
+    xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk1.zarr", zarr_format=2)
 
-# simple time arrays - xarray can't make these!
-z = zarr.open("memory://time1.zarr", mode="w", zarr_format=2)
-time1_array = np.array([1], dtype="M8[s]")
-ar = z.create_array("time", shape=time1_array.shape, dtype=time1_array.dtype)
-ar[:] = time1_array
-ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
-ar = z.create_array("data", dtype=arr.dtype, shape=arr.shape)
-ar[:] = arr
-ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
+    data = xr.DataArray(
+        data=da.from_array(np.vstack([arr] * 4), chunks=(2, 10, 10)),
+        coords={"time": np.array([5, 6, 7, 8])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"attr0": 0},
+    )
+    xr.Dataset({"data": data}).to_zarr("memory://quad_2chunk2.zarr", zarr_format=2)
 
+    # simple time arrays - xarray can't make these!
+    z = zarr.open("memory://time1.zarr", mode="w", zarr_format=2)
+    time1_array = np.array([1], dtype="M8[s]")
+    ar = z.create_array("time", shape=time1_array.shape, dtype=time1_array.dtype)
+    ar[:] = time1_array
+    ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
+    ar = z.create_array("data", dtype=arr.dtype, shape=arr.shape)
+    ar[:] = arr
+    ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
 
-z = zarr.open("memory://ime2.zarr", mode="w", zarr_format=2)
-time2_array = np.array([2], dtype="M8[s]")
-ar = z.create_array("time", dtype=time2_array.dtype, shape=time2_array.shape)
-ar[:] = time2_array
-ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
-ar = z.create_array("data", dtype=arr.dtype, shape=arr.shape)
-ar[:] = arr
-ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
+    z = zarr.open("memory://ime2.zarr", mode="w", zarr_format=2)
+    time2_array = np.array([2], dtype="M8[s]")
+    ar = z.create_array("time", dtype=time2_array.dtype, shape=time2_array.shape)
+    ar[:] = time2_array
+    ar.attrs.update({"_ARRAY_DIMENSIONS": ["time"]})
+    ar = z.create_array("data", dtype=arr.dtype, shape=arr.shape)
+    ar[:] = arr
+    ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
 
+    # cftime arrays - standard
+    tdata1 = xr.DataArray(
+        data=arr,
+        coords={"time": np.array([1])},
+        dims=["time", "x", "y"],
+        name="data",
+    )
+    xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime1.zarr", zarr_format=2)
+    fs.pipe(
+        "cfstdtime1.zarr/time/.zattrs",
+        b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
+        b'1970-01-01T00:00:00"}',
+    )
 
-# cftime arrays - standard
-tdata1 = xr.DataArray(
-    data=arr,
-    coords={"time": np.array([1])},
-    dims=["time", "x", "y"],
-    name="data",
-)
-xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime1.zarr")
-fs.pipe(
-    "cfstdtime1.zarr/time/.zattrs",
-    b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
-    b'1970-01-01T00:00:00"}',
-)
+    tdata1 = xr.DataArray(
+        data=arr,
+        coords={"time": np.array([2])},
+        dims=["time", "x", "y"],
+        name="data",
+    )
+    xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime2.zarr", zarr_format=2)
+    fs.pipe(
+        "cfstdtime2.zarr/time/.zattrs",
+        b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
+        b'1970-01-01T00:00:00"}',
+    )
 
-tdata1 = xr.DataArray(
-    data=arr,
-    coords={"time": np.array([2])},
-    dims=["time", "x", "y"],
-    name="data",
-)
-xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime2.zarr")
-fs.pipe(
-    "cfstdtime2.zarr/time/.zattrs",
-    b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
-    b'1970-01-01T00:00:00"}',
-)
+    tdata1 = xr.DataArray(
+        data=arr,
+        coords={"time": np.array([3])},
+        dims=["time", "x", "y"],
+        name="data",
+    )
+    xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime3.zarr", zarr_format=2)
+    fs.pipe(
+        "cfstdtime3.zarr/time/.zattrs",
+        b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
+        b'1970-01-01T00:00:00"}',
+    )
 
-tdata1 = xr.DataArray(
-    data=arr,
-    coords={"time": np.array([3])},
-    dims=["time", "x", "y"],
-    name="data",
-)
-xr.Dataset({"data": tdata1}).to_zarr("memory://cfstdtime3.zarr")
-fs.pipe(
-    "cfstdtime3.zarr/time/.zattrs",
-    b'{"_ARRAY_DIMENSIONS": ["time"], "units": "seconds since '
-    b'1970-01-01T00:00:00"}',
-)
+    # cftime arrays - non standard
+    tdata1 = xr.DataArray(
+        data=arr,
+        coords={"time": np.array([1])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"units": "months since 1970-01-01", "calendar": "360_day"},
+    )
+    xr.Dataset({"data": tdata1}).to_zarr("memory://cfnontime1.zarr", zarr_format=2)
+    fs.pipe(
+        "cfnontime1.zarr/time/.zattrs",
+        b'{"_ARRAY_DIMENSIONS": ["time"], "units": "months since 1970-01-01", "calendar": "360_day"}',
+    )
 
-# cftime arrays - non standard
-tdata1 = xr.DataArray(
-    data=arr,
-    coords={"time": np.array([1])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"units": "months since 1970-01-01", "calendar": "360_day"},
-)
-xr.Dataset({"data": tdata1}).to_zarr("memory://cfnontime1.zarr")
-fs.pipe(
-    "cfnontime1.zarr/time/.zattrs",
-    b'{"_ARRAY_DIMENSIONS": ["time"], "units": "months since 1970-01-01", "calendar": "360_day"}',
-)
-
-tdata1 = xr.DataArray(
-    data=arr,
-    coords={"time": np.array([2])},
-    dims=["time", "x", "y"],
-    name="data",
-    attrs={"units": "months since 1970-01-01", "calendar": "360_day"},
-)
-xr.Dataset({"data": tdata1}).to_zarr("memory://cfnontime2.zarr")
-fs.pipe(
-    "cfnontime2.zarr/time/.zattrs",
-    b'{"_ARRAY_DIMENSIONS": ["time"], "units": "months since 1970-01-01", "calendar": "360_day"}',
-)
+    tdata1 = xr.DataArray(
+        data=arr,
+        coords={"time": np.array([2])},
+        dims=["time", "x", "y"],
+        name="data",
+        attrs={"units": "months since 1970-01-01", "calendar": "360_day"},
+    )
+    xr.Dataset({"data": tdata1}).to_zarr("memory://cfnontime2.zarr", zarr_format=2)
+    fs.pipe(
+        "cfnontime2.zarr/time/.zattrs",
+        b'{"_ARRAY_DIMENSIONS": ["time"], "units": "months since 1970-01-01", "calendar": "360_day"}',
+    )
 
 
 @pytest.fixture(scope="module")
