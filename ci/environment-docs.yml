@@ -16,7 +16,8 @@ dependencies:
   - requests
   - aiohttp
   - pytest-cov
-  - fsspec
+  - pytest-subtests
+  - fsspec<=2024.12.0
   - dask
   - scipy
   - s3fs

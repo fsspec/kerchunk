@@ -20,7 +20,7 @@ classifiers = [
 
 
 dependencies = [
-  "fsspec",
+  "fsspec<=2024.12.0",
   "numcodecs",
   "numpy",
   "ujson",
@@ -36,18 +36,20 @@ netcdf3 = ["scipy"]
 dev = [
     "cftime",
     "dask",
-    "fastparquet",
+    "fastparquet>=2024.11.0",
     "h5netcdf",
     "h5py",
     "jinja2",
     "mypy",
     "pytest",
     "s3fs",
+    "gcsfs",
     "types-ujson",
     "xarray>=2024.10.0",
     "cfgrib",
     "scipy",
-    "netcdf4"
+    "netcdf4",
+    "pytest-subtests",
 ]
 
 [project.urls]

@@ -19,10 +19,11 @@ dependencies:
   - requests
   - aiohttp
   - pytest-cov
-  - fsspec
+  - pytest-subtests
   - dask
   - scipy
   - s3fs
+  - gcsfs
   - python-blosc
   - flake8
   - fastparquet
