@@ -1,4 +1,4 @@
-from . import codecs
+from kerchunk import codecs
 
 from importlib.metadata import version as _version
 

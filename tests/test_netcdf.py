@@ -1,11 +1,13 @@
 import os
 
-
 import fsspec
 import numpy as np
 from packaging.version import Version
 import pytest
 from kerchunk import netCDF3
+
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+from kerchunk.utils import refs_as_store
 
 xr = pytest.importorskip("xarray")
 
@@ -28,12 +30,17 @@ def test_one(m):
     m.pipe("data.nc3", bdata)
     h = netCDF3.netcdf_recording_file("memory://data.nc3")
     out = h.translate()
+
+    print(out)
+
+    store = refs_as_store(out)
+
     ds = xr.open_dataset(
-        "reference://",
+        store,
         engine="zarr",
         backend_kwargs={
             "consolidated": False,
-            "storage_options": {"fo": out, "remote_protocol": "memory"},
+            "zarr_format": 2,
         },
     )
     assert (ds.data == data).all()
@@ -81,13 +88,14 @@ def test_unlimited(unlimited_dataset):
     expected = xr.open_dataset(fn, engine="scipy")
     h = netCDF3.NetCDF3ToZarr(fn)
     out = h.translate()
-    ds = xr.open_dataset(
-        "reference://",
-        engine="zarr",
-        backend_kwargs={
-            "consolidated": False,
-            "storage_options": {"fo": out},
-        },
+
+    fs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
+    store = refs_as_store(out, fs)
+
+    ds = xr.open_zarr(
+        store,
+        zarr_format=2,
+        consolidated=False,
     )
     assert ds.attrs["title"] == "testing"
     assert ds.temp.attrs["units"] == "K"

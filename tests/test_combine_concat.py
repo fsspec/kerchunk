@@ -7,6 +7,7 @@ import zarr
 import kerchunk.combine
 import kerchunk.zarr
 import kerchunk.df
+from kerchunk.utils import fs_as_store, refs_as_store
 
 
 @pytest.mark.parametrize(
@@ -51,8 +52,9 @@ def test_success(tmpdir, arrays, chunks, axis, m):
     refs = []
     for i, x in enumerate(arrays):
         fn = f"{tmpdir}/out{i}.zarr"
-        g = zarr.open(fn)
-        g.create_dataset("x", data=x, chunks=chunks)
+        g = zarr.open(fn, zarr_format=2)
+        arr = g.create_dataset("x", shape=x.shape, dtype=x.dtype, chunks=chunks)
+        arr[:] = x
         fns.append(fn)
         ref = kerchunk.zarr.single_zarr(fn, inline=0)
         refs.append(ref)
@@ -61,33 +63,31 @@ def test_success(tmpdir, arrays, chunks, axis, m):
         refs, axis=axis, path="x", check_arrays=True
     )
 
-    mapper = fsspec.get_mapper("reference://", fo=out)
-    g = zarr.open(mapper)
-    assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
+    store = refs_as_store(out)
+    g = zarr.open(store, zarr_format=2)
+    assert (g["x"][:] == np.concatenate(arrays, axis=axis)).all()
 
     try:
         import fastparquet
     except ImportError:
         return
     kerchunk.df.refs_to_dataframe(out, "memory://out.parq")
-    mapper = fsspec.get_mapper(
-        "reference://",
+    storage_options = dict(
         fo="memory://out.parq",
         remote_protocol="file",
         skip_instance_cache=True,
     )
-    g = zarr.open(mapper)
-    assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
+    g = zarr.open("reference://", zarr_format=2, storage_options=storage_options)
+    assert (g["x"][:] == np.concatenate(arrays, axis=axis)).all()
 
     kerchunk.df.refs_to_dataframe(out, "memory://out.parq", record_size=1)
-    mapper = fsspec.get_mapper(
-        "reference://",
+    storage_options = dict(
         fo="memory://out.parq",
         remote_protocol="file",
         skip_instance_cache=True,
     )
-    g = zarr.open(mapper)
-    assert (g.x[:] == np.concatenate(arrays, axis=axis)).all()
+    g = zarr.open("reference://", zarr_format=2, storage_options=storage_options)
+    assert (g["x"][:] == np.concatenate(arrays, axis=axis)).all()
 
 
 def test_fail_chunks(tmpdir):
@@ -95,9 +95,9 @@ def test_fail_chunks(tmpdir):
     fn2 = f"{tmpdir}/out2.zarr"
     x1 = np.arange(10)
     x2 = np.arange(10, 20)
-    g = zarr.open(fn1)
+    g = zarr.open(fn1, zarr_format=2)
     g.create_dataset("x", data=x1, chunks=(2,))
-    g = zarr.open(fn2)
+    g = zarr.open(fn2, zarr_format=2)
     g.create_dataset("x", data=x2, chunks=(3,))
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
@@ -112,9 +112,9 @@ def test_fail_shape(tmpdir):
     fn2 = f"{tmpdir}/out2.zarr"
     x1 = np.arange(12).reshape(6, 2)
     x2 = np.arange(12, 24)
-    g = zarr.open(fn1)
+    g = zarr.open(fn1, zarr_format=2)
     g.create_dataset("x", data=x1, chunks=(2,))
-    g = zarr.open(fn2)
+    g = zarr.open(fn2, zarr_format=2)
     g.create_dataset("x", data=x2, chunks=(2,))
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
@@ -129,9 +129,9 @@ def test_fail_irregular_chunk_boundaries(tmpdir):
     fn2 = f"{tmpdir}/out2.zarr"
     x1 = np.arange(10)
     x2 = np.arange(10, 24)
-    g = zarr.open(fn1)
+    g = zarr.open(fn1, zarr_format=2)
     g.create_dataset("x", data=x1, chunks=(4,))
-    g = zarr.open(fn2)
+    g = zarr.open(fn2, zarr_format=2)
     g.create_dataset("x", data=x2, chunks=(4,))
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)

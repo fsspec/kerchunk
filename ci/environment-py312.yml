@@ -20,7 +20,6 @@ dependencies:
   - aiohttp
   - pytest-cov
   - pytest-subtests
-  - fsspec<=2024.12.0
   - gcsfs
   - dask
   - scipy
@@ -34,5 +33,6 @@ dependencies:
   - tifffile
   - rioxarray
   - netCDF4
-#  - pip:
-#      - git+https://github.com/fsspec/filesystem_spec
+  - pip:
+      - git+https://github.com/fsspec/filesystem_spec
+      - git+https://github.com/zarr-developers/zarr-python

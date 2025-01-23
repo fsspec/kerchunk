@@ -18,7 +18,7 @@ def test_1(m, url):
         "a/4": ["memory://url4.file"],
         "a/5": ["memory://url5.file"],
         "a/6": b"data",
-        "a/.zarray": b"""{"shape": [7], "chunks":[1], "filters": [], "compression": null}""",
+        "a/.zarray": b"""{"shape": [7], "chunks":[1], "filters": [], "compressor": null}""",
         ".zgroup": b'{"zarr_format": 2}',
     }
     u = "memory://myrefs.json"

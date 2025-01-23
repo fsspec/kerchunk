@@ -144,18 +144,18 @@ class HDF4ToZarr:
             remote_protocol=prot,
             remote_options=self.st,
         )
-        g = zarr.open_group("reference://", storage_options=dict(fs=fs))
+        g = zarr.open_group("reference://", storage_options=dict(fs=fs), zarr_format=2)
         refs = {}
         for k, v in output.items():
             if isinstance(v, dict):
-                compression = ZlibCodec() if "refs" in v else None
+                compressor = ZlibCodec() if "refs" in v else None
                 arr = g.create_dataset(
                     name=k,
                     shape=v["dims"],
                     dtype=v["dtype"],
                     chunks=v.get("chunks", v["dims"]),
-                    compressor=compression,
-                    overwrite=True,
+                    compressor=compressor,
+                    exists_ok=True,
                 )
                 arr.attrs.update(
                     dict(
