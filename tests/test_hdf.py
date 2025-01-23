@@ -16,8 +16,7 @@ import zarr
 from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 from kerchunk.hdf import SingleHdf5ToZarr, has_visititems_links
 from kerchunk.combine import MultiZarrToZarr, drop
-from kerchunk.utils import refs_as_fs, refs_as_store
-from kerchunk.utils import fs_as_store
+from kerchunk.utils import fs_as_store, refs_as_fs, refs_as_store
 
 here = osp.dirname(__file__)
 
@@ -218,10 +217,10 @@ def test_string_pathlib():
     out = h.translate()
     fs = fsspec.filesystem("reference", fo=out)
     assert txt in fs.references["vlen_str/0"]
-    z = zarr.open(fs.get_mapper())
-    assert z.vlen_str.dtype == "O"
-    assert z.vlen_str[0] == txt
-    assert (z.vlen_str[1:] == "").all()
+    z = zarr.open(fs_as_store(fs))
+    assert z["vlen_str"].dtype == "O"
+    assert z["vlen_str"][0] == txt
+    assert (z["vlen_str"][1:] == "").all()
 
 
 def test_string_null():
@@ -276,8 +275,8 @@ def test_compound_string_null():
     store = refs_as_store(out, fs=localfs)
     z = zarr.open(store, zarr_format=2)
     assert z["vlen_str"][0].tolist() == (10, None)
-    assert (z["vlen_str"]["ints"][1:] == 0).all()
-    assert (z["vlen_str"]["strs"][1:] == None).all()
+    assert (z["vlen_str"][1:]["ints"] == 0).all()
+    assert (z["vlen_str"][1:]["strs"] == None).all()
 
 
 def test_compound_string_leave():
@@ -290,10 +289,10 @@ def test_compound_string_leave():
     localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
     store = refs_as_store(out, fs=localfs)
     z = zarr.open(store, zarr_format=2)
-    assert z["vlen_str"]["ints"][0] == 10
-    assert z["vlen_str"]["strs"][0]  # random ID
-    assert (z["vlen_str"]["ints"][1:] == 0).all()
-    assert (z["vlen_str"]["strs"][1:] == b"").all()
+    assert z["vlen_str"][0]["ints"] == 10
+    assert z["vlen_str"][0]["strs"]  # random ID
+    assert (z["vlen_str"][1:]["ints"] == 0).all()
+    assert (z["vlen_str"][1:]["strs"] == b"").all()
 
 
 def test_compound_string_encode():
@@ -306,10 +305,10 @@ def test_compound_string_encode():
     localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
     store = refs_as_store(out, fs=localfs)
     z = zarr.open(store, zarr_format=2)
-    assert z["vlen_str"]["ints"][0] == 10
-    assert z["vlen_str"]["strs"][0] == "water"
-    assert (z["vlen_str"]["ints"][1:] == 0).all()
-    assert (z["vlen_str"]["strs"][1:] == "").all()
+    assert z["vlen_str"][0]["ints"] == 10
+    assert z["vlen_str"][0]["strs"] == "water"
+    assert (z["vlen_str"][1:]["ints"] == 0).all()
+    assert (z["vlen_str"][1:]["strs"] == "").all()
 
 
 # def test_compact():
@@ -343,11 +342,11 @@ def test_compress():
 
 def test_embed():
     fn = osp.join(here, "NEONDSTowerTemperatureData.hdf5")
-    h = kerchunk.hdf.SingleHdf5ToZarr(fn, vlen_encode="embed", error="pdb")
+    h = kerchunk.hdf.SingleHdf5ToZarr(fn, vlen_encode="embed")
     out = h.translate()
 
-    localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
-    store = refs_as_store(out, fs=localfs)
+    # localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
+    store = refs_as_store(out)
     z = zarr.open(store, zarr_format=2)
     data = z["Domain_10"]["STER"]["min_1"]["boom_1"]["temperature"][:]
     assert data[0].tolist() == [

@@ -482,7 +482,7 @@ class SingleHdf5ToZarr:
 
                 # Create a Zarr array equivalent to this HDF5 dataset.
                 data = kwargs.pop("data", None)
-                za = self._zroot.create_array(
+                za = self._zroot.require_array(
                     name=h5obj.name,
                     shape=h5obj.shape,
                     dtype=dt or h5obj.dtype,
@@ -491,6 +491,7 @@ class SingleHdf5ToZarr:
                     attributes={
                         "_ARRAY_DIMENSIONS": adims,
                     },
+                    overwrite=True,
                     **kwargs,
                 )
                 lggr.debug(f"Created Zarr array: {za}")
