@@ -7,7 +7,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Advanced Topics &mdash; kerchunk  documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
@@ -109,9 +109,9 @@ to save the single-file outputs to files, although returning them is OK
 too (especially if you mean to combine them immediately).</p>
 <p>Here is an example for HDF5 files. The caller should make sure the
 storage options and any parameters needed for the transformer are in place.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">ujson</span><span class="o">,</span> <span class="nn">fsspec</span><span class="o">,</span> <span class="nn">dask</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ujson</span><span class="o">,</span><span class="w"> </span><span class="nn">fsspec</span><span class="o">,</span><span class="w"> </span><span class="nn">dask</span>
 
-<span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">outputfile</span><span class="p">,</span> <span class="n">storage_options_in</span><span class="o">=</span><span class="p">{},</span> <span class="n">storage_options_out</span><span class="o">=</span><span class="p">{}):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">outputfile</span><span class="p">,</span> <span class="n">storage_options_in</span><span class="o">=</span><span class="p">{},</span> <span class="n">storage_options_out</span><span class="o">=</span><span class="p">{}):</span>
     <span class="n">transformer</span> <span class="o">=</span> <span class="n">kerchunk</span><span class="o">.</span><span class="n">hdf</span><span class="o">.</span><span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options_in</span><span class="p">)</span>
     <span class="n">refs</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outputfile</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wt&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options_out</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -219,12 +219,12 @@ these references with much smaller  memory requirements.</p>
 <p>A concrete workflow may be something like the following. Note that
 <a class="reference internal" href="reference.html#kerchunk.combine.auto_dask" title="kerchunk.combine.auto_dask"><code class="xref py py-func docutils literal notranslate"><span class="pre">kerchunk.combine.auto_dask()</span></code></a> can execute the first three stages in
 one go and may be faster, if you have a Dask cluster available.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">kerchunk</span> <span class="kn">import</span> <span class="n">hdf</span><span class="p">,</span> <span class="n">combine</span><span class="p">,</span> <span class="n">df</span>
-<span class="kn">import</span> <span class="nn">fsspec.implementations.reference</span>
-<span class="kn">from</span> <span class="nn">fsspec.implementations.reference</span> <span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
-<span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk</span><span class="w"> </span><span class="kn">import</span> <span class="n">hdf</span><span class="p">,</span> <span class="n">combine</span><span class="p">,</span> <span class="n">df</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec.implementations.reference</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.implementations.reference</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
 
-<span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
 <span class="n">files</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">location_of_data</span><span class="p">)</span>
 

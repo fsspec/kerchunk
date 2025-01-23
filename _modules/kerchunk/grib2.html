@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kerchunk.grib2 &mdash; kerchunk  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -81,23 +81,23 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.grib2</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">import</span> <span class="nn">io</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span>
-<span class="kn">import</span> <span class="nn">ujson</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ujson</span>
 
-<span class="kn">import</span> <span class="nn">fsspec</span>
-<span class="kn">import</span> <span class="nn">zarr</span>
-<span class="kn">import</span> <span class="nn">xarray</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">zarr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span><span class="p">,</span> <span class="n">_encode_for_JSON</span>
-<span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">GRIBCodec</span>
-<span class="kn">from</span> <span class="nn">kerchunk.combine</span> <span class="kn">import</span> <span class="n">MultiZarrToZarr</span><span class="p">,</span> <span class="n">drop</span>
-<span class="kn">from</span> <span class="nn">kerchunk._grib_idx</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">class_factory</span><span class="p">,</span> <span class="n">_encode_for_JSON</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.codecs</span><span class="w"> </span><span class="kn">import</span> <span class="n">GRIBCodec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.combine</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiZarrToZarr</span><span class="p">,</span> <span class="n">drop</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk._grib_idx</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">parse_grib_idx</span><span class="p">,</span>
     <span class="n">build_idx_grib_mapping</span><span class="p">,</span>
     <span class="n">map_from_index</span><span class="p">,</span>
@@ -111,7 +111,7 @@
 
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">cfgrib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">cfgrib</span>
 <span class="k">except</span> <span class="ne">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
     <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cfgrib&quot;</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
@@ -132,7 +132,7 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;grib2-to-zarr&quot;</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_split_file</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">io</span><span class="o">.</span><span class="n">FileIO</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_split_file</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">io</span><span class="o">.</span><span class="n">FileIO</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">):</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span>
     <span class="k">else</span><span class="p">:</span>
@@ -156,7 +156,7 @@
             <span class="k">break</span>
 
 
-<span class="k">def</span> <span class="nf">_store_array</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_store_array</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
     <span class="n">nbytes</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
         <span class="n">nbytes</span> <span class="o">*=</span> <span class="n">i</span>
@@ -200,7 +200,7 @@
 
 <div class="viewcode-block" id="scan_grib">
 <a class="viewcode-back" href="../../reference.html#kerchunk.grib2.scan_grib">[docs]</a>
-<span class="k">def</span> <span class="nf">scan_grib</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">scan_grib</span><span class="p">(</span>
     <span class="n">url</span><span class="p">,</span>
     <span class="n">common</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -234,7 +234,7 @@
 
 <span class="sd">    list(dict): references dicts in Version 1 format, one per message in the file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">eccodes</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">eccodes</span>
 
     <span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Open </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -421,7 +421,7 @@
 <span class="n">GribToZarr</span> <span class="o">=</span> <span class="n">class_factory</span><span class="p">(</span><span class="n">scan_grib</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">example_combine</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">example_combine</span><span class="p">(</span>
     <span class="nb">filter</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;heightAboveGround&quot;</span><span class="p">,</span> <span class="s2">&quot;level&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
 <span class="p">):</span>  <span class="c1"># pragma: no cover</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create combined dataset of weather measurements at 2m height</span>
@@ -460,7 +460,7 @@
     <span class="k">return</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
 
 
-<span class="k">def</span> <span class="nf">grib_tree</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">grib_tree</span><span class="p">(</span>
     <span class="n">message_groups</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
     <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
@@ -628,7 +628,7 @@
     <span class="k">return</span> <span class="n">result</span>
 
 
-<span class="k">def</span> <span class="nf">correct_hrrr_subhf_step</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">correct_hrrr_subhf_step</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Overrides the definition of the &quot;step&quot; variable.</span>
 

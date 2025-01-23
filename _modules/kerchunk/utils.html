@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kerchunk.utils &mdash; kerchunk  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -81,31 +81,31 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.utils</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">base64</span>
-<span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">import</span> <span class="nn">itertools</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
-<span class="kn">import</span> <span class="nn">ujson</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ujson</span>
 
-<span class="kn">import</span> <span class="nn">fsspec</span>
-<span class="kn">import</span> <span class="nn">zarr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">zarr</span>
 
 
-<span class="k">def</span> <span class="nf">class_factory</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">class_factory</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Experimental uniform API across function-based file scanners&quot;&quot;&quot;</span>
 
-    <span class="k">class</span> <span class="nc">FunctionWrapper</span><span class="p">:</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">FunctionWrapper</span><span class="p">:</span>
         <span class="vm">__doc__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span>
         <span class="vm">__module__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__module__</span>
 
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">inline</span> <span class="o">=</span> <span class="n">inline_threshold</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
 
-        <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">func</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span>
                 <span class="n">inline_threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inline</span><span class="p">,</span>
@@ -113,7 +113,7 @@
                 <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Single file to zarr processor using </span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__module__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
 
         <span class="fm">__repr__</span> <span class="o">=</span> <span class="fm">__str__</span>
@@ -123,7 +123,7 @@
 
 <div class="viewcode-block" id="consolidate">
 <a class="viewcode-back" href="../../reference.html#kerchunk.utils.consolidate">[docs]</a>
-<span class="k">def</span> <span class="nf">consolidate</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">consolidate</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Turn raw references into output&quot;&quot;&quot;</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -141,7 +141,7 @@
 
 <div class="viewcode-block" id="rename_target">
 <a class="viewcode-back" href="../../reference.html#kerchunk.utils.rename_target">[docs]</a>
-<span class="k">def</span> <span class="nf">rename_target</span><span class="p">(</span><span class="n">refs</span><span class="p">,</span> <span class="n">renames</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rename_target</span><span class="p">(</span><span class="n">refs</span><span class="p">,</span> <span class="n">renames</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility to change URLs in a reference set in a predictable way</span>
 
 <span class="sd">    For reference sets including templates, this is more easily done by</span>
@@ -174,7 +174,7 @@
 
 <div class="viewcode-block" id="rename_target_files">
 <a class="viewcode-back" href="../../reference.html#kerchunk.utils.rename_target_files">[docs]</a>
-<span class="k">def</span> <span class="nf">rename_target_files</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">rename_target_files</span><span class="p">(</span>
     <span class="n">url_in</span><span class="p">,</span> <span class="n">renames</span><span class="p">,</span> <span class="n">url_out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">storage_options_in</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">storage_options_out</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform URL renames on a reference set - read and write from JSON</span>
@@ -208,7 +208,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_encode_for_JSON</span><span class="p">(</span><span class="n">store</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_encode_for_JSON</span><span class="p">(</span><span class="n">store</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Make store JSON encodable&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -228,7 +228,7 @@
 
 <div class="viewcode-block" id="do_inline">
 <a class="viewcode-back" href="../../reference.html#kerchunk.utils.do_inline">[docs]</a>
-<span class="k">def</span> <span class="nf">do_inline</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">do_inline</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Replace short chunks with the value of that chunk and inline metadata</span>
 
 <span class="sd">    The chunk may need encoding with base64 if not ascii, so actual</span>
@@ -268,7 +268,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_inline_array</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_inline_array</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">thing</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
             <span class="n">prefix1</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -296,7 +296,7 @@
 
 <div class="viewcode-block" id="inline_array">
 <a class="viewcode-back" href="../../reference.html#kerchunk.utils.inline_array">[docs]</a>
-<span class="k">def</span> <span class="nf">inline_array</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inline_array</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Inline whole arrays by threshold or name, replace with a single metadata chunk</span>
 
 <span class="sd">    Inlining whole arrays results in fewer keys. If the constituent keys were</span>
@@ -331,7 +331,7 @@
 
 <div class="viewcode-block" id="subchunk">
 <a class="viewcode-back" href="../../reference.html#kerchunk.utils.subchunk">[docs]</a>
-<span class="k">def</span> <span class="nf">subchunk</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">subchunk</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">variable</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Split uncompressed chunks into integer subchunks on the largest axis</span>
 
@@ -415,7 +415,7 @@
 
 <div class="viewcode-block" id="dereference_archives">
 <a class="viewcode-back" href="../../reference.html#kerchunk.utils.dereference_archives">[docs]</a>
-<span class="k">def</span> <span class="nf">dereference_archives</span><span class="p">(</span><span class="n">references</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dereference_archives</span><span class="p">(</span><span class="n">references</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Directly point to uncompressed byte ranges in ZIP/TAR archives</span>
 
 <span class="sd">    If a set of references have been made for files contained within ZIP or</span>
@@ -429,8 +429,8 @@
 <span class="sd">    remote_options: dict or None</span>
 <span class="sd">        For opening the archives</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">zipfile</span>
-    <span class="kn">import</span> <span class="nn">tarfile</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">zipfile</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">tarfile</span>
 
     <span class="k">if</span> <span class="s2">&quot;version&quot;</span> <span class="ow">in</span> <span class="n">references</span> <span class="ow">and</span> <span class="n">references</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">references</span> <span class="o">=</span> <span class="n">references</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span>
@@ -505,9 +505,9 @@
 
 
 
-<span class="k">def</span> <span class="nf">_max_prefix</span><span class="p">(</span><span class="o">*</span><span class="n">strings</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_max_prefix</span><span class="p">(</span><span class="o">*</span><span class="n">strings</span><span class="p">):</span>
     <span class="c1"># https://stackoverflow.com/a/6719272/3821154</span>
-    <span class="k">def</span> <span class="nf">all_same</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">all_same</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">y</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
 
     <span class="n">char_tuples</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">strings</span><span class="p">)</span>
@@ -515,7 +515,7 @@
     <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">prefix_tuples</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">templateize</span><span class="p">(</span><span class="n">strings</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">template_name</span><span class="o">=</span><span class="s2">&quot;u&quot;</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">templateize</span><span class="p">(</span><span class="n">strings</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">template_name</span><span class="o">=</span><span class="s2">&quot;u&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Make prefix template for a set of strings</span>
 
 <span class="sd">    Useful for condensing strings by extracting out a common prefix.</span>

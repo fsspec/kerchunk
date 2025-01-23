@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kerchunk.fits &mdash; kerchunk  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -81,22 +81,22 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.fits</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">fsspec</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">numcodecs</span>
-<span class="kn">import</span> <span class="nn">numcodecs.abc</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">zarr</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">fsspec</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numcodecs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numcodecs.abc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">zarr</span>
 
-<span class="kn">from</span> <span class="nn">fsspec.implementations.reference</span> <span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.implementations.reference</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
 
 
-<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">class_factory</span>
-<span class="kn">from</span> <span class="nn">kerchunk.codecs</span> <span class="kn">import</span> <span class="n">AsciiTableCodec</span><span class="p">,</span> <span class="n">VarArrCodec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">class_factory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.codecs</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsciiTableCodec</span><span class="p">,</span> <span class="n">VarArrCodec</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
-    <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astropy.wcs</span><span class="w"> </span><span class="kn">import</span> <span class="n">WCS</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span>
 <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
     <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
         <span class="s2">&quot;astropy is required for kerchunking FIST files. Please install with &quot;</span>
@@ -118,7 +118,7 @@
 
 <div class="viewcode-block" id="process_file">
 <a class="viewcode-back" href="../../reference.html#kerchunk.fits.process_file">[docs]</a>
-<span class="k">def</span> <span class="nf">process_file</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_file</span><span class="p">(</span>
     <span class="n">url</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">extension</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -153,7 +153,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    dict of the references</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span>
 
     <span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="ow">or</span> <span class="p">{}</span>
@@ -282,7 +282,7 @@
 <span class="n">FitsToZarr</span> <span class="o">=</span> <span class="n">class_factory</span><span class="p">(</span><span class="n">process_file</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">add_wcs_coords</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">zarr_group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_wcs_coords</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">zarr_group</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Using FITS WCS, create materialised coordinate arrays</span>
 
 <span class="sd">    This may triple the data footprint of the data, as the coordinates can easily</span>
@@ -339,7 +339,7 @@
             <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
             <span class="n">arr</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">world_coord</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
             <span class="n">coo</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Coordinate</span><span class="p">(</span>
                 <span class="n">data</span><span class="o">=</span><span class="n">world_coord</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span>

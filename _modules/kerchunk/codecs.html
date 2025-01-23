@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kerchunk.codecs &mdash; kerchunk  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -81,19 +81,19 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.codecs</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">ast</span>
-<span class="kn">import</span> <span class="nn">io</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
 
-<span class="kn">import</span> <span class="nn">numcodecs</span>
-<span class="kn">from</span> <span class="nn">numcodecs.abc</span> <span class="kn">import</span> <span class="n">Codec</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">threading</span>
-<span class="kn">import</span> <span class="nn">zlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numcodecs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numcodecs.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Codec</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">zlib</span>
 
 
 <div class="viewcode-block" id="FillStringsCodec">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.FillStringsCodec">[docs]</a>
-<span class="k">class</span> <span class="nc">FillStringsCodec</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FillStringsCodec</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Sets fixed-length string fields to empty</span>
 
 <span class="sd">    To be used with HDF fields of strings, to fill in the valules of the opaque</span>
@@ -104,7 +104,7 @@
 
 <div class="viewcode-block" id="FillStringsCodec.__init__">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.FillStringsCodec.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">id_map</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">id_map</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Note: we must pass id_map using strings, because this is JSON-encoded</span>
 <span class="sd">        by zarr.</span>
@@ -120,10 +120,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">id_map</span> <span class="o">=</span> <span class="n">id_map</span></div>
 
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
             <span class="n">dt</span> <span class="o">=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
@@ -161,7 +161,7 @@
 
 <div class="viewcode-block" id="GRIBCodec">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.GRIBCodec">[docs]</a>
-<span class="k">class</span> <span class="nc">GRIBCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GRIBCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read GRIB stream of bytes as a message using eccodes</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -172,17 +172,17 @@
 
 <div class="viewcode-block" id="GRIBCodec.__init__">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.GRIBCodec.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">var</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span></div>
 
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
         <span class="c1"># on encode, pass through</span>
         <span class="k">return</span> <span class="n">buf</span>
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="kn">import</span> <span class="nn">eccodes</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">eccodes</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">]:</span>
             <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span>
@@ -212,14 +212,14 @@
 
 <div class="viewcode-block" id="AsciiTableCodec">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.AsciiTableCodec">[docs]</a>
-<span class="k">class</span> <span class="nc">AsciiTableCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsciiTableCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Decodes ASCII-TABLE extensions in FITS files&quot;&quot;&quot;</span>
 
     <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;FITSAscii&quot;</span>
 
 <div class="viewcode-block" id="AsciiTableCodec.__init__">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.AsciiTableCodec.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indtypes</span><span class="p">,</span> <span class="n">outdtypes</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indtypes</span><span class="p">,</span> <span class="n">outdtypes</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
@@ -233,20 +233,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">outdtypes</span> <span class="o">=</span> <span class="n">outdtypes</span></div>
 
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">indtypes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indtypes</span><span class="p">])</span>
         <span class="n">outdtypes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdtypes</span><span class="p">])</span>
         <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">indtypes</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">outdtypes</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
 
 
 <div class="viewcode-block" id="VarArrCodec">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.VarArrCodec">[docs]</a>
-<span class="k">class</span> <span class="nc">VarArrCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VarArrCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Variable length arrays in a FITS BINTABLE extension&quot;&quot;&quot;</span>
 
     <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;FITSVarBintable&quot;</span>
@@ -255,17 +255,17 @@
 
 <div class="viewcode-block" id="VarArrCodec.__init__">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.VarArrCodec.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt_in</span><span class="p">,</span> <span class="n">dt_out</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">types</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt_in</span><span class="p">,</span> <span class="n">dt_out</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">types</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dt_in</span> <span class="o">=</span> <span class="n">dt_in</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dt_out</span> <span class="o">=</span> <span class="n">dt_out</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nrow</span> <span class="o">=</span> <span class="n">nrow</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">types</span> <span class="o">=</span> <span class="n">types</span></div>
 
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">dt_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt_in</span><span class="p">))</span>
         <span class="n">dt_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt_out</span><span class="p">))</span>
         <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt_in</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">)</span>
@@ -293,14 +293,14 @@
 
 <div class="viewcode-block" id="RecordArrayMember">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.RecordArrayMember">[docs]</a>
-<span class="k">class</span> <span class="nc">RecordArrayMember</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RecordArrayMember</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Read components of a record array (complex dtype)&quot;&quot;&quot;</span>
 
     <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;record_member&quot;</span>
 
 <div class="viewcode-block" id="RecordArrayMember.__init__">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.RecordArrayMember.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">member</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">member</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -314,16 +314,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span></div>
 
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">arr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">member</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 
 
-<span class="k">class</span> <span class="nc">DeflateCodec</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DeflateCodec</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;As implemented for members of zip-files</span>
 
 <span class="sd">    The input buffer contains the file header as well as the compressed bytes</span>
@@ -331,9 +331,9 @@
 
     <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;deflate&quot;</span>
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="kn">import</span> <span class="nn">zipfile</span>
-        <span class="kn">import</span> <span class="nn">struct</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">zipfile</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">struct</span>
 
         <span class="n">head</span> <span class="o">=</span> <span class="n">buf</span><span class="p">[:</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">sizeFileHeader</span><span class="p">]</span>
         <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="n">csize</span><span class="p">,</span> <span class="n">usize</span><span class="p">,</span> <span class="n">fnsize</span><span class="p">,</span> <span class="n">extra_size</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span>
@@ -350,28 +350,28 @@
         <span class="n">zf</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipExtFile</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">zipinfo</span><span class="o">=</span><span class="n">zi</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">zf</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
 
 <div class="viewcode-block" id="ZlibCodec">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.ZlibCodec">[docs]</a>
-<span class="k">class</span> <span class="nc">ZlibCodec</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ZlibCodec</span><span class="p">(</span><span class="n">Codec</span><span class="p">):</span>
     <span class="n">codec_id</span> <span class="o">=</span> <span class="s2">&quot;zlib&quot;</span>
 
 <div class="viewcode-block" id="ZlibCodec.__init__">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.ZlibCodec.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="o">...</span></div>
 
 
-    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">out</span><span class="p">:</span>
             <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">out</span>
         <span class="k">return</span> <span class="n">zlib</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">buf</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">zlib</span><span class="o">.</span><span class="n">compress</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span></div>
 
 </pre></div>

@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kerchunk.tiff &mdash; kerchunk  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -81,25 +81,25 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.tiff</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">io</span>
-<span class="kn">import</span> <span class="nn">fsspec</span>
-<span class="kn">import</span> <span class="nn">enum</span>
-<span class="kn">import</span> <span class="nn">ujson</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ujson</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">tifffile</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">tifffile</span>
 <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
     <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
         <span class="s2">&quot;tifffile is required for kerchunking TIFF files. Please install with &quot;</span>
         <span class="s2">&quot;`pip/conda install tifffile`.&quot;</span>
     <span class="p">)</span>
 
-<span class="kn">import</span> <span class="nn">kerchunk.utils</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">kerchunk.utils</span>
 
 
 <div class="viewcode-block" id="tiff_to_zarr">
 <a class="viewcode-back" href="../../reference.html#kerchunk.tiff.tiff_to_zarr">[docs]</a>
-<span class="k">def</span> <span class="nf">tiff_to_zarr</span><span class="p">(</span><span class="n">urlpath</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">tiff_to_zarr</span><span class="p">(</span><span class="n">urlpath</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Wraps TIFFFile&#39;s fsspec writer to extract metadata as attributes</span>
 
 <span class="sd">    Parameters</span>
@@ -139,7 +139,7 @@
                         <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">met</span> <span class="ow">or</span> <span class="p">{})</span>
                     <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                         <span class="c1"># newer tifffile exposes xml structured tags</span>
-                        <span class="kn">from</span> <span class="nn">xml.etree</span> <span class="kn">import</span> <span class="n">ElementTree</span>
+                        <span class="kn">from</span><span class="w"> </span><span class="nn">xml.etree</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElementTree</span>
 
                         <span class="n">e</span> <span class="o">=</span> <span class="n">ElementTree</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">met</span><span class="p">)</span>
                         <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">):</span> <span class="n">i</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">e</span><span class="p">}</span>
@@ -178,7 +178,7 @@
 
 <div class="viewcode-block" id="generate_coords">
 <a class="viewcode-back" href="../../reference.html#kerchunk.tiff.generate_coords">[docs]</a>
-<span class="k">def</span> <span class="nf">generate_coords</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_coords</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Produce coordinate arrays for given variable</span>
 
 <span class="sd">    Specific to GeoTIFF input attributes</span>
@@ -190,7 +190,7 @@
 <span class="sd">    shape: tuple[int]</span>
 <span class="sd">        The array size in numpy (C) order</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
     <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
     <span class="n">xscale</span><span class="p">,</span> <span class="n">yscale</span><span class="p">,</span> <span class="n">zscale</span> <span class="o">=</span> <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;ModelPixelScale&quot;</span><span class="p">][:</span><span class="mi">3</span><span class="p">]</span>

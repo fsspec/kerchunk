@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kerchunk.combine &mdash; kerchunk  documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
 
   
@@ -81,30 +81,30 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.combine</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">collections.abc</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">collections.abc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
-<span class="kn">import</span> <span class="nn">fsspec</span>
-<span class="kn">import</span> <span class="nn">fsspec.utils</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">numcodecs</span>
-<span class="kn">import</span> <span class="nn">ujson</span>
-<span class="kn">import</span> <span class="nn">zarr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec.utils</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numcodecs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ujson</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">zarr</span>
 
-<span class="kn">from</span> <span class="nn">kerchunk.utils</span> <span class="kn">import</span> <span class="n">consolidate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">consolidate</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;kerchunk.combine&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="drop">
 <a class="viewcode-back" href="../../reference.html#kerchunk.combine.drop">[docs]</a>
-<span class="k">def</span> <span class="nf">drop</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">drop</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate example preprocessor removing given fields&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">preproc</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">preproc</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">refs</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
                 <span class="n">refs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
@@ -116,7 +116,7 @@
 
 <div class="viewcode-block" id="MultiZarrToZarr">
 <a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr">[docs]</a>
-<span class="k">class</span> <span class="nc">MultiZarrToZarr</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MultiZarrToZarr</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Combine multiple kerchunk&#39;d datasets into a single logical aggregate dataset</span>
 
@@ -187,7 +187,7 @@
 
 <div class="viewcode-block" id="MultiZarrToZarr.__init__">
 <a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">path</span><span class="p">,</span>
         <span class="n">indicts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -243,7 +243,7 @@
 <div class="viewcode-block" id="MultiZarrToZarr.append">
 <a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.append">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">path</span><span class="p">,</span>
         <span class="n">original_refs</span><span class="p">,</span>
@@ -284,7 +284,7 @@
 <span class="sd">        -------</span>
 <span class="sd">        MultiZarrToZarr</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
         <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
             <span class="s2">&quot;reference&quot;</span><span class="p">,</span>
@@ -312,8 +312,8 @@
                 <span class="ow">and</span> <span class="n">selector</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;cf:&quot;</span><span class="p">)</span>
                 <span class="ow">and</span> <span class="s2">&quot;M&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mzz</span><span class="o">.</span><span class="n">coo_dtypes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
             <span class="p">):</span>
-                <span class="kn">import</span> <span class="nn">cftime</span>
-                <span class="kn">import</span> <span class="nn">datetime</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">cftime</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
 
                 <span class="c1"># undoing CF recoding in original input</span>
                 <span class="n">mzz</span><span class="o">.</span><span class="n">coos</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -340,9 +340,9 @@
 
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">fss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;filesystem instances being analysed, one per input dataset&quot;&quot;&quot;</span>
-        <span class="kn">import</span> <span class="nn">collections.abc</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">collections.abc</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;setup filesystems&quot;</span><span class="p">)</span>
@@ -378,7 +378,7 @@
             <span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fss</span>
 
-    <span class="k">def</span> <span class="nf">_get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;derive coordinate value(s) for given input dataset</span>
 
 <span class="sd">        How to map from input to</span>
@@ -425,7 +425,7 @@
         <span class="k">elif</span> <span class="n">selector</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;data:&quot;</span><span class="p">):</span>
             <span class="n">o</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">selector</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]][</span><span class="o">...</span><span class="p">]</span>
         <span class="k">elif</span> <span class="n">selector</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;cf:&quot;</span><span class="p">):</span>
-            <span class="kn">import</span> <span class="nn">cftime</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">cftime</span>
 
             <span class="n">datavar</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">selector</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]]</span>
             <span class="n">o</span> <span class="o">=</span> <span class="n">datavar</span><span class="p">[</span><span class="o">...</span><span class="p">]</span>
@@ -446,7 +446,7 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Decode: </span><span class="si">%s</span><span class="s2"> -&gt; </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">selector</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">fn</span><span class="p">),</span> <span class="n">o</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">o</span>
 
-    <span class="k">def</span> <span class="nf">first_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">first_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Accumulate the set of concat coords values across all inputs&quot;&quot;&quot;</span>
 
         <span class="n">coos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coos</span> <span class="ow">or</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="nb">set</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coo_map</span><span class="p">}</span>
@@ -479,7 +479,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">coos</span>
 
-    <span class="k">def</span> <span class="nf">store_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">store_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Write coordinate arrays into the output</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -497,7 +497,7 @@
             <span class="n">kw</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cf_units</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cf_units</span><span class="p">:</span>
                 <span class="k">if</span> <span class="s2">&quot;M&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coo_dtypes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
-                    <span class="kn">import</span> <span class="nn">cftime</span>
+                    <span class="kn">import</span><span class="w"> </span><span class="nn">cftime</span>
 
                     <span class="n">data</span> <span class="o">=</span> <span class="n">cftime</span><span class="o">.</span><span class="n">date2num</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">cf_units</span><span class="p">[</span><span class="n">k</span><span class="p">])</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
                     <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;fill_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">62</span>
@@ -546,7 +546,7 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Written global metadata&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">second_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">second_pass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;map every input chunk to the output&quot;&quot;&quot;</span>
         <span class="c1"># TODO: this stage cannot be rerun without clearing and rerunning store_coords too,</span>
         <span class="c1">#  because some code runs dependent on the current state of self.out</span>
@@ -703,7 +703,7 @@
 
 <div class="viewcode-block" id="MultiZarrToZarr.translate">
 <a class="viewcode-back" href="../../reference.html#kerchunk.combine.MultiZarrToZarr.translate">[docs]</a>
-    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform all stages and return the resultant references dict</span>
 
 <span class="sd">        If filename and storage options are given, the output is written to this</span>
@@ -732,7 +732,7 @@
 
 
 
-<span class="k">def</span> <span class="nf">_reorganise</span><span class="p">(</span><span class="n">coos</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_reorganise</span><span class="p">(</span><span class="n">coos</span><span class="p">):</span>
     <span class="c1"># reorganise and sort coordinate values</span>
     <span class="c1"># extracted here to enable testing</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
@@ -743,7 +743,7 @@
 
 <div class="viewcode-block" id="merge_vars">
 <a class="viewcode-back" href="../../reference.html#kerchunk.combine.merge_vars">[docs]</a>
-<span class="k">def</span> <span class="nf">merge_vars</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge_vars</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge variables across datasets with identical coordinates</span>
 
 <span class="sd">    :param files: list(dict), list(str) or list(fsspec.OpenFile)</span>
@@ -771,7 +771,7 @@
 
 <div class="viewcode-block" id="concatenate_arrays">
 <a class="viewcode-back" href="../../reference.html#kerchunk.combine.concatenate_arrays">[docs]</a>
-<span class="k">def</span> <span class="nf">concatenate_arrays</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">concatenate_arrays</span><span class="p">(</span>
     <span class="n">files</span><span class="p">,</span>
     <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -810,7 +810,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
 
-    <span class="k">def</span> <span class="nf">_replace</span><span class="p">(</span><span class="n">l</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_replace</span><span class="p">(</span><span class="n">l</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
         <span class="n">l</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
         <span class="k">return</span> <span class="n">l</span>
@@ -876,7 +876,7 @@
 
 <div class="viewcode-block" id="auto_dask">
 <a class="viewcode-back" href="../../reference.html#kerchunk.combine.auto_dask">[docs]</a>
-<span class="k">def</span> <span class="nf">auto_dask</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">auto_dask</span><span class="p">(</span>
     <span class="n">urls</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">single_driver</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span>
     <span class="n">single_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
@@ -915,7 +915,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    reference set</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">dask</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">dask</span>
 
     <span class="c1"># make delayed functions</span>
     <span class="n">single_task</span> <span class="o">=</span> <span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">single_driver</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">single_kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">())</span>
@@ -963,14 +963,14 @@
 
 
 
-<span class="k">class</span> <span class="nc">JustLoad</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">JustLoad</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;For auto_dask, in the case that single file references already exist&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rt&quot;</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">ujson</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 </pre></div>
