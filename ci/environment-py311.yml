@@ -19,10 +19,12 @@ dependencies:
   - requests
   - aiohttp
   - pytest-cov
-  - fsspec
+  - pytest-subtests
+  - fsspec<=2024.12.0
   - dask
   - scipy
   - s3fs
+  - gcsfs
   - python-blosc
   - flake8
   - fastparquet
@@ -32,5 +34,5 @@ dependencies:
   - tifffile
   - rioxarray
   - netCDF4
-  - pip:
-      - git+https://github.com/fsspec/filesystem_spec
+#  - pip:
+#      - git+https://github.com/fsspec/filesystem_spec

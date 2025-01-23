@@ -19,10 +19,12 @@ dependencies:
   - requests
   - aiohttp
   - pytest-cov
-  - fsspec
+  - pytest-subtests
+  - fsspec<=2024.12.0
   - dask
   - scipy
   - s3fs
+  - gcsfs
   - python-blosc
   - flake8
   - black
@@ -31,6 +33,6 @@ dependencies:
   - pyopenssl
   - tifffile
   - netCDF4
-  - pip:
-      - git+https://github.com/fsspec/filesystem_spec
-      - ipfsspec
+#  - pip:
+#      - git+https://github.com/fsspec/filesystem_spec
+#      - ipfsspec

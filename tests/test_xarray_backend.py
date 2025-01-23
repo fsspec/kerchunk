@@ -12,6 +12,7 @@ bdata = xr.Dataset({"data": data}, attrs={"attr0": 3}).to_netcdf(
     format="NETCDF3_CLASSIC"
 )
 
+
 # Add parameterize test for storage formats (.json, .parquet)
 def test_reference_netcdf(m):
     m.pipe("data.nc3", bdata)

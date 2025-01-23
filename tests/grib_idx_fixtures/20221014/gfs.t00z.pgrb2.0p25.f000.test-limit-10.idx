@@ -1,0 +1,11 @@
+1:0:d=2022101400:PRMSL:mean sea level:anl:
+2:995942:d=2022101400:CLWMR:1 hybrid level:anl:
+3:1082992:d=2022101400:ICMR:1 hybrid level:anl:
+4:1363134:d=2022101400:RWMR:1 hybrid level:anl:
+5:1597235:d=2022101400:SNMR:1 hybrid level:anl:
+6:1697225:d=2022101400:GRLE:1 hybrid level:anl:
+7:1745644:d=2022101400:REFD:1 hybrid level:anl:
+8:2562710:d=2022101400:REFD:2 hybrid level:anl:
+9:3380262:d=2022101400:REFC:entire atmosphere:anl:
+10:4270093:d=2022101400:VIS:surface:anl:
+11:4983458:d=2022101400:UGRD:planetary boundary layer:anl:
