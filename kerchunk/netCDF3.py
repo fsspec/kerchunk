@@ -1,5 +1,4 @@
 from functools import reduce
-from packaging.version import Version
 from operator import mul
 
 import numpy as np

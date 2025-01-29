@@ -13,7 +13,7 @@ import ujson
 import zarr
 from zarr.core.buffer.core import default_buffer_prototype
 
-from kerchunk.utils import consolidate, fs_as_store, translate_refs_serializable
+from kerchunk.utils import consolidate, fs_as_store
 
 logger = logging.getLogger("kerchunk.combine")
 

@@ -82,7 +82,8 @@ def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=False):
             fs = AsyncFileSystemWrapper(fs)
         except ImportError:
             raise ImportError(
-                "Only fsspec>2024.10.0 supports the async filesystem wrapper required for working with reference filesystems. "
+                "Only fsspec>2024.10.0 supports the async filesystem wrapper "
+                "required for working with reference filesystems. "
             )
     fs.asynchronous = True
     return zarr.storage.FsspecStore(fs, read_only=read_only)

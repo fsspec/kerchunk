@@ -1,7 +1,6 @@
 from xarray.backends import BackendEntrypoint
 import xarray as xr
 import os
-import fsspec
 
 from kerchunk.utils import refs_as_store
 

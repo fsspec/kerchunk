@@ -1,7 +1,6 @@
 import ast
 from dataclasses import dataclass
 import io
-from typing import Self, TYPE_CHECKING
 
 import numcodecs
 from numcodecs.abc import Codec
@@ -10,8 +9,8 @@ import threading
 import zlib
 from zarr.core.array_spec import ArraySpec
 from zarr.abc.codec import ArrayBytesCodec
-from zarr.core.buffer import Buffer, NDArrayLike, NDBuffer
-from zarr.core.common import JSON, parse_enum, parse_named_configuration
+from zarr.core.buffer import Buffer, NDBuffer
+from zarr.core.common import JSON, parse_named_configuration
 from zarr.registry import register_codec
 
 
@@ -323,7 +322,7 @@ class ZlibCodec(Codec):
     codec_id = "zlib"
 
     def __init__(self):
-        ...
+        pass
 
     def decode(self, data, out=None):
         if out:

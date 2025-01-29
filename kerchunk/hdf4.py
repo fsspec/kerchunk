@@ -155,9 +155,11 @@ class HDF4ToZarr:
                 )
                 arr.attrs.update(
                     dict(
-                        _ARRAY_DIMENSIONS=[f"{k}_x", f"{k}_y"][: len(v["dims"])]
-                        if "refs" in v
-                        else ["0"],
+                        _ARRAY_DIMENSIONS=(
+                            [f"{k}_x", f"{k}_y"][: len(v["dims"])]
+                            if "refs" in v
+                            else ["0"]
+                        ),
                         **{
                             i: j.tolist() if isinstance(j, np.generic) else j
                             for i, j in v.items()

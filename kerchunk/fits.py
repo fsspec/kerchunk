@@ -140,10 +140,12 @@ def process_file(
                     # contains var fields
                     length = hdu.fileinfo()["datSpan"]
                     dt2 = [
-                        (name, "O")
-                        if hdu.columns[name].format.startswith(("P", "Q"))
-                        else (name, str(dtype[name].base))
-                        + ((dtype[name].shape,) if dtype[name].shape else ())
+                        (
+                            (name, "O")
+                            if hdu.columns[name].format.startswith(("P", "Q"))
+                            else (name, str(dtype[name].base))
+                            + ((dtype[name].shape,) if dtype[name].shape else ())
+                        )
                         for name in dtype.names
                     ]
                     types = {
