@@ -25,6 +25,7 @@ import gzip
 import os
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
 from kerchunk.grib2 import (
     scan_grib,
@@ -48,6 +49,9 @@ import tempfile
 import typing
 import io
 
+# https://github.com/pydata/xarray/issues/9984
+# until datatree/xarray supports zarr3
+pytest.skip(allow_module_level=True)
 logger = logging.getLogger(__name__)
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
