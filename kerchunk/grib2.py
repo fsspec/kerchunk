@@ -11,7 +11,13 @@ import zarr
 import xarray
 import numpy as np
 
-from kerchunk.utils import class_factory, _encode_for_JSON, dict_to_store, fs_as_store, translate_refs_serializable
+from kerchunk.utils import (
+    class_factory,
+    _encode_for_JSON,
+    dict_to_store,
+    fs_as_store,
+    translate_refs_serializable
+)
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
 from kerchunk._grib_idx import (
@@ -238,7 +244,9 @@ def scan_grib(
             varName = m["cfVarName"]
             if varName in ("undef", "unknown"):
                 varName = m["shortName"]
-            _store_array(store_dict, z, vals, varName, inline_threshold, offset, size, attrs)
+            _store_array(
+                store_dict, z, vals, varName, inline_threshold, offset, size, attrs
+            )
             if "typeOfLevel" in message_keys and "level" in message_keys:
                 name = m["typeOfLevel"]
                 coordinates.append(name)

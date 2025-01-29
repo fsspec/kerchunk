@@ -20,6 +20,7 @@ jobs:
         shell: bash -l {0}
         run: |
           pip install -e .
+          pip list
       - name: Test with pytest
         shell: bash -l {0}
         run: |
