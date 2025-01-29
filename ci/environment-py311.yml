@@ -13,7 +13,7 @@ dependencies:
   - cfgrib
   # Temporary workaround for #508
   - eccodes <2.38
-
+  - ujson
   - cftime
   - astropy
   - requests
