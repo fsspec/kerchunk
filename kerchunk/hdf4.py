@@ -2,6 +2,8 @@ import fsspec
 import numpy as np
 import ujson
 
+from kerchunk.utils import refs_as_store
+
 
 decoders = {}
 
@@ -138,24 +140,18 @@ class HDF4ToZarr:
         output = self._descend_vg(*sorted(roots, key=lambda t: t[1])[-1])
         prot = fo.fs.protocol
         prot = prot[0] if isinstance(prot, tuple) else prot
-        fs = fsspec.filesystem(
-            "reference",
-            fo=self.out,
-            remote_protocol=prot,
-            remote_options=self.st,
-        )
-        g = zarr.open_group("reference://", storage_options=dict(fs=fs), zarr_format=2)
+        store = refs_as_store(self.out, remote_protocol=prot, remote_options=self.st)
+        g = zarr.open_group(store, zarr_format=2, use_consolidated=False)
         refs = {}
         for k, v in output.items():
             if isinstance(v, dict):
                 compressor = ZlibCodec() if "refs" in v else None
-                arr = g.create_dataset(
+                arr = g.require_array(
                     name=k,
                     shape=v["dims"],
                     dtype=v["dtype"],
                     chunks=v.get("chunks", v["dims"]),
                     compressor=compressor,
-                    exists_ok=True,
                 )
                 arr.attrs.update(
                     dict(
@@ -163,7 +159,7 @@ class HDF4ToZarr:
                         if "refs" in v
                         else ["0"],
                         **{
-                            i: j
+                            i: j.tolist() if isinstance(j, np.generic) else j
                             for i, j in v.items()
                             if i not in {"chunk", "dims", "dtype", "refs"}
                         },
@@ -177,14 +173,14 @@ class HDF4ToZarr:
                 if not k.startswith(
                     ("CoreMetadata.", "ArchiveMetadata.", "StructMetadata.")
                 ):
-                    attrs[k] = v
-        fs.references.update(refs)
+                    attrs[k] = v.tolist() if isinstance(v, np.generic) else v
+        store.fs.references.update(refs)
         g.attrs.update(attrs)
 
         if filename is None:
-            return fs.references
+            return store.fs.references
         with fsspec.open(filename, **(storage_options or {})) as f:
-            ujson.dumps(dict(fs.references), f)
+            ujson.dumps(dict(store.fs.references), f)
 
     def _descend_vg(self, tag, ref):
         info = self.tags[(tag, ref)]
