@@ -208,7 +208,12 @@ class MultiZarrToZarr:
             backend_kwargs={"consolidated": False},
             storage_options=storage_options,
         )
-        z = zarr.open("reference://", zarr_format=2, storage_options=storage_options)
+        z = zarr.open(
+            "reference://",
+            zarr_format=2,
+            storage_options=storage_options,
+            use_consolidated=False,
+        )
         mzz = MultiZarrToZarr(
             path,
             out=z.store.fs.references,  # normalised dict or parquet/lazy
@@ -382,7 +387,7 @@ class MultiZarrToZarr:
 
             logger.debug("First pass: %s", i)
             z_store = fs_as_store(fs, read_only=False)
-            z = zarr.open_group(z_store, zarr_format=2)
+            z = zarr.open_group(z_store, zarr_format=2, use_consolidated=False)
             for var in self.concat_dims:
                 value = self._get_value(i, z, var, fn=self._paths[i])
                 if isinstance(value, np.ndarray):
@@ -409,9 +414,9 @@ class MultiZarrToZarr:
         """
         kv = {}
         store = zarr.storage.MemoryStore(kv)
-        group = zarr.open_group(store, zarr_format=2)
+        group = zarr.open_group(store, zarr_format=2, use_consolidated=False)
         m = fs_as_store(self.fss[0], read_only=False)
-        z = zarr.open(m, zarr_format=2)
+        z = zarr.open(m, zarr_format=2, use_consolidated=False)
         for k, v in self.coos.items():
             if k == "var":
                 # The names of the variables to write in the second pass, not a coordinate
@@ -483,7 +488,7 @@ class MultiZarrToZarr:
         for i, fs in enumerate(self.fss):
             to_download = {}
             m = fs_as_store(fs, read_only=False)
-            z = zarr.open(m, zarr_format=2)
+            z = zarr.open(m, zarr_format=2, use_consolidated=False)
 
             if no_deps is None:
                 # done first time only

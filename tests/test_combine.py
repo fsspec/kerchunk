@@ -9,7 +9,7 @@ import zarr.storage
 import kerchunk.combine
 from kerchunk.zarr import single_zarr
 from kerchunk.combine import MultiZarrToZarr
-from kerchunk.utils import fs_as_store, refs_as_store
+from kerchunk.utils import fs_as_store, refs_as_store, consolidate
 
 
 fs = fsspec.filesystem("memory")
@@ -159,7 +159,7 @@ def datasets():
     ar[:] = arr
     ar.attrs.update({"_ARRAY_DIMENSIONS": ["time", "x", "y"]})
 
-    z = zarr.open("memory://ime2.zarr", mode="w", zarr_format=2)
+    z = zarr.open("memory://time2.zarr", mode="w", zarr_format=2)
     time2_array = np.array([2], dtype="M8[s]")
     ar = z.create_array("time", dtype=time2_array.dtype, shape=time2_array.shape)
     ar[:] = time2_array
@@ -294,7 +294,8 @@ def test_get_coos(refs, selector, expected):
     mzz.first_pass()
     assert mzz.coos["time"].tolist() == expected
     mzz.store_coords()
-    g = zarr.open(mzz.out, zarr_format=2)
+    store = refs_as_store(mzz.out)
+    g = zarr.open(store, zarr_format=2)
     assert g["time"][:].tolist() == expected
     assert dict(g.attrs)
 
@@ -615,19 +616,18 @@ def test_chunked(refs, inputs, chunks):
     )
     out = mzz.translate()
     z = xr.open_dataset(
-        "reference://",
+        f"reference://{'group' if 'group' in inputs[0] else ''}",
         backend_kwargs={
             "storage_options": {"fo": out, "remote_protocol": "memory"},
             "consolidated": False,
         },
         engine="zarr",
         chunks={},
-        group="group" if "group" in inputs[0] else None,
     )
     # TODO: make some assert_eq style function
-    assert z.time.values.tolist() == [1, 2, 3, 4, 5, 6, 7, 8]
-    assert z.data.shape == (8, 10, 10)
-    assert z.data.chunks == chunks
+    assert z["time"].values.tolist() == [1, 2, 3, 4, 5, 6, 7, 8]
+    assert z["data"].shape == (8, 10, 10)
+    assert z["data"].chunks == chunks
     for i in range(z.data.shape[0]):
         assert (z.data[i].values == arr).all()
 

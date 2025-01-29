@@ -483,7 +483,7 @@ class SingleHdf5ToZarr:
                 # Create a Zarr array equivalent to this HDF5 dataset.
                 data = kwargs.pop("data", None)
                 za = self._zroot.require_array(
-                    name=h5obj.name,
+                    name=h5obj.name.lstrip("/"),
                     shape=h5obj.shape,
                     dtype=dt or h5obj.dtype,
                     chunks=h5obj.chunks or h5obj.shape,
@@ -542,14 +542,14 @@ class SingleHdf5ToZarr:
 
             elif isinstance(h5obj, h5py.Group):
                 lggr.debug(f"HDF5 group: {h5obj.name}")
-                zgrp = self._zroot.require_group(h5obj.name)
+                zgrp = self._zroot.require_group(h5obj.name.lstrip("/"))
                 self._transfer_attrs(h5obj, zgrp)
         except Exception as e:
             import traceback
 
             msg = "\n".join(
                 [
-                    "The following excepion was caught and quashed while traversing HDF5",
+                    "The following exception was caught and quashed while traversing HDF5",
                     str(e),
                     traceback.format_exc(limit=5),
                 ]
