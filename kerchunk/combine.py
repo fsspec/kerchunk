@@ -195,8 +195,7 @@ class MultiZarrToZarr:
         """
         import xarray as xr
 
-        fs = fsspec.filesystem(
-            "reference",
+        storage_options = dict(
             fo=original_refs,
             remote_protocol=remote_protocol,
             remote_options=remote_options,
@@ -204,12 +203,15 @@ class MultiZarrToZarr:
             asynchronous=True,
         )
         ds = xr.open_dataset(
-            fs.get_mapper(), engine="zarr", backend_kwargs={"consolidated": False}
+            "reference://",
+            engine="zarr",
+            backend_kwargs={"consolidated": False},
+            storage_options=storage_options,
         )
-        z = zarr.open(fs.get_mapper(), zarr_format=2)
+        z = zarr.open("reference://", zarr_format=2, storage_options=storage_options)
         mzz = MultiZarrToZarr(
             path,
-            out=fs.references,  # dict or parquet/lazy
+            out=z.store.fs.references,  # normalised dict or parquet/lazy
             remote_protocol=remote_protocol,
             remote_options=remote_options,
             target_options=target_options,
@@ -541,7 +543,7 @@ class MultiZarrToZarr:
                     )
                 chunks = chunk_sizes[v]
                 zattr_meta = asyncio.run(self._read_meta_files(m, [f"{v}/.zattrs"]))
-                zattrs = ujson.loads(zattr_meta.get(f"{v}/.zattrs", {}))
+                zattrs = ujson.loads(zattr_meta.get(f"{v}/.zattrs", "{}"))
                 coords = zattrs.get("_ARRAY_DIMENSIONS", [])
                 if zarray["shape"] and not coords:
                     coords = list("ikjlm")[: len(zarray["shape"])]

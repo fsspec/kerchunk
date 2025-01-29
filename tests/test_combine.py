@@ -794,8 +794,8 @@ def test_no_inline():
     """Ensure that inline_threshold=0 disables MultiZarrToZarr checking file size."""
     ds = xr.Dataset(dict(x=[1, 2, 3]))
     ds["y"] = 3 + ds["x"]
+    ds.to_zarr("memory://zarr_store", mode="w", zarr_format=2, consolidated=False)
     store = fsspec.get_mapper("memory://zarr_store")
-    ds.to_zarr(store, mode="w", consolidated=False)
     ref = kerchunk.utils.consolidate(store)
     # This type of reference with no offset or total size is produced by
     # kerchunk.zarr.single_zarr or equivalently ZarrToZarr.translate.

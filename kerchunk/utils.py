@@ -121,6 +121,8 @@ def consolidate(refs):
     """Turn raw references into output"""
     out = {}
     for k, v in refs.items():
+        if hasattr(v, "to_bytes"):
+            v = v.to_bytes()
         if isinstance(v, bytes):
             try:
                 # easiest way to test if data is ascii

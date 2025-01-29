@@ -36,7 +36,8 @@ def single_zarr(
     """
     if isinstance(uri_or_store, str):
         mapper = fsspec.get_mapper(uri_or_store, **(storage_options or {}))
-        protocol = mapper.fs.unstrip_protocol("").rstrip("://")
+        prot = mapper.fs.protocol
+        protocol = prot[0] if isinstance(prot, tuple) else prot
     else:
         mapper = uri_or_store
         if isinstance(mapper, fsspec.FSMap) and storage_options is None:
@@ -60,13 +61,12 @@ def single_zarr(
     from kerchunk.utils import do_inline
 
     inline_threshold = inline if inline is not None else inline_threshold
-    if inline_threshold:
-        refs = do_inline(
-            refs,
-            inline_threshold,
-            remote_options=storage_options,
-            remote_protocol=protocol,
-        )
+    refs = do_inline(
+        refs,
+        inline_threshold,
+        remote_options=storage_options,
+        remote_protocol=protocol,
+    )
     if isinstance(refs, LazyReferenceMapper):
         refs.flush()
     refs = kerchunk.utils.consolidate(refs)

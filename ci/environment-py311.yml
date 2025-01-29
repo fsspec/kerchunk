@@ -20,6 +20,7 @@ dependencies:
   - aiohttp
   - pytest-cov
   - pytest-subtests
+  - pytest timeout
   - dask
   - scipy
   - s3fs

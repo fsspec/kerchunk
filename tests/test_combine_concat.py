@@ -53,7 +53,7 @@ def test_success(tmpdir, arrays, chunks, axis, m):
     for i, x in enumerate(arrays):
         fn = f"{tmpdir}/out{i}.zarr"
         g = zarr.open(fn, zarr_format=2)
-        arr = g.create_dataset("x", shape=x.shape, dtype=x.dtype, chunks=chunks)
+        arr = g.create_array("x", shape=x.shape, dtype=x.dtype, chunks=chunks)
         arr[:] = x
         fns.append(fn)
         ref = kerchunk.zarr.single_zarr(fn, inline=0)
@@ -96,9 +96,11 @@ def test_fail_chunks(tmpdir):
     x1 = np.arange(10)
     x2 = np.arange(10, 20)
     g = zarr.open(fn1, zarr_format=2)
-    g.create_dataset("x", data=x1, chunks=(2,))
+    arr = g.create_array("x", shape=x1.shape, dtype=x1.dtype, chunks=(2,))
+    arr[:] = x1
     g = zarr.open(fn2, zarr_format=2)
-    g.create_dataset("x", data=x2, chunks=(3,))
+    arr = g.create_array("x", shape=x2.shape, dtype=x2.dtype, chunks=(3,))
+    arr[:] = x2
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
     ref2 = kerchunk.zarr.single_zarr(fn2, inline=0)
@@ -113,9 +115,11 @@ def test_fail_shape(tmpdir):
     x1 = np.arange(12).reshape(6, 2)
     x2 = np.arange(12, 24)
     g = zarr.open(fn1, zarr_format=2)
-    g.create_dataset("x", data=x1, chunks=(2,))
+    arr = g.create_array("x", shape=x1.shape, dtype=x1.dtype)
+    arr[:] = x1
     g = zarr.open(fn2, zarr_format=2)
-    g.create_dataset("x", data=x2, chunks=(2,))
+    arr = g.create_array("x", shape=x2.shape, dtype=x2.dtype)
+    arr[:] = x2
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
     ref2 = kerchunk.zarr.single_zarr(fn2, inline=0)
@@ -130,9 +134,11 @@ def test_fail_irregular_chunk_boundaries(tmpdir):
     x1 = np.arange(10)
     x2 = np.arange(10, 24)
     g = zarr.open(fn1, zarr_format=2)
-    g.create_dataset("x", data=x1, chunks=(4,))
+    arr = g.create_array("x", shape=x1.shape, dtype=x1.dtype, chunks=(4,))
+    arr[:] = x1
     g = zarr.open(fn2, zarr_format=2)
-    g.create_dataset("x", data=x2, chunks=(4,))
+    arr = g.create_array("x", shape=x2.shape, dtype=x2.dtype, chunks=(4,))
+    arr[:] = x2
 
     ref1 = kerchunk.zarr.single_zarr(fn1, inline=0)
     ref2 = kerchunk.zarr.single_zarr(fn2, inline=0)

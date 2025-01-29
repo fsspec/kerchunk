@@ -40,6 +40,7 @@ from kerchunk.grib2 import (
     read_store,
     write_store,
 )
+from kerchunk.utils import refs_as_store
 import fsspec
 import zarr
 import ujson
@@ -62,8 +63,7 @@ class DataExtractorTests(unittest.TestCase):
             correct_hrrr_subhf_step(msg) for msg in scanned_msg_groups
         ]
         grib_tree_store = grib_tree(corrected_msg_groups)
-        fs = fsspec.filesystem("reference", fo=grib_tree_store)
-        zg = zarr.open_group(fs.get_mapper(""))
+        zg = zarr.open_group("reference://", storage_options={"fo": grib_tree_store})
         self.assertIsInstance(zg["refc/instant/atmosphere/refc"], zarr.Array)
         self.assertIsInstance(zg["vbdsf/avg/surface/vbdsf"], zarr.Array)
         self.assertEqual(
@@ -75,25 +75,26 @@ class DataExtractorTests(unittest.TestCase):
             "atmosphere latitude longitude step time valid_time",
         )
         # Assert that the fill value is set correctly
-        self.assertIs(zg.refc.instant.atmosphere.step.fill_value, np.nan)
+        self.assertIs(zg["refc"]["instant"]["atmosphere"]["step"].fill_value, np.nan)
 
         np.testing.assert_array_equal(
-            zg.refc.instant.atmosphere.time[:], np.array([1665709200])
+            zg["refc"]["instant"]["atmosphere"]["time"][:], np.array([1665709200])
         )
 
         # Read it with data tree and assert the same...
         dt = xr.open_datatree(
-            fs.get_mapper(""),
+            "reference://",
+            storage_options={"fo": grib_tree_store},
             engine="zarr",
             consolidated=False,
         )
         # Assert a few things... but if it loads we are mostly done.
         np.testing.assert_array_equal(
-            dt.refc.instant.atmosphere.time.values[:],
+            dt["refc"]["instant"]["atmosphere"]["time"].values[:],
             np.array([np.datetime64("2022-10-14T01:00:00")]),
         )
         self.assertDictEqual(
-            dt.refc.attrs, dict(name="Maximum/Composite radar reflectivity")
+            dt["refc"].attrs, dict(name="Maximum/Composite radar reflectivity")
         )
 
         # Now try the extract and reinflate methods
@@ -133,9 +134,9 @@ class DataExtractorTests(unittest.TestCase):
         # Back to the same number of keys!
         self.assertEqual(len(zstore["refs"]), 55)
 
-        fs = fsspec.filesystem("reference", fo=zstore)
         dt = xr.open_datatree(
-            fs.get_mapper(""),
+            "reference://",
+            storage_options={"fo": zstore},
             engine="zarr",
             consolidated=False,
         )
@@ -351,9 +352,8 @@ class DataExtractorTests(unittest.TestCase):
                         grib_tree_store = grib_tree(scan_grib(basename))
 
                     dt = xr.open_datatree(
-                        fsspec.filesystem("reference", fo=grib_tree_store).get_mapper(
-                            ""
-                        ),
+                        "reference://",
+                        storage_options={"fo": grib_tree_store},
                         engine="zarr",
                         consolidated=False,
                     )
@@ -403,9 +403,9 @@ class DataExtractorTests(unittest.TestCase):
             scanned_msgs = [correct_hrrr_subhf_step(msg) for msg in scanned_msgs]
         grib_tree_store = grib_tree(scanned_msgs)
 
-        fs = fsspec.filesystem("reference", fo=grib_tree_store)
         dt = xr.open_datatree(
-            fs.get_mapper(""),
+            "reference://",
+            storage_options={"fo": grib_tree_store},
             engine="zarr",
             consolidated=False,
         )
@@ -574,12 +574,7 @@ class DataExtractorTests(unittest.TestCase):
                 os.path.join(THIS_DIR, "grib_idx_fixtures", dataset)
             ),
         )
-        fs = fsspec.filesystem("reference", fo=zstore)
-        dt = xr.open_datatree(
-            fs.get_mapper(""),
-            engine="zarr",
-            consolidated=False,
-        )
+        dt = xr.open_datatree(refs_as_store(zstore), engine="zarr")
         for node in dt.subtree:
             if not node.has_data:
                 continue
