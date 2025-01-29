@@ -16,7 +16,7 @@ from kerchunk.utils import (
     _encode_for_JSON,
     dict_to_store,
     fs_as_store,
-    translate_refs_serializable
+    translate_refs_serializable,
 )
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
