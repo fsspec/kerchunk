@@ -84,12 +84,92 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec.asyn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">packaging.version</span><span class="w"> </span><span class="kn">import</span> <span class="n">Version</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">ujson</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">zarr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">fsspec.implementations.asyn_wrapper</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">zarr.storage</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">refs_as_fs</span><span class="p">(</span>
+    <span class="n">refs</span><span class="p">,</span>
+    <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">remote_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">asynchronous</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a reference set to an fsspec filesystem&quot;&quot;&quot;</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
+        <span class="s2">&quot;reference&quot;</span><span class="p">,</span>
+        <span class="n">fo</span><span class="o">=</span><span class="n">refs</span><span class="p">,</span>
+        <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+        <span class="n">remote_protocol</span><span class="o">=</span><span class="n">remote_protocol</span><span class="p">,</span>
+        <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="n">asynchronous</span><span class="o">=</span><span class="n">asynchronous</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">fs</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">refs_as_store</span><span class="p">(</span>
+    <span class="n">refs</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert a reference set to a zarr store&quot;&quot;&quot;</span>
+    <span class="n">remote_options</span> <span class="o">=</span> <span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">remote_options</span><span class="p">[</span><span class="s2">&quot;asynchronous&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">fss</span> <span class="o">=</span> <span class="n">refs_as_fs</span><span class="p">(</span>
+        <span class="n">refs</span><span class="p">,</span>
+        <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+        <span class="n">remote_protocol</span><span class="o">=</span><span class="n">remote_protocol</span><span class="p">,</span>
+        <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">fs_as_store</span><span class="p">(</span><span class="n">fss</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="n">read_only</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">is_zarr3</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the installed zarr version is version 3&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Version</span><span class="p">(</span><span class="n">zarr</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">Version</span><span class="p">(</span><span class="s2">&quot;3.0.0.b2&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dict_to_store</span><span class="p">(</span><span class="n">store_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an in memory zarr store backed by the given dictionary&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">is_zarr3</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">zarr</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">MemoryStore</span><span class="p">(</span><span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">store_dict</span><span class="o">=</span><span class="n">store_dict</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">zarr</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">KVStore</span><span class="p">(</span><span class="n">store_dict</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fs_as_store</span><span class="p">(</span><span class="n">fs</span><span class="p">:</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">asyn</span><span class="o">.</span><span class="n">AsyncFileSystem</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Open the refs as a zarr store</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fs: fsspec.async.AsyncFileSystem</span>
+<span class="sd">    read_only: bool</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fs</span><span class="o">.</span><span class="n">async_impl</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.implementations.asyn_wrapper</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncFileSystemWrapper</span>
+
+            <span class="n">fs</span> <span class="o">=</span> <span class="n">AsyncFileSystemWrapper</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">&quot;Only fsspec&gt;2024.10.0 supports the async filesystem wrapper &quot;</span>
+                <span class="s2">&quot;required for working with reference filesystems. &quot;</span>
+            <span class="p">)</span>
+    <span class="n">fs</span><span class="o">.</span><span class="n">asynchronous</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">zarr</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">FsspecStore</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="n">read_only</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">class_factory</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
@@ -127,6 +207,8 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Turn raw references into output&quot;&quot;&quot;</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;to_bytes&quot;</span><span class="p">):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="c1"># easiest way to test if data is ascii</span>
@@ -160,7 +242,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    dict: the altered reference set, which can be saved</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">refs</span><span class="p">)</span>  <span class="c1"># to produce normalised refs</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">refs_as_fs</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>  <span class="c1"># to produce normalised refs</span>
     <span class="n">refs</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span>
     <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -226,6 +308,47 @@
     <span class="k">return</span> <span class="n">store</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">encode_fill_value</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">compressor</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="c1"># early out</span>
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+    <span class="k">if</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span> <span class="ow">and</span> <span class="n">dtype</span><span class="o">.</span><span class="n">hasobject</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">compressor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing compressor for object array&quot;</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">compressor</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">standard_b64encode</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">v</span>
+    <span class="k">if</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;f&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;NaN&quot;</span>
+        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isposinf</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;Infinity&quot;</span>
+        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isneginf</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;-Infinity&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;ui&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;b&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">complex</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">())</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">encode_fill_value</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">compressor</span><span class="p">),</span>
+            <span class="n">encode_fill_value</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">imag</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">imag</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">compressor</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">v</span>
+    <span class="k">elif</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;SV&quot;</span><span class="p">:</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">base64</span><span class="o">.</span><span class="n">standard_b64encode</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">v</span>
+    <span class="k">elif</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;U&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+    <span class="k">elif</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s2">&quot;mM&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+
+
 <div class="viewcode-block" id="do_inline">
 <a class="viewcode-back" href="../../reference.html#kerchunk.utils.do_inline">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">do_inline</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -234,11 +357,11 @@
 <span class="sd">    The chunk may need encoding with base64 if not ascii, so actual</span>
 <span class="sd">    length may be larger than threshold.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
-        <span class="s2">&quot;reference&quot;</span><span class="p">,</span>
-        <span class="n">fo</span><span class="o">=</span><span class="n">store</span><span class="p">,</span>
-        <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span><span class="p">,</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">refs_as_fs</span><span class="p">(</span>
+        <span class="n">store</span><span class="p">,</span>
         <span class="n">remote_protocol</span><span class="o">=</span><span class="n">remote_protocol</span><span class="p">,</span>
+        <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span><span class="p">,</span>
+        <span class="n">asynchronous</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
@@ -269,7 +392,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_inline_array</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">thing</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">thing</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">members</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
             <span class="n">prefix1</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">else</span><span class="p">:</span>
@@ -281,16 +404,15 @@
             <span class="n">cond2</span> <span class="o">=</span> <span class="n">prefix1</span> <span class="ow">in</span> <span class="n">names</span>
             <span class="k">if</span> <span class="n">cond1</span> <span class="ow">or</span> <span class="n">cond2</span><span class="p">:</span>
                 <span class="n">original_attrs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">thing</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
-                <span class="n">arr</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">create_array</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
                     <span class="n">dtype</span><span class="o">=</span><span class="n">thing</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
                     <span class="n">shape</span><span class="o">=</span><span class="n">thing</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-                    <span class="n">data</span><span class="o">=</span><span class="n">thing</span><span class="p">[:],</span>
                     <span class="n">chunks</span><span class="o">=</span><span class="n">thing</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-                    <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                     <span class="n">fill_value</span><span class="o">=</span><span class="n">thing</span><span class="o">.</span><span class="n">fill_value</span><span class="p">,</span>
+                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="p">)</span>
+                <span class="n">arr</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">thing</span><span class="p">[:]</span>
                 <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">original_attrs</span><span class="p">)</span>
 
 
@@ -320,10 +442,9 @@
 <span class="sd">    -------</span>
 <span class="sd">    amended references set (simple style)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
-        <span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{}),</span> <span class="n">skip_instance_cache</span><span class="o">=</span><span class="kc">True</span>
-    <span class="p">)</span>
-    <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(),</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r+&quot;</span><span class="p">)</span>
+    <span class="n">fs</span> <span class="o">=</span> <span class="n">refs_as_fs</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{})</span>
+    <span class="n">zarr_store</span> <span class="o">=</span> <span class="n">fs_as_store</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">zarr_store</span><span class="p">,</span> <span class="n">zarr_format</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">_inline_array</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span> <span class="ow">or</span> <span class="p">[])</span>
     <span class="k">return</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span></div>
 
@@ -399,7 +520,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="p">(</span><span class="n">url</span><span class="p">,)</span> <span class="o">=</span> <span class="n">v</span>
                 <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">size</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">k</span><span class="p">)[</span><span class="s2">&quot;size&quot;</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">subpart</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">factor</span><span class="p">):</span>
                 <span class="n">new_index</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">chunk_index</span><span class="p">[:</span><span class="n">ind</span><span class="p">]</span>
@@ -544,6 +665,37 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">template</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">return</span> <span class="n">template</span><span class="p">,</span> <span class="n">strings</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">translate_refs_serializable</span><span class="p">(</span><span class="n">refs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Translate a reference set to a serializable form, given that zarr</span>
+<span class="sd">    v3 memory stores store data in buffers by default. This modifies the</span>
+<span class="sd">    input dictionary in place, and returns a reference to it.</span>
+
+<span class="sd">    It also fixes keys that have a leading slash, which is not appropriate for</span>
+<span class="sd">    zarr v3 keys</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    refs: dict</span>
+<span class="sd">        The reference set</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        A serializable form of the reference set</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">keys_to_remove</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">new_keys</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">refs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">zarr</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">buffer</span><span class="o">.</span><span class="n">cpu</span><span class="o">.</span><span class="n">Buffer</span><span class="p">):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">removeprefix</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+            <span class="n">new_keys</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
+            <span class="n">keys_to_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys_to_remove</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">refs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="n">refs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_keys</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">refs</span>
 </pre></div>
 
            </div>

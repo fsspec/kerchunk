@@ -85,6 +85,8 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">ujson</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">refs_as_store</span>
+
 
 <span class="n">decoders</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -228,32 +230,28 @@
         <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_descend_vg</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="n">roots</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">prot</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">protocol</span>
         <span class="n">prot</span> <span class="o">=</span> <span class="n">prot</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prot</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="n">prot</span>
-        <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span>
-            <span class="s2">&quot;reference&quot;</span><span class="p">,</span>
-            <span class="n">fo</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">,</span>
-            <span class="n">remote_protocol</span><span class="o">=</span><span class="n">prot</span><span class="p">,</span>
-            <span class="n">remote_options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">st</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="s2">&quot;reference://&quot;</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">))</span>
+        <span class="n">store</span> <span class="o">=</span> <span class="n">refs_as_store</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="n">prot</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">st</span><span class="p">)</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">zarr_format</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">use_consolidated</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">refs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                <span class="n">compression</span> <span class="o">=</span> <span class="n">ZlibCodec</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">v</span> <span class="k">else</span> <span class="kc">None</span>
-                <span class="n">arr</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+                <span class="n">compressor</span> <span class="o">=</span> <span class="n">ZlibCodec</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">v</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">require_array</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                     <span class="n">shape</span><span class="o">=</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">],</span>
                     <span class="n">dtype</span><span class="o">=</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;dtype&quot;</span><span class="p">],</span>
                     <span class="n">chunks</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;chunks&quot;</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">]),</span>
-                    <span class="n">compressor</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span>
-                    <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">compressor</span><span class="o">=</span><span class="n">compressor</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                     <span class="nb">dict</span><span class="p">(</span>
-                        <span class="n">_ARRAY_DIMENSIONS</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_x&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_y&quot;</span><span class="p">][:</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">])]</span>
-                        <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">v</span>
-                        <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">],</span>
+                        <span class="n">_ARRAY_DIMENSIONS</span><span class="o">=</span><span class="p">(</span>
+                            <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_x&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_y&quot;</span><span class="p">][:</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;dims&quot;</span><span class="p">])]</span>
+                            <span class="k">if</span> <span class="s2">&quot;refs&quot;</span> <span class="ow">in</span> <span class="n">v</span>
+                            <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;0&quot;</span><span class="p">]</span>
+                        <span class="p">),</span>
                         <span class="o">**</span><span class="p">{</span>
-                            <span class="n">i</span><span class="p">:</span> <span class="n">j</span>
+                            <span class="n">i</span><span class="p">:</span> <span class="n">j</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">generic</span><span class="p">)</span> <span class="k">else</span> <span class="n">j</span>
                             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                             <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;chunk&quot;</span><span class="p">,</span> <span class="s2">&quot;dims&quot;</span><span class="p">,</span> <span class="s2">&quot;dtype&quot;</span><span class="p">,</span> <span class="s2">&quot;refs&quot;</span><span class="p">}</span>
                         <span class="p">},</span>
@@ -267,14 +265,14 @@
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
                     <span class="p">(</span><span class="s2">&quot;CoreMetadata.&quot;</span><span class="p">,</span> <span class="s2">&quot;ArchiveMetadata.&quot;</span><span class="p">,</span> <span class="s2">&quot;StructMetadata.&quot;</span><span class="p">)</span>
                 <span class="p">):</span>
-                    <span class="n">attrs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-        <span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
+                    <span class="n">attrs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">generic</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">refs</span><span class="p">)</span>
         <span class="n">g</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">fs</span><span class="o">.</span><span class="n">references</span>
+            <span class="k">return</span> <span class="n">store</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">references</span>
         <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span></div>
+            <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">references</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_descend_vg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">ref</span><span class="p">):</span>

@@ -91,7 +91,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.implementations.reference</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
 
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">class_factory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">class_factory</span><span class="p">,</span> <span class="n">dict_to_store</span><span class="p">,</span> <span class="n">translate_refs_serializable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">kerchunk.codecs</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsciiTableCodec</span><span class="p">,</span> <span class="n">VarArrCodec</span>
 
 <span class="k">try</span><span class="p">:</span>
@@ -157,7 +157,8 @@
 
     <span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="ow">or</span> <span class="p">{}</span>
-    <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">dict_to_store</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">,</span> <span class="n">zarr_format</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">infile</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">do_not_scale_image_data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -178,7 +179,7 @@
             <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>  <span class="c1"># causes fixing of invalid cards</span>
 
             <span class="n">attrs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
-            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;compressor&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
             <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">is_image</span><span class="p">:</span>
                 <span class="c1"># for images/cubes (i.e., ndarrays with simple type)</span>
                 <span class="n">nax</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;NAXIS&quot;</span><span class="p">]</span>
@@ -224,10 +225,12 @@
                     <span class="c1"># contains var fields</span>
                     <span class="n">length</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">fileinfo</span><span class="p">()[</span><span class="s2">&quot;datSpan&quot;</span><span class="p">]</span>
                     <span class="n">dt2</span> <span class="o">=</span> <span class="p">[</span>
-                        <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;O&quot;</span><span class="p">)</span>
-                        <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">))</span>
-                        <span class="k">else</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">base</span><span class="p">))</span>
-                        <span class="o">+</span> <span class="p">((</span><span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,)</span> <span class="k">if</span> <span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="k">else</span> <span class="p">())</span>
+                        <span class="p">(</span>
+                            <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;O&quot;</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">))</span>
+                            <span class="k">else</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">base</span><span class="p">))</span>
+                            <span class="o">+</span> <span class="p">((</span><span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,)</span> <span class="k">if</span> <span class="n">dtype</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="k">else</span> <span class="p">())</span>
+                        <span class="p">)</span>
                         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
                     <span class="p">]</span>
                     <span class="n">types</span> <span class="o">=</span> <span class="p">{</span>
@@ -235,9 +238,10 @@
                         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
                         <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">))</span>
                     <span class="p">}</span>
-                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;object_codec&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VarArrCodec</span><span class="p">(</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;compressor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">VarArrCodec</span><span class="p">(</span>
                         <span class="nb">str</span><span class="p">(</span><span class="n">dtype</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">dt2</span><span class="p">),</span> <span class="n">nrows</span><span class="p">,</span> <span class="n">types</span>
                     <span class="p">)</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;fill_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
                     <span class="n">dtype</span> <span class="o">=</span> <span class="n">dt2</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">length</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="n">nrows</span>
@@ -248,8 +252,8 @@
             <span class="c1"># one chunk for whole thing.</span>
             <span class="c1"># TODO: we could sub-chunk on biggest dimension</span>
             <span class="n">name</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">ext</span><span class="p">)</span>
-            <span class="n">arr</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-                <span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">create_array</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
             <span class="p">)</span>
             <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                 <span class="p">{</span>
@@ -275,6 +279,7 @@
             <span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">LazyReferenceMapper</span><span class="p">):</span>
         <span class="n">out</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">translate_refs_serializable</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span></div>
 
 
@@ -334,7 +339,7 @@
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">zarr_group</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">arr</span> <span class="o">=</span> <span class="n">zarr_group</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-                <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">exists_ok</span><span class="o">=</span><span class="kc">True</span>
             <span class="p">)</span>
             <span class="n">arr</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
             <span class="n">arr</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">world_coord</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>

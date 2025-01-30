@@ -82,6 +82,7 @@
              
   <h1>Source code for kerchunk.codecs</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ast</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numcodecs</span>
@@ -89,6 +90,11 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">zlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">zarr.core.array_spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArraySpec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">zarr.abc.codec</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArrayBytesCodec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">zarr.core.buffer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Buffer</span><span class="p">,</span> <span class="n">NDBuffer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">zarr.core.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSON</span><span class="p">,</span> <span class="n">parse_named_configuration</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">zarr.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_codec</span>
 
 
 <div class="viewcode-block" id="FillStringsCodec">
@@ -210,6 +216,78 @@
 <span class="n">numcodecs</span><span class="o">.</span><span class="n">register_codec</span><span class="p">(</span><span class="n">GRIBCodec</span><span class="p">,</span> <span class="s2">&quot;grib&quot;</span><span class="p">)</span>
 
 
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GRIBZarrCodec</span><span class="p">(</span><span class="n">ArrayBytesCodec</span><span class="p">):</span>
+    <span class="n">eclock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
+
+    <span class="n">var</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;var&quot;</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;dtype&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">JSON</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s2">&quot;GRIBZarrCodec&quot;</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">configuration_parsed</span> <span class="o">=</span> <span class="n">parse_named_configuration</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span> <span class="s2">&quot;bytes&quot;</span><span class="p">,</span> <span class="n">require_configuration</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">configuration_parsed</span> <span class="o">=</span> <span class="n">configuration_parsed</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">configuration_parsed</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">JSON</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">endian</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;grib&quot;</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;grib&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;configuration&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;var&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;dtype&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">},</span>
+            <span class="p">}</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_decode_single</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">chunk_bytes</span><span class="p">:</span> <span class="n">Buffer</span><span class="p">,</span>
+        <span class="n">chunk_spec</span><span class="p">:</span> <span class="n">ArraySpec</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDBuffer</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chunk_bytes</span><span class="p">,</span> <span class="n">Buffer</span><span class="p">)</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">eccodes</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">]:</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="s2">&quot;float64&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="s2">&quot;values&quot;</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="s2">&quot;float32&quot;</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">eclock</span><span class="p">:</span>
+            <span class="n">mid</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_new_from_message</span><span class="p">(</span><span class="n">chunk_bytes</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">())</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_array</span><span class="p">(</span><span class="n">mid</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+                <span class="n">missingValue</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_string</span><span class="p">(</span><span class="n">mid</span><span class="p">,</span> <span class="s2">&quot;missingValue&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">var</span> <span class="o">==</span> <span class="s2">&quot;values&quot;</span> <span class="ow">and</span> <span class="n">missingValue</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">missingValue</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_release</span><span class="p">(</span><span class="n">mid</span><span class="p">)</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_encode_single</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">chunk_array</span><span class="p">:</span> <span class="n">NDBuffer</span><span class="p">,</span>
+        <span class="n">chunk_spec</span><span class="p">:</span> <span class="n">ArraySpec</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Buffer</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># This is a one way codec</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_encoded_size</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">input_byte_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">_chunk_spec</span><span class="p">:</span> <span class="n">ArraySpec</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+
+<span class="n">register_codec</span><span class="p">(</span><span class="s2">&quot;grib&quot;</span><span class="p">,</span> <span class="n">GRIBZarrCodec</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="AsciiTableCodec">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.AsciiTableCodec">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AsciiTableCodec</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Codec</span><span class="p">):</span>
@@ -272,7 +350,6 @@
         <span class="n">arr2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nrow</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dt_out</span><span class="p">)</span>
         <span class="n">heap</span> <span class="o">=</span> <span class="n">buf</span><span class="p">[</span><span class="n">arr</span><span class="o">.</span><span class="n">nbytes</span> <span class="p">:]</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dt_out</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
-
             <span class="k">if</span> <span class="n">dt_out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;O&quot;</span><span class="p">:</span>
                 <span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ftypes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span>
                 <span class="n">counts</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="n">name</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span>
@@ -362,7 +439,7 @@
 <div class="viewcode-block" id="ZlibCodec.__init__">
 <a class="viewcode-back" href="../../reference.html#kerchunk.codecs.ZlibCodec.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="o">...</span></div>
+        <span class="k">pass</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
