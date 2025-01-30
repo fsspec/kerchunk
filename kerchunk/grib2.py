@@ -11,7 +11,13 @@ import zarr
 import xarray
 import numpy as np
 
-from kerchunk.utils import class_factory, _encode_for_JSON
+from kerchunk.utils import (
+    class_factory,
+    _encode_for_JSON,
+    dict_to_store,
+    fs_as_store,
+    translate_refs_serializable,
+)
 from kerchunk.codecs import GRIBCodec
 from kerchunk.combine import MultiZarrToZarr, drop
 from kerchunk._grib_idx import (
@@ -81,13 +87,13 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
     shape = tuple(data.shape or ())
     if nbytes < inline_threshold:
         logger.debug(f"Store {var} inline")
-        d = z.create_dataset(
+        d = z.create_array(
             name=var,
             shape=shape,
             chunks=shape,
             dtype=data.dtype,
             fill_value=attr.get("missingValue", None),
-            compressor=False,
+            compressor=None,
         )
         if hasattr(data, "tobytes"):
             b = data.tobytes()
@@ -101,15 +107,14 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
         store[f"{var}/0"] = b.decode("ascii")
     else:
         logger.debug(f"Store {var} reference")
-        d = z.create_dataset(
+        d = z.create_array(
             name=var,
             shape=shape,
             chunks=shape,
             dtype=data.dtype,
             fill_value=attr.get("missingValue", None),
             filters=[GRIBCodec(var=var, dtype=str(data.dtype))],
-            compressor=False,
-            overwrite=True,
+            compressor=None,
         )
         store[f"{var}/" + ".".join(["0"] * len(shape))] = ["{{u}}", offset, size]
     d.attrs.update(attr)
@@ -163,7 +168,9 @@ def scan_grib(
     with fsspec.open(url, "rb", **storage_options) as f:
         logger.debug(f"File {url}")
         for offset, size, data in _split_file(f, skip=skip):
-            store = {}
+            store_dict = {}
+            store = dict_to_store(store_dict)
+
             mid = eccodes.codes_new_from_message(data)
             m = cfgrib.cfmessage.CfMessage(mid)
 
@@ -201,7 +208,7 @@ def scan_grib(
             if good is False:
                 continue
 
-            z = zarr.open_group(store)
+            z = zarr.open_group(store, zarr_format=2)
             global_attrs = {
                 f"GRIB_{k}": m[k]
                 for k in cfgrib.dataset.GLOBAL_ATTRIBUTES_KEYS
@@ -237,7 +244,9 @@ def scan_grib(
             varName = m["cfVarName"]
             if varName in ("undef", "unknown"):
                 varName = m["shortName"]
-            _store_array(store, z, vals, varName, inline_threshold, offset, size, attrs)
+            _store_array(
+                store_dict, z, vals, varName, inline_threshold, offset, size, attrs
+            )
             if "typeOfLevel" in message_keys and "level" in message_keys:
                 name = m["typeOfLevel"]
                 coordinates.append(name)
@@ -251,7 +260,7 @@ def scan_grib(
                     attrs = {}
                 attrs["_ARRAY_DIMENSIONS"] = []
                 _store_array(
-                    store, z, data, name, inline_threshold, offset, size, attrs
+                    store_dict, z, data, name, inline_threshold, offset, size, attrs
                 )
             dims = (
                 ["y", "x"]
@@ -308,7 +317,7 @@ def scan_grib(
                     dims = [coord]
                 attrs = cfgrib.dataset.COORD_ATTRS[coord]
                 _store_array(
-                    store,
+                    store_dict,
                     z,
                     x,
                     coord,
@@ -321,10 +330,11 @@ def scan_grib(
             if coordinates:
                 z.attrs["coordinates"] = " ".join(coordinates)
 
+            translate_refs_serializable(store_dict)
             out.append(
                 {
                     "version": 1,
-                    "refs": _encode_for_JSON(store),
+                    "refs": _encode_for_JSON(store_dict),
                     "templates": {"u": url},
                 }
             )
@@ -407,8 +417,9 @@ def grib_tree(
     filters = ["stepType", "typeOfLevel"]
 
     # TODO allow passing a LazyReferenceMapper as output?
-    zarr_store = {}
-    zroot = zarr.open_group(store=zarr_store)
+    zarr_store_dict = {}
+    zarr_store = dict_to_store(zarr_store_dict)
+    zroot = zarr.open_group(store=zarr_store, zarr_format=2)
 
     aggregations: Dict[str, List] = defaultdict(list)
     aggregation_dims: Dict[str, Set] = defaultdict(set)
@@ -527,17 +538,18 @@ def grib_tree(
 
         for key, value in group["refs"].items():
             if key not in [".zattrs", ".zgroup"]:
-                zarr_store[f"{path}/{key}"] = value
+                zarr_store._store_dict[f"{path}/{key}"] = value
 
     # Force all stored values to decode as string, not bytes. String should be correct.
     # ujson will reject bytes values by default.
     # Using 'reject_bytes=False' one write would fail an equality check on read.
-    zarr_store = {
+    zarr_dict = {
         key: (val.decode() if isinstance(val, bytes) else val)
-        for key, val in zarr_store.items()
+        for key, val in zarr_store._store_dict.items()
     }
     # TODO handle other kerchunk reference spec versions?
-    result = dict(refs=zarr_store, version=1)
+    translate_refs_serializable(zarr_dict)
+    result = dict(refs=zarr_dict, version=1)
 
     return result
 
@@ -578,7 +590,8 @@ def correct_hrrr_subhf_step(group: Dict) -> Dict:
     group["refs"][".zattrs"] = ujson.dumps(attrs)
 
     fo = fsspec.filesystem("reference", fo=group, mode="r")
-    xd = xarray.open_dataset(fo.get_mapper(), engine="zarr", consolidated=False)
+    fstore = fs_as_store(fo, read_only=True)
+    xd = xarray.open_dataset(fstore, engine="zarr", consolidated=False)
 
     correct_step = xd.valid_time.values - xd.time.values
 

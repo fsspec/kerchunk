@@ -5,6 +5,7 @@ import fsspec
 import xarray as xr
 
 from kerchunk.combine import auto_dask
+from kerchunk.utils import refs_as_store
 from kerchunk.zarr import ZarrToZarr
 
 dask = pytest.importorskip("dask")
@@ -33,9 +34,8 @@ def test_simplest(m, n_batches):
             "coo_dtypes": {"count": "i4"},
         },
     )
-    fs = fsspec.filesystem("reference", fo=out)
     ds = xr.open_dataset(
-        fs.get_mapper(), engine="zarr", backend_kwargs={"consolidated": False}
+        refs_as_store(out), engine="zarr", backend_kwargs={"consolidated": False}
     )
     assert ds["count"].values.tolist() == [0, 1, 2, 3]
     assert ds.data.shape == (4, 3)

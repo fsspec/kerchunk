@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [310, 311, 312]
+        python-version: [311, 312]
 
     steps:
       - uses: actions/checkout@v4
@@ -19,8 +19,9 @@ jobs:
       - name: Install kerchunk
         shell: bash -l {0}
         run: |
-          pip install -e .
+          pip install -e . --no-deps
+          pip list
       - name: Test with pytest
         shell: bash -l {0}
         run: |
-          pytest -v --cov
+          pytest -v --timeout 60 --cov

@@ -8,7 +8,7 @@ import zarr
 from fsspec.implementations.reference import LazyReferenceMapper
 
 
-from kerchunk.utils import class_factory
+from kerchunk.utils import class_factory, dict_to_store, translate_refs_serializable
 from kerchunk.codecs import AsciiTableCodec, VarArrCodec
 
 try:
@@ -72,7 +72,8 @@ def process_file(
 
     storage_options = storage_options or {}
     out = out or {}
-    g = zarr.open(out)
+    store = dict_to_store(out)
+    g = zarr.open_group(store=store, zarr_format=2)
 
     with fsspec.open(url, mode="rb", **storage_options) as f:
         infile = fits.open(f, do_not_scale_image_data=True)
@@ -93,7 +94,7 @@ def process_file(
             hdu.header.__str__()  # causes fixing of invalid cards
 
             attrs = dict(hdu.header)
-            kwargs = {}
+            kwargs = {"compressor": None}
             if hdu.is_image:
                 # for images/cubes (i.e., ndarrays with simple type)
                 nax = hdu.header["NAXIS"]
@@ -139,10 +140,12 @@ def process_file(
                     # contains var fields
                     length = hdu.fileinfo()["datSpan"]
                     dt2 = [
-                        (name, "O")
-                        if hdu.columns[name].format.startswith(("P", "Q"))
-                        else (name, str(dtype[name].base))
-                        + ((dtype[name].shape,) if dtype[name].shape else ())
+                        (
+                            (name, "O")
+                            if hdu.columns[name].format.startswith(("P", "Q"))
+                            else (name, str(dtype[name].base))
+                            + ((dtype[name].shape,) if dtype[name].shape else ())
+                        )
                         for name in dtype.names
                     ]
                     types = {
@@ -150,9 +153,10 @@ def process_file(
                         for name in dtype.names
                         if hdu.columns[name].format.startswith(("P", "Q"))
                     }
-                    kwargs["object_codec"] = VarArrCodec(
+                    kwargs["compressor"] = VarArrCodec(
                         str(dtype), str(dt2), nrows, types
                     )
+                    kwargs["fill_value"] = None
                     dtype = dt2
                 else:
                     length = dtype.itemsize * nrows
@@ -163,8 +167,8 @@ def process_file(
             # one chunk for whole thing.
             # TODO: we could sub-chunk on biggest dimension
             name = hdu.name or str(ext)
-            arr = g.empty(
-                name, dtype=dtype, shape=shape, chunks=shape, compression=None, **kwargs
+            arr = g.create_array(
+                name=name, dtype=dtype, shape=shape, chunks=shape, **kwargs
             )
             arr.attrs.update(
                 {
@@ -190,6 +194,7 @@ def process_file(
             )
     if isinstance(out, LazyReferenceMapper):
         out.flush()
+    out = translate_refs_serializable(out)
     return out
 
 
@@ -248,7 +253,7 @@ def add_wcs_coords(hdu, zarr_group=None, dataset=None, dtype="float32"):
         }
         if zarr_group is not None:
             arr = zarr_group.empty(
-                name, shape=shape, chunks=shape, overwrite=True, dtype=dtype
+                name, shape=shape, chunks=shape, dtype=dtype, exists_ok=True
             )
             arr.attrs.update(attrs)
             arr[:] = world_coord.value.reshape(shape)

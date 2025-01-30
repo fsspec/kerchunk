@@ -744,7 +744,8 @@ def _extract_single_group(grib_group: dict, idx: int, storage_options: Dict):
         return None
 
     dt = xr.open_datatree(
-        fsspec.filesystem("reference", fo=grib_tree_store).get_mapper(""),
+        "reference://",
+        storage_options={"fo": grib_tree_store},
         engine="zarr",
         consolidated=False,
     )

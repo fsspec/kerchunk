@@ -46,7 +46,7 @@ def zarr_in_zip(tmpdir, ds):
         return filename
 
     fn = f"{tmpdir}/test.zarr"
-    ds.to_zarr(fn, mode="w")
+    ds.to_zarr(fn, mode="w", zarr_format=2)
     return _zip(fn)
 
 
@@ -54,6 +54,7 @@ def test_zarr_in_zip(zarr_in_zip, ds):
     out = kerchunk.zarr.ZarrToZarr(
         url="zip://", storage_options={"fo": zarr_in_zip}
     ).translate()
+
     ds2 = xr.open_dataset(
         out,
         engine="kerchunk",
@@ -75,7 +76,7 @@ def test_zarr_in_zip(zarr_in_zip, ds):
 
 def test_zarr_combine(tmpdir, ds):
     fn1 = f"{tmpdir}/test1.zarr"
-    ds.to_zarr(fn1)
+    ds.to_zarr(fn1, zarr_format=2)
 
     one = kerchunk.zarr.ZarrToZarr(fn1, inline_threshold=0).translate()
     fn = f"{tmpdir}/out.parq"
@@ -89,7 +90,7 @@ def test_zarr_combine(tmpdir, ds):
 
 def test_zarr_json_dump_succeeds(tmpdir, ds):
     fn1 = f"{tmpdir}/test1.zarr"
-    ds.to_zarr(fn1)
+    ds.to_zarr(fn1, zarr_format=2)
 
     one = kerchunk.zarr.ZarrToZarr(
         fn1,

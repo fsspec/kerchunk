@@ -1,12 +1,92 @@
 import base64
 import copy
 import itertools
+import fsspec.asyn
+from packaging.version import Version
+from typing import Any, cast
 import warnings
 
 import ujson
 
-import fsspec
-import zarr
+import fsspec.implementations.asyn_wrapper
+import numpy as np
+import zarr.storage
+
+
+def refs_as_fs(
+    refs,
+    fs=None,
+    remote_protocol=None,
+    remote_options=None,
+    asynchronous=True,
+    **kwargs,
+):
+    """Convert a reference set to an fsspec filesystem"""
+    fs = fsspec.filesystem(
+        "reference",
+        fo=refs,
+        fs=fs,
+        remote_protocol=remote_protocol,
+        remote_options=remote_options,
+        **kwargs,
+        asynchronous=asynchronous,
+    )
+    return fs
+
+
+def refs_as_store(
+    refs, read_only=False, fs=None, remote_protocol=None, remote_options=None
+):
+    """Convert a reference set to a zarr store"""
+    remote_options = remote_options or {}
+    remote_options["asynchronous"] = True
+
+    fss = refs_as_fs(
+        refs,
+        fs=fs,
+        remote_protocol=remote_protocol,
+        remote_options=remote_options,
+    )
+    return fs_as_store(fss, read_only=read_only)
+
+
+def is_zarr3():
+    """Check if the installed zarr version is version 3"""
+    return Version(zarr.__version__) >= Version("3.0.0.b2")
+
+
+def dict_to_store(store_dict: dict):
+    """Create an in memory zarr store backed by the given dictionary"""
+    if is_zarr3():
+        return zarr.storage.MemoryStore(read_only=False, store_dict=store_dict)
+    else:
+        return zarr.storage.KVStore(store_dict)
+
+
+def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=False):
+    """Open the refs as a zarr store
+
+    Parameters
+    ----------
+    fs: fsspec.async.AsyncFileSystem
+    read_only: bool
+
+    Returns
+    -------
+    zarr.storage.Store or zarr.storage.Mapper, fsspec.AbstractFileSystem
+    """
+    if not fs.async_impl:
+        try:
+            from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+
+            fs = AsyncFileSystemWrapper(fs)
+        except ImportError:
+            raise ImportError(
+                "Only fsspec>2024.10.0 supports the async filesystem wrapper "
+                "required for working with reference filesystems. "
+            )
+    fs.asynchronous = True
+    return zarr.storage.FsspecStore(fs, read_only=read_only)
 
 
 def class_factory(func):
@@ -42,6 +122,8 @@ def consolidate(refs):
     """Turn raw references into output"""
     out = {}
     for k, v in refs.items():
+        if hasattr(v, "to_bytes"):
+            v = v.to_bytes()
         if isinstance(v, bytes):
             try:
                 # easiest way to test if data is ascii
@@ -72,7 +154,7 @@ def rename_target(refs, renames):
     -------
     dict: the altered reference set, which can be saved
     """
-    fs = fsspec.filesystem("reference", fo=refs)  # to produce normalised refs
+    fs = refs_as_fs(refs)  # to produce normalised refs
     refs = fs.references
     out = {}
     for k, v in refs.items():
@@ -134,17 +216,58 @@ def _encode_for_JSON(store):
     return store
 
 
+def encode_fill_value(v: Any, dtype: np.dtype, compressor: Any = None) -> Any:
+    # early out
+    if v is None:
+        return v
+    if dtype.kind == "V" and dtype.hasobject:
+        if compressor is None:
+            raise ValueError("missing compressor for object array")
+        v = compressor.encode(v)
+        v = str(base64.standard_b64encode(v), "ascii")
+        return v
+    if dtype.kind == "f":
+        if np.isnan(v):
+            return "NaN"
+        elif np.isposinf(v):
+            return "Infinity"
+        elif np.isneginf(v):
+            return "-Infinity"
+        else:
+            return float(v)
+    elif dtype.kind in "ui":
+        return int(v)
+    elif dtype.kind == "b":
+        return bool(v)
+    elif dtype.kind in "c":
+        c = cast(np.complex128, np.dtype(complex).type())
+        v = (
+            encode_fill_value(v.real, c.real.dtype, compressor),
+            encode_fill_value(v.imag, c.imag.dtype, compressor),
+        )
+        return v
+    elif dtype.kind in "SV":
+        v = str(base64.standard_b64encode(v), "ascii")
+        return v
+    elif dtype.kind == "U":
+        return v
+    elif dtype.kind in "mM":
+        return int(v.view("i8"))
+    else:
+        return v
+
+
 def do_inline(store, threshold, remote_options=None, remote_protocol=None):
     """Replace short chunks with the value of that chunk and inline metadata
 
     The chunk may need encoding with base64 if not ascii, so actual
     length may be larger than threshold.
     """
-    fs = fsspec.filesystem(
-        "reference",
-        fo=store,
-        remote_options=remote_options,
+    fs = refs_as_fs(
+        store,
         remote_protocol=remote_protocol,
+        remote_options=remote_options,
+        asynchronous=False,
     )
     out = fs.references.copy()
 
@@ -174,7 +297,7 @@ def do_inline(store, threshold, remote_options=None, remote_protocol=None):
 
 
 def _inline_array(group, threshold, names, prefix=""):
-    for name, thing in group.items():
+    for name, thing in group.members():
         if prefix:
             prefix1 = f"{prefix}.{name}"
         else:
@@ -186,16 +309,15 @@ def _inline_array(group, threshold, names, prefix=""):
             cond2 = prefix1 in names
             if cond1 or cond2:
                 original_attrs = dict(thing.attrs)
-                arr = group.create_dataset(
+                arr = group.create_array(
                     name=name,
                     dtype=thing.dtype,
                     shape=thing.shape,
-                    data=thing[:],
                     chunks=thing.shape,
-                    compression=None,
-                    overwrite=True,
                     fill_value=thing.fill_value,
+                    overwrite=True,
                 )
+                arr[:] = thing[:]
                 arr.attrs.update(original_attrs)
 
 
@@ -223,10 +345,9 @@ def inline_array(store, threshold=1000, names=None, remote_options=None):
     -------
     amended references set (simple style)
     """
-    fs = fsspec.filesystem(
-        "reference", fo=store, **(remote_options or {}), skip_instance_cache=True
-    )
-    g = zarr.open_group(fs.get_mapper(), mode="r+")
+    fs = refs_as_fs(store, remote_options=remote_options or {})
+    zarr_store = fs_as_store(fs, read_only=False)
+    g = zarr.open_group(zarr_store, zarr_format=2)
     _inline_array(g, threshold, names=names or [])
     return fs.references
 
@@ -299,7 +420,7 @@ def subchunk(store, variable, factor):
             else:
                 (url,) = v
                 offset = 0
-                size = fs.size(k)
+                size = fs.info(k)["size"]
             for subpart in range(factor):
                 new_index = (
                     chunk_index[:ind]
@@ -440,3 +561,34 @@ def templateize(strings, min_length=10, template_name="u"):
     else:
         template = {}
     return template, strings
+
+
+def translate_refs_serializable(refs: dict):
+    """Translate a reference set to a serializable form, given that zarr
+    v3 memory stores store data in buffers by default. This modifies the
+    input dictionary in place, and returns a reference to it.
+
+    It also fixes keys that have a leading slash, which is not appropriate for
+    zarr v3 keys
+
+    Parameters
+    ----------
+    refs: dict
+        The reference set
+
+    Returns
+    -------
+    dict
+        A serializable form of the reference set
+    """
+    keys_to_remove = []
+    new_keys = {}
+    for k, v in refs.items():
+        if isinstance(v, zarr.core.buffer.cpu.Buffer):
+            key = k.removeprefix("/")
+            new_keys[key] = v.to_bytes()
+            keys_to_remove.append(k)
+    for k in keys_to_remove:
+        del refs[k]
+    refs.update(new_keys)
+    return refs

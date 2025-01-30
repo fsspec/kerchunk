@@ -13,14 +13,14 @@ dependencies:
   - cfgrib
   # Temporary workaround for #508
   - eccodes <2.38
-
+  - ujson
   - cftime
   - astropy
   - requests
   - aiohttp
   - pytest-cov
   - pytest-subtests
-  - fsspec<=2024.12.0
+  - pytest-timeout
   - dask
   - scipy
   - s3fs
@@ -34,5 +34,6 @@ dependencies:
   - tifffile
   - rioxarray
   - netCDF4
-#  - pip:
-#      - git+https://github.com/fsspec/filesystem_spec
+  - pip:
+      - git+https://github.com/fsspec/filesystem_spec
+      - git+https://github.com/zarr-developers/zarr-python

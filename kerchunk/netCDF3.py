@@ -5,7 +5,13 @@ import numpy as np
 from fsspec.implementations.reference import LazyReferenceMapper
 import fsspec
 
-from kerchunk.utils import _encode_for_JSON, inline_array
+import kerchunk.utils
+from kerchunk.utils import (
+    _encode_for_JSON,
+    dict_to_store,
+    inline_array,
+    translate_refs_serializable,
+)
 
 try:
     from scipy.io._netcdf import ZERO, NC_VARIABLE, netcdf_file, netcdf_variable
@@ -167,7 +173,9 @@ class NetCDF3ToZarr(netcdf_file):
         import zarr
 
         out = self.out
-        z = zarr.open(out, mode="w")
+        store = dict_to_store(out)
+        z = zarr.open_group(store, mode="w", zarr_format=2)
+
         for dim, var in self.variables.items():
             if dim in self.chunks:
                 shape = self.chunks[dim][-1]
@@ -191,13 +199,13 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and var.data.dtype.kind == "i":
                     fill = int(fill)
-                arr = z.create_dataset(
+                arr = z.create_array(
                     name=dim,
                     shape=shape,
                     dtype=var.data.dtype,
                     fill_value=fill,
                     chunks=shape,
-                    compression=None,
+                    compressor=None,
                 )
                 part = ".".join(["0"] * len(shape)) or "0"
                 k = f"{dim}/{part}"
@@ -245,13 +253,14 @@ class NetCDF3ToZarr(netcdf_file):
                     fill = float(fill)
                 if fill is not None and base.kind == "i":
                     fill = int(fill)
-                arr = z.create_dataset(
+                arr = z.create_array(
                     name=name,
                     shape=shape,
                     dtype=base,
                     fill_value=fill,
                     chunks=(1,) + dtype.shape,
-                    compression=None,
+                    compressor=None,
+                    overwrite=True,
                 )
                 arr.attrs.update(
                     {
@@ -284,17 +293,18 @@ class NetCDF3ToZarr(netcdf_file):
                 if k != "filename"  # special "attribute"
             }
         )
+        out = kerchunk.utils.translate_refs_serializable(out)
         if self.threshold:
             out = inline_array(
                 out,
                 self.threshold,
                 remote_options=dict(remote_options=self.storage_options),
             )
-
         if isinstance(out, LazyReferenceMapper):
             out.flush()
             return out
         else:
+            translate_refs_serializable(out)
             out = _encode_for_JSON(out)
             return {"version": 1, "refs": out}
 
