@@ -12,6 +12,11 @@ import numpy as np
 import zarr.storage
 
 
+def dict_to_store(store_dict: dict):
+    """Create an in memory zarr store backed by the given dictionary"""
+    return zarr.storage.MemoryStore(read_only=False, store_dict=store_dict)
+
+
 def refs_as_fs(
     refs,
     fs=None,
