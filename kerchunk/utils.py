@@ -2,7 +2,6 @@ import base64
 import copy
 import itertools
 import fsspec.asyn
-from packaging.version import Version
 from typing import Any, cast
 import warnings
 
@@ -11,6 +10,11 @@ import ujson
 import fsspec.implementations.asyn_wrapper
 import numpy as np
 import zarr.storage
+
+
+def dict_to_store(store_dict: dict):
+    """Create an in memory zarr store backed by the given dictionary"""
+    return zarr.storage.MemoryStore(read_only=False, store_dict=store_dict)
 
 
 def refs_as_fs(
@@ -48,19 +52,6 @@ def refs_as_store(
         remote_options=remote_options,
     )
     return fs_as_store(fss, read_only=read_only)
-
-
-def is_zarr3():
-    """Check if the installed zarr version is version 3"""
-    return Version(zarr.__version__) >= Version("3.0.0.b2")
-
-
-def dict_to_store(store_dict: dict):
-    """Create an in memory zarr store backed by the given dictionary"""
-    if is_zarr3():
-        return zarr.storage.MemoryStore(read_only=False, store_dict=store_dict)
-    else:
-        return zarr.storage.KVStore(store_dict)
 
 
 def fs_as_store(fs: fsspec.asyn.AsyncFileSystem, read_only=False):
