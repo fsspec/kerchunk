@@ -85,7 +85,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">fsspec.asyn</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">packaging.version</span><span class="w"> </span><span class="kn">import</span> <span class="n">Version</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
@@ -94,6 +93,11 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">fsspec.implementations.asyn_wrapper</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">zarr.storage</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dict_to_store</span><span class="p">(</span><span class="n">store_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an in memory zarr store backed by the given dictionary&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">zarr</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">MemoryStore</span><span class="p">(</span><span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">store_dict</span><span class="o">=</span><span class="n">store_dict</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">refs_as_fs</span><span class="p">(</span>
@@ -131,19 +135,6 @@
         <span class="n">remote_options</span><span class="o">=</span><span class="n">remote_options</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">fs_as_store</span><span class="p">(</span><span class="n">fss</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="n">read_only</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">is_zarr3</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the installed zarr version is version 3&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">Version</span><span class="p">(</span><span class="n">zarr</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">Version</span><span class="p">(</span><span class="s2">&quot;3.0.0.b2&quot;</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">dict_to_store</span><span class="p">(</span><span class="n">store_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an in memory zarr store backed by the given dictionary&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">is_zarr3</span><span class="p">():</span>
-        <span class="k">return</span> <span class="n">zarr</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">MemoryStore</span><span class="p">(</span><span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">store_dict</span><span class="o">=</span><span class="n">store_dict</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">zarr</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">KVStore</span><span class="p">(</span><span class="n">store_dict</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">fs_as_store</span><span class="p">(</span><span class="n">fs</span><span class="p">:</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">asyn</span><span class="o">.</span><span class="n">AsyncFileSystem</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
