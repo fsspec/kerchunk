@@ -38,7 +38,6 @@ _HIDDEN_ATTRS = {  # from h5netcdf.attrs
     "_nc3_strict",
     "_NCProperties",
 }
-fsspec.utils.setup_logging(lggr)
 
 
 class SingleHdf5ToZarr:
