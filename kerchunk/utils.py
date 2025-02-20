@@ -26,6 +26,10 @@ def refs_as_fs(
     **kwargs,
 ):
     """Convert a reference set to an fsspec filesystem"""
+    if fs is not None:
+        if asynchronous and not fs.async_impl:
+            raise ValueError
+        fs.asynchronous = asynchronous
     fs = fsspec.filesystem(
         "reference",
         fo=refs,

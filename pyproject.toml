@@ -20,7 +20,7 @@ classifiers = [
 
 
 dependencies = [
-  "fsspec",
+  "fsspec>=2025.2.0",
   "numcodecs",
   "numpy",
   "ujson",
