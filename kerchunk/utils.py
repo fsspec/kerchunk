@@ -26,6 +26,8 @@ def refs_as_fs(
     **kwargs,
 ):
     """Convert a reference set to an fsspec filesystem"""
+    if fs is not None:
+        fs.asynchronous = asynchronous
     fs = fsspec.filesystem(
         "reference",
         fo=refs,
@@ -300,6 +302,7 @@ def _inline_array(group, threshold, names, prefix=""):
             cond2 = prefix1 in names
             if cond1 or cond2:
                 original_attrs = dict(thing.attrs)
+                data = thing[:]
                 arr = group.create_array(
                     name=name,
                     dtype=thing.dtype,
@@ -308,7 +311,7 @@ def _inline_array(group, threshold, names, prefix=""):
                     fill_value=thing.fill_value,
                     overwrite=True,
                 )
-                arr[:] = thing[:]
+                arr[:] = data
                 arr.attrs.update(original_attrs)
 
 
