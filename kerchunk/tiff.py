@@ -14,7 +14,14 @@ except ModuleNotFoundError:  # pragma: no cover
 import kerchunk.utils
 
 
-def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None):
+def tiff_to_zarr(
+    urlpath,
+    remote_options=None,
+    target=None,
+    target_options=None,
+    inline_threshold=0,
+    storage_options=None,
+):
     """Wraps TIFFFile's fsspec writer to extract metadata as attributes
 
     Parameters
@@ -27,14 +34,20 @@ def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None)
         Write JSON to this location. If not given, no file is output
     target_options: dict
         pass these to fsspec when opening target
+    inline_threshold: int
+        Bytes blocks smaller than this will be inlined
+    storage_options: dict
+        same as remote_options, for compatibility. If both are given, remote_options wins.
 
     Returns
     -------
     references dict
     """
 
-    with fsspec.open(urlpath, **(remote_options or {})) as of:
+    with fsspec.open(urlpath, **(remote_options or storage_options or {})) as of:
         url, name = urlpath.rsplit("/", 1)
+        prot = of.fs.protocol
+        remote_protocol = prot[0] if isinstance(prot, tuple) else prot
 
         with tifffile.TiffFile(of, name=name) as tif:
             with tif.series[0].aszarr() as store:
@@ -72,6 +85,10 @@ def tiff_to_zarr(urlpath, remote_options=None, target=None, target_options=None)
         # coords = generate_coords(meta, z.shape)
         # rasterio.crs.CRS.from_epsg(attrs['ProjectedCSTypeGeoKey']).to_wkt("WKT1_GDAL") ??
         pass
+    if inline_threshold:
+        out = kerchunk.utils.do_inline(
+            out, inline_threshold, remote_options, remote_protocol
+        )
     if target is not None:
         with fsspec.open(target, **(target_options or {})) as of:
             ujson.dump(out, of)
