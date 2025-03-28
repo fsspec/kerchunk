@@ -1,5 +1,4 @@
 import glob
-import fsspec
 import os.path
 import zarr
 import pytest
