@@ -323,7 +323,7 @@ to customise how references get stored</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="kerchunk.tiff.tiff_to_zarr">
-<span class="sig-prename descclassname"><span class="pre">kerchunk.tiff.</span></span><span class="sig-name descname"><span class="pre">tiff_to_zarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urlpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/tiff.html#tiff_to_zarr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.tiff.tiff_to_zarr" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">kerchunk.tiff.</span></span><span class="sig-name descname"><span class="pre">tiff_to_zarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urlpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inline_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/kerchunk/tiff.html#tiff_to_zarr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.tiff.tiff_to_zarr" title="Link to this definition"></a></dt>
 <dd><p>Wraps TIFFFile’s fsspec writer to extract metadata as attributes</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -335,6 +335,10 @@ to customise how references get stored</p>
 <dt><strong>target: str</strong></dt><dd><p>Write JSON to this location. If not given, no file is output</p>
 </dd>
 <dt><strong>target_options: dict</strong></dt><dd><p>pass these to fsspec when opening target</p>
+</dd>
+<dt><strong>inline_threshold: int</strong></dt><dd><p>Bytes blocks smaller than this will be inlined</p>
+</dd>
+<dt><strong>storage_options: dict</strong></dt><dd><p>same as remote_options, for compatibility. If both are given, remote_options wins.</p>
 </dd>
 </dl>
 </dd>

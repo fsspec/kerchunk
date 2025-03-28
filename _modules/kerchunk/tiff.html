@@ -99,7 +99,14 @@
 
 <div class="viewcode-block" id="tiff_to_zarr">
 <a class="viewcode-back" href="../../reference.html#kerchunk.tiff.tiff_to_zarr">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">tiff_to_zarr</span><span class="p">(</span><span class="n">urlpath</span><span class="p">,</span> <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">tiff_to_zarr</span><span class="p">(</span>
+    <span class="n">urlpath</span><span class="p">,</span>
+    <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">target_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">storage_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Wraps TIFFFile&#39;s fsspec writer to extract metadata as attributes</span>
 
 <span class="sd">    Parameters</span>
@@ -112,14 +119,20 @@
 <span class="sd">        Write JSON to this location. If not given, no file is output</span>
 <span class="sd">    target_options: dict</span>
 <span class="sd">        pass these to fsspec when opening target</span>
+<span class="sd">    inline_threshold: int</span>
+<span class="sd">        Bytes blocks smaller than this will be inlined</span>
+<span class="sd">    storage_options: dict</span>
+<span class="sd">        same as remote_options, for compatibility. If both are given, remote_options wins.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    references dict</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">urlpath</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">remote_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">of</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">urlpath</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">remote_options</span> <span class="ow">or</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">of</span><span class="p">:</span>
         <span class="n">url</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">urlpath</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">prot</span> <span class="o">=</span> <span class="n">of</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">protocol</span>
+        <span class="n">remote_protocol</span> <span class="o">=</span> <span class="n">prot</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prot</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="n">prot</span>
 
         <span class="k">with</span> <span class="n">tifffile</span><span class="o">.</span><span class="n">TiffFile</span><span class="p">(</span><span class="n">of</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">tif</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">tif</span><span class="o">.</span><span class="n">series</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">aszarr</span><span class="p">()</span> <span class="k">as</span> <span class="n">store</span><span class="p">:</span>
@@ -157,6 +170,10 @@
         <span class="c1"># coords = generate_coords(meta, z.shape)</span>
         <span class="c1"># rasterio.crs.CRS.from_epsg(attrs[&#39;ProjectedCSTypeGeoKey&#39;]).to_wkt(&quot;WKT1_GDAL&quot;) ??</span>
         <span class="k">pass</span>
+    <span class="k">if</span> <span class="n">inline_threshold</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">kerchunk</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">do_inline</span><span class="p">(</span>
+            <span class="n">out</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">remote_options</span><span class="p">,</span> <span class="n">remote_protocol</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">target_options</span> <span class="ow">or</span> <span class="p">{}))</span> <span class="k">as</span> <span class="n">of</span><span class="p">:</span>
             <span class="n">ujson</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">of</span><span class="p">)</span>
