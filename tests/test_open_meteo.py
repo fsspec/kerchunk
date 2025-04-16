@@ -1,23 +1,15 @@
 import os
-import json
-import pytest
+
 import fsspec
 import numpy as np
-import zarr
-import numcodecs
-
 import omfiles
-from omfiles.omfiles_numcodecs import PyPforDelta2dSerializer, PyPforDelta2d
+import pytest
+import zarr
 
-from kerchunk.utils import fs_as_store
-from kerchunk.df import refs_to_dataframe
-from kerchunk.open_meteo import SingleOmToZarr, Delta2D, SupportedDomain
 from kerchunk.combine import MultiZarrToZarr
-
-# Register codecs needed by our pipeline
-numcodecs.register_codec(PyPforDelta2d, "pfor")
-numcodecs.register_codec(PyPforDelta2dSerializer, "pfor_serializer")
-numcodecs.register_codec(Delta2D)
+from kerchunk.df import refs_to_dataframe
+from kerchunk.open_meteo import SingleOmToZarr, SupportedDomain
+from kerchunk.utils import fs_as_store
 
 
 def test_single_om_to_zarr():
@@ -30,14 +22,14 @@ def test_single_om_to_zarr():
     references = om_to_zarr.translate()
     om_to_zarr.close()
 
-    # Optionally save references to a file for inspection
-    with open("om_refs.json", "w") as f:
-        json.dump(references, f)
+    # Save references to json if desired. These are veryyy big...
+    # with open("om_refs.json", "w") as f:
+    #     json.dump(references, f)
 
-    output_path = "om_refs_parquet/"  # This will be a directory
+    # Save references to parquet
     refs_to_dataframe(
-        fo="om_refs.json",              # References dict
-        url=output_path,            # Output URL
+        fo=references,              # References dict
+        url="om_refs_parquet/",     # Output directory
         record_size=100000,         # Records per file, adjust as needed
         categorical_threshold=10    # URL encoding efficiency
     )
@@ -87,7 +79,7 @@ def test_single_om_to_zarr():
 
         print("✓ Data from kerchunk matches direct access!")
     except Exception as e:
-        pytest.fail(f"Failed to read data through kerchunk: {e}")
+        pytest.fail(f"Failed to read kerchunked data through zarr: {e}")
 
     # Clean up
     reader.close()
@@ -116,6 +108,14 @@ def test_multizarr_to_zarr():
         out=None,
     )
     combined_refs = mzz.translate()
+
+    # Save references to parquet
+    refs_to_dataframe(
+        fo=combined_refs,               # References dict
+        url="om_refs_mzz_parquet/",     # Output directory
+        record_size=100000,             # Records per file, adjust as needed
+        categorical_threshold=10        # URL encoding efficiency
+    )
 
     # Open with zarr
     fs = fsspec.filesystem("reference", fo=combined_refs)

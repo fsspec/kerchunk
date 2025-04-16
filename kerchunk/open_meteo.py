@@ -1,31 +1,29 @@
 import base64
-import json
-import os
-import io
-import math
-import logging
-import pathlib
-from typing import Union, BinaryIO
-from dataclasses import dataclass
-
-from enum import Enum
-import numpy as np
 import datetime
+import io
+import json
+import logging
+import math
+import os
+import pathlib
+from dataclasses import dataclass
+from enum import Enum
+
 import fsspec.core
-from fsspec.implementations.reference import LazyReferenceMapper
-import zarr
 import numcodecs
+import numcodecs.abc
+import numcodecs.compat
+import numpy as np
 
 from .utils import (
     _encode_for_JSON,
-    encode_fill_value,
     dict_to_store,
     translate_refs_serializable,
 )
 
 try:
     import omfiles
-    from omfiles.omfiles_numcodecs import PyPforDelta2dSerializer, PyPforDelta2d
+    from omfiles.omfiles_numcodecs import PyPforDelta2d
 except ModuleNotFoundError:  # pragma: no cover
     raise ImportError(
         "omfiles is required for kerchunking Open-Meteo files. Please install with "
@@ -45,7 +43,6 @@ class SupportedDomain(Enum):
             return 253
         else:
             raise ValueError(f"Unsupported domain {self}")
-
 
 
 @dataclass
@@ -204,7 +201,7 @@ class SingleOmToZarr:
             self.input_file = om_file
             self.reader = omfiles.OmFilePyReader(self.input_file)
         else:
-            raise ValueError("type of input `om_file` not recognised")
+            raise ValueError("type of input `om_file` not recognized")
 
         self.url = url if url else om_file
         self.spec = spec
@@ -268,16 +265,13 @@ class SingleOmToZarr:
         })
 
         # 4. Add chunk references
-        for chunk_idx in range(len(lut)):
+        for chunk_idx in range(len(lut) - 1):
             # Calculate chunk coordinates (i,j,k) from linear index
             chunk_coords = self._get_chunk_coords(chunk_idx, chunks_per_dim)
 
-            # Calculate chunk size
-            if chunk_idx < len(lut) - 1:
-                chunk_size = lut[chunk_idx + 1] - lut[chunk_idx]
-            else:
-                # For last chunk, get file size
-                chunk_size = self._get_file_size() - lut[chunk_idx]
+            # Calculate chunk size.
+            # Loop index is defined so this is safe!
+            chunk_size = lut[chunk_idx + 1] - lut[chunk_idx]
 
             # Add to references
             key = self.name + "/" + ".".join(map(str, chunk_coords))
@@ -305,8 +299,8 @@ class SingleOmToZarr:
                 # Special handling for time dimension
                 self._add_time_coordinate(dim_size, i)
             else:
-                # Add generic coordinate for other dimensions
-                self._add_coordinate_array(dim_name, dim_size)
+                print(f"No coordinates for dimension {dim_name}")
+                continue
 
         # Convert to proper format for return
         if self.spec < 1:
@@ -318,63 +312,28 @@ class SingleOmToZarr:
             store = _encode_for_JSON(self.store_dict)
             return {"version": 1, "refs": store}
 
-    def _add_coordinate_array(self, dim_name, dim_size):
-        """Add a coordinate array for a generic dimension"""
-
-        # Create coordinate values (just indices)
-        coord_values = np.arange(dim_size, dtype='f4')
-
-        # Create coordinate array metadata
-        coord_zarray = {
-            "zarr_format": 2,
-            "shape": [dim_size],
-            "chunks": [dim_size],
-            "dtype": "<f4",
-            "compressor": None,
-            "fill_value": None,
-            "order": "C",
-            "filters": None
-        }
-
-        # Add attributes
-        coord_zattrs = {
-            "_ARRAY_DIMENSIONS": [dim_name],
-            "long_name": dim_name
-        }
-
-        # Add to zarr store
-        self.store_dict[f"{dim_name}/.zarray"] = json.dumps(coord_zarray)
-        self.store_dict[f"{dim_name}/.zattrs"] = json.dumps(coord_zattrs)
-
-        # Add values inline
-        self.store_dict[f"{dim_name}/0"] = coord_values.tobytes()
-
     def _add_time_coordinate(self, time_dim, time_axis=0):
         """Add a time coordinate array following CF conventions"""
 
-
         # Always use standard CF epoch reference
-        units = "hours since 1970-01-01T00:00:00Z"
+        units = "seconds since 1970-01-01T00:00:00Z"
 
         # Create CF-compliant units string from reference_time
-        if self.reference_time is not None:
+        if self.reference_time is not None and self.time_step is not None:
             ref_time = self.reference_time
 
             # Format the reference time as CF-compliant string
             if isinstance(ref_time, datetime.datetime):
                 # Calculate hours since epoch (1970-01-01)
                 epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
-                hours_since_epoch = (ref_time - epoch).total_seconds() / 3600.0
+                seconds_since_epoch = int((ref_time - epoch).total_seconds())
 
-                # Get time step in hours
-                time_step_hours = self.time_step / 3600.0  # Convert seconds to hours
-
-                # Generate time values as hours since epoch
+                # Generate time values with integer seconds
                 time_values = np.arange(
-                    hours_since_epoch,
-                    hours_since_epoch + time_dim * time_step_hours,
-                    time_step_hours,
-                    dtype='f4'
+                    seconds_since_epoch,
+                    seconds_since_epoch + time_dim * self.time_step,
+                    self.time_step,
+                    dtype='i8'
                 )
             else:
                 raise TypeError("expected datetime.datetime object as self.reference_time")
@@ -386,7 +345,7 @@ class SingleOmToZarr:
             "zarr_format": 2,
             "shape": [time_dim],
             "chunks": [time_dim],
-            "dtype": "<f4",     # Single precision float
+            "dtype": "<i8",
             "compressor": None,
             "fill_value": None,
             "order": "C",
@@ -417,7 +376,7 @@ class SingleOmToZarr:
         print(f"Created time coordinate '{time_dim_name}' with {time_dim} values")
         print(f"Time units: {units}")
         if time_dim > 0:
-            print(f"First timestamp: {time_values[0]} hours since 1970-01-01, Last: {time_values[-1]}")
+            print(f"First timestamp: {time_values[0]} seconds since 1970-01-01, Last: {time_values[-1]}")
 
     def _get_chunk_coords(self, idx, chunks_per_dim):
         """Convert linear chunk index to multidimensional coordinates
