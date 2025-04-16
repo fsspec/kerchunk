@@ -29,7 +29,7 @@ def refs_as_fs(
     if fs is not None:
         fs.asynchronous = asynchronous
     else:
-        remote_options = remote_options.copy()
+        remote_options = remote_options.copy() if remote_options else {}
         remote_options["asynchronous"] = asynchronous
     fs = fsspec.filesystem(
         "reference",
