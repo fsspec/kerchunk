@@ -298,7 +298,7 @@ class NetCDF3ToZarr(netcdf_file):
             out = inline_array(
                 out,
                 self.threshold,
-                remote_options=dict(remote_options=self.storage_options),
+                remote_options=self.storage_options,
             )
         if isinstance(out, LazyReferenceMapper):
             out.flush()
