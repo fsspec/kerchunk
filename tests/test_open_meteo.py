@@ -9,31 +9,26 @@ import numcodecs
 import omfiles
 from omfiles.omfiles_numcodecs import PyPforDelta2dSerializer, PyPforDelta2d
 
-from kerchunk.utils import fs_as_store, refs_as_store
+from kerchunk.utils import fs_as_store
 from kerchunk.df import refs_to_dataframe
-from kerchunk.open_meteo import SingleOmToZarr, Delta2D
+from kerchunk.open_meteo import SingleOmToZarr, Delta2D, SupportedDomain
+from kerchunk.combine import MultiZarrToZarr
 
 # Register codecs needed by our pipeline
 numcodecs.register_codec(PyPforDelta2d, "pfor")
 numcodecs.register_codec(PyPforDelta2dSerializer, "pfor_serializer")
 numcodecs.register_codec(Delta2D)
 
-# Path to test file - adjust as needed
-test_file = "tests/rh_icon_chunk1914.om"
-# Skip test if file doesn't exist
-pytestmark = pytest.mark.skipif(
-    not os.path.exists(test_file), reason=f"Test file {test_file} not found"
-)
 
 def test_single_om_to_zarr():
+    # Path to test file - adjust as needed
+    chunk_no=1914
+    test_file = f"tests/rh_icon_chunk{chunk_no}.om"
     """Test creating references for a single OM file and reading via Zarr"""
     # Create references using SingleOmToZarr
-    om_to_zarr = SingleOmToZarr(test_file, inline_threshold=0)  # No inlining for testing
+    om_to_zarr = SingleOmToZarr(test_file, inline_threshold=0, domain=SupportedDomain.dwd_icon, chunk_no=chunk_no)  # No inlining for testing
     references = om_to_zarr.translate()
     om_to_zarr.close()
-
-    print("type(references)", type(references))
-    print("references.keys", references.keys())
 
     # Optionally save references to a file for inspection
     with open("om_refs.json", "w") as f:
@@ -53,13 +48,21 @@ def test_single_om_to_zarr():
 
     # Open with zarr
     group = zarr.open(store, zarr_format=2)
+    print("group['time']", group["time"][:])
     z = group["data"] # Here we just use a dummy data name we have hardcoded in SingleOmToZarr
+
+    print("z.shape", z.shape)
 
     # Verify basic metadata matches original file
     reader = omfiles.OmFilePyReader(test_file)
     assert list(z.shape) == reader.shape, f"Shape mismatch: {z.shape} vs {reader.shape}"
     assert str(z.dtype) == str(reader.dtype), f"Dtype mismatch: {z.dtype} vs {reader.dtype}"
     assert list(z.chunks) == reader.chunk_dimensions, f"Chunks mismatch: {z.chunks} vs {reader.chunk_dimensions}"
+
+    # TODO: Using the following chunk_index leads to a double free / corruption error!
+    # Most likely, because zarr and open-meteo treat partial chunks differently.
+    # om-files encode partial chunks with a reduced dimension, while zarr most likely expects a full block of data?
+    # chunk_index = (slice(0, 100), 2878, ...)
 
     # Test retrieving a specific chunk (same chunk as in your example)
     chunk_index = (5, 5, ...)
@@ -88,6 +91,58 @@ def test_single_om_to_zarr():
 
     # Clean up
     reader.close()
+
+def test_multizarr_to_zarr():
+    """Test combining two OM files into a single kerchunked Zarr reference"""
+    chunk_no1=1914
+    chunk_no2=1915
+    file1 = f"tests/rh_icon_chunk{chunk_no1}.om"
+    file2 = f"tests/rh_icon_chunk{chunk_no2}.om"
+    assert os.path.exists(file1), f"{file1} not found"
+    assert os.path.exists(file2), f"{file2} not found"
+    refs1 = SingleOmToZarr(file1, inline_threshold=0, domain=SupportedDomain.dwd_icon, chunk_no=chunk_no1).translate()
+    refs2 = SingleOmToZarr(file2, inline_threshold=0, domain=SupportedDomain.dwd_icon, chunk_no=chunk_no2).translate()
+
+    # Combine using MultiZarrToZarr
+    mzz = MultiZarrToZarr(
+        [refs1, refs2],
+        concat_dims=["time"],
+        coo_map={"time": "data:time"},
+        identical_dims=["y", "x"],
+        remote_protocol=None,
+        remote_options=None,
+        target_options=None,
+        inline_threshold=0,
+        out=None,
+    )
+    combined_refs = mzz.translate()
+
+    # Open with zarr
+    fs = fsspec.filesystem("reference", fo=combined_refs)
+    store = fs_as_store(fs)
+    group = zarr.open(store, zarr_format=2)
+    z = group["data"]
+
+    # Open both original files for comparison
+    reader1 = omfiles.OmFilePyReader(file1)
+    reader2 = omfiles.OmFilePyReader(file2)
+
+    # Check that the combined shape is the sum along the time axis
+    expected_shape = list(reader1.shape)
+    expected_shape[2] += reader2.shape[2]
+    assert list(z.shape) == expected_shape, f"Combined shape mismatch: {z.shape} vs {expected_shape}"
+
+    # Check that the first part matches file1 and the second part matches file2
+    # (Assume 3D: time, y, x)
+    slc1 = (5, 5, slice(0, reader1.shape[2]))
+    slc2 = (5, 5, slice(reader1.shape[2], expected_shape[2]))
+    np.testing.assert_allclose(z[slc1], reader1[slc1], rtol=1e-5)
+    np.testing.assert_allclose(z[slc2], reader2[slc1], rtol=1e-5)
+
+    print("✓ MultiZarrToZarr combined data matches originals!")
+
+    reader1.close()
+    reader2.close()
 
 
 # def test_om_to_xarray():
@@ -125,4 +180,5 @@ def test_single_om_to_zarr():
 if __name__ == "__main__":
     # Run tests directly if file is executed
     test_single_om_to_zarr()
+    test_multizarr_to_zarr()
     # test_om_to_xarray()
