@@ -28,6 +28,9 @@ def refs_as_fs(
     """Convert a reference set to an fsspec filesystem"""
     if fs is not None:
         fs.asynchronous = asynchronous
+    else:
+        remote_options = remote_options.copy()
+        remote_options["asynchronous"] = asynchronous
     fs = fsspec.filesystem(
         "reference",
         fo=refs,
@@ -302,7 +305,7 @@ def _inline_array(group, threshold, names, prefix=""):
             cond2 = prefix1 in names
             if cond1 or cond2:
                 original_attrs = dict(thing.attrs)
-                data = thing[:]
+                data = thing[...]
                 arr = group.create_array(
                     name=name,
                     dtype=thing.dtype,
@@ -311,7 +314,7 @@ def _inline_array(group, threshold, names, prefix=""):
                     fill_value=thing.fill_value,
                     overwrite=True,
                 )
-                arr[:] = data
+                arr[...] = data
                 arr.attrs.update(original_attrs)
 
 
