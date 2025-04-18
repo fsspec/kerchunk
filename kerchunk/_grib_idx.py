@@ -101,7 +101,7 @@ COORD_DIM_MAPPING: dict[str, str] = dict(
 ZARR_TREE_STORE = "zarr_tree_store.json.gz"
 
 # derived from eccodes/grib2/typeOfLevelConcept.def
-ECCODES_VERTICAL_LEVEL_LIST = [
+ECCODES_VERTICAL_LEVELS = {
     "abstractMultipleLevels",
     "abstractSingleLevel",
     "adiabaticCondensation",
@@ -196,7 +196,7 @@ ECCODES_VERTICAL_LEVEL_LIST = [
     "wall",
     "wallLayer",
     "waterSurfaceToIsothermalOceanLayer",
-]
+}
 
 
 def repeat_steps(step_index: pd.TimedeltaIndex, to_length: int) -> np.array:
@@ -710,7 +710,7 @@ def extract_dataset_chunk_index(
             for cname, cvar in dvar.coords.items():
                 if grib:
                     # Grib data has only one level coordinate
-                    cname = "level" if cname in ECCODES_VERTICAL_LEVEL_LIST else cname
+                    cname = "level" if cname in ECCODES_VERTICAL_LEVELS else cname
 
                 if all([dim_name in dim_idx for dim_name in cvar.dims]):
                     coord_index = tuple([dim_idx[dim_name] for dim_name in cvar.dims])
