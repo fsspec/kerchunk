@@ -100,6 +100,104 @@ COORD_DIM_MAPPING: dict[str, str] = dict(
 
 ZARR_TREE_STORE = "zarr_tree_store.json.gz"
 
+# derived from eccodes/grib2/typeOfLevelConcept.def
+ECCODES_VERTICAL_LEVELS = {
+    "abstractMultipleLevels",
+    "abstractSingleLevel",
+    "adiabaticCondensation",
+    "atmosphere",
+    "cloudBase",
+    "cloudTop",
+    "convectiveCondensation",
+    "cumulonimbusBase",
+    "cumulonimbusTop",
+    "depthBelowLand",
+    "depthBelowLandLayer",
+    "depthBelowSea",
+    "depthBelowSeaLayer",
+    "entireAtmosphere",
+    "entireLake",
+    "entireMeltPond",
+    "entireOcean",
+    "eta",
+    "freeConvection",
+    "generalVertical",
+    "generalVerticalLayer",
+    "heightAboveGround",
+    "heightAboveGroundLayer",
+    "heightAboveSea",
+    "heightAboveSeaLayer",
+    "highCloudLayer",
+    "hybrid",
+    "hybridHeight",
+    "hybridLayer",
+    "hybridPressure",
+    "iceBottomOnWater",
+    "iceLayerAboveWaterSurface",
+    "iceLayerOnWater",
+    "iceLayerUnderSnowOnWater",
+    "iceTopOnWater",
+    "iceTopUnderSnowOnWater",
+    "indefiniteSoilDepth",
+    "isobaricInPa",
+    "isobaricInhPa",
+    "isobaricLayer",
+    "isothermZero",
+    "isothermal",
+    "lakeBottom",
+    "lowCloudLayer",
+    "lowestLevelOfCloudCoverExceedance",
+    "maxWind",
+    "meanSea",
+    "mediumCloudLayer",
+    "meltPondBottom",
+    "meltPondTop",
+    "mixedLayerDepthByDensity",
+    "mixedLayerDepthByDiffusivity",
+    "mixedLayerDepthByTemperature",
+    "mixedLayerDepthGeneric",
+    "mixedLayerParcel",
+    "mixingLayer",
+    "mostUnstableParcel",
+    "neutralBuoyancy",
+    "nominalTop",
+    "oceanModel",
+    "oceanModelLayer",
+    "oceanSurface",
+    "oceanSurfaceToBottom",
+    "potentialVorticity",
+    "pressureFromGround",
+    "pressureFromGroundLayer",
+    "road",
+    "roadLayer",
+    "roof",
+    "roofLayer",
+    "rootZone",
+    "seaBottom",
+    "seaIce",
+    "seaIceLayer",
+    "sigma",
+    "sigmaLayer",
+    "snow",
+    "snowLayer",
+    "snowLayerOverIceOnWater",
+    "snowTopOverIceOnWater",
+    "soil",
+    "soilLayer",
+    "stratosphere",
+    "surface",
+    "theta",
+    "thetaLayer",
+    "totalSoilLayer",
+    "tropopause",
+    "troposphere",
+    "unknown",
+    "urbanCanyon",
+    "wall",
+    "wallLayer",
+    "waterSurfaceToIsothermalOceanLayer",
+}
+
 
 def repeat_steps(step_index: pd.TimedeltaIndex, to_length: int) -> np.array:
     return np.tile(step_index.to_numpy(), int(np.ceil(to_length / len(step_index))))[
@@ -612,12 +710,7 @@ def extract_dataset_chunk_index(
             for cname, cvar in dvar.coords.items():
                 if grib:
                     # Grib data has only one level coordinate
-                    cname = (
-                        cname
-                        if cname
-                        in ("valid_time", "time", "step", "latitude", "longitude")
-                        else "level"
-                    )
+                    cname = "level" if cname in ECCODES_VERTICAL_LEVELS else cname
 
                 if all([dim_name in dim_idx for dim_name in cvar.dims]):
                     coord_index = tuple([dim_idx[dim_name] for dim_name in cvar.dims])
