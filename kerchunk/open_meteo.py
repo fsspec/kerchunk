@@ -23,7 +23,7 @@ from .utils import (
 
 try:
     import omfiles
-    from omfiles.omfiles_numcodecs import PyPforDelta2d
+    from omfiles.omfiles_numcodecs import TurboPfor
 except ModuleNotFoundError:  # pragma: no cover
     raise ImportError(
         "omfiles is required for kerchunking Open-Meteo files. Please install with "
@@ -167,7 +167,7 @@ class Delta2D(numcodecs.abc.Codec):
         return r
 
 # Register codecs
-numcodecs.register_codec(PyPforDelta2d, "pfor")
+numcodecs.register_codec(TurboPfor, "pfor")
 numcodecs.register_codec(Delta2D, "delta2d")
 numcodecs.register_codec(Reshape, "reshape")
 
