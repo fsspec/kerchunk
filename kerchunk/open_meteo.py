@@ -23,7 +23,6 @@ from .utils import (
 
 try:
     import omfiles
-    from omfiles.omfiles_numcodecs import TurboPfor
 except ModuleNotFoundError:  # pragma: no cover
     raise ImportError(
         "omfiles is required for kerchunking Open-Meteo files. Please install with "
@@ -167,13 +166,9 @@ class Delta2D(numcodecs.abc.Codec):
         return r
 
 # Register codecs
-numcodecs.register_codec(TurboPfor, "pfor")
+# NOTE: TurboPfor is register as `turbo_pfor` by omfiles already
 numcodecs.register_codec(Delta2D, "delta2d")
 numcodecs.register_codec(Reshape, "reshape")
-
-# print(numcodecs.registry.codec_registry)
-# codec = numcodecs.get_codec({"id": "pfor_serializer"})
-# print(codec)
 
 
 class SingleOmToZarr:
@@ -244,14 +239,13 @@ class SingleOmToZarr:
             "shape": shape,
             "chunks": chunks,
             "dtype": str(dtype),
-            "compressor": {"id": "pfor", "length": blocksize},  # As main compressor
+            "compressor": {"id": "turbo_pfor", "chunk_elements": blocksize},  # As main compressor
             "fill_value": None,
             "order": "C",
             "filters": [
                 {"id": "fixedscaleoffset", "scale": scale_factor, "offset": add_offset, "dtype": "f4", "astype": "i2"},
                 {"id": "delta2d", "dtype": "<i2"},
                 {"id": "reshape", "shape": [chunks[1], chunks[2]]},  # Reshape to 2D
-                # {"id": "pfor_serializer", "blocksize": blocksize},
             ]
         }
 

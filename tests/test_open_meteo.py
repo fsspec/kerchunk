@@ -11,6 +11,7 @@ from kerchunk.df import refs_to_dataframe
 from kerchunk.open_meteo import SingleOmToZarr, SupportedDomain
 from kerchunk.utils import fs_as_store
 
+zarr.config.config["async"]["concurrency"] = 1
 
 def test_single_om_to_zarr():
     # Path to test file - adjust as needed
@@ -44,6 +45,7 @@ def test_single_om_to_zarr():
     z = group["data"] # Here we just use a dummy data name we have hardcoded in SingleOmToZarr
 
     print("z.shape", z.shape)
+    print("z.chunks", z.chunks)
 
     # Verify basic metadata matches original file
     reader = omfiles.OmFilePyReader(test_file)
@@ -52,11 +54,12 @@ def test_single_om_to_zarr():
     assert list(z.chunks) == reader.chunk_dimensions, f"Chunks mismatch: {z.chunks} vs {reader.chunk_dimensions}"
 
     # TODO: Using the following chunk_index leads to a double free / corruption error!
-    # Most likely, because zarr and open-meteo treat partial chunks differently.
+    # Even with a concurrency of 1: `zarr.config.config["async"]["concurrency"] = 1`
+    # Most likely, because zarr and open-meteo treat partial chunks differently:
     # om-files encode partial chunks with a reduced dimension, while zarr most likely expects a full block of data?
-    # chunk_index = (slice(0, 100), 2878, ...)
+    # chunk_index = (slice(90, 100), 2878, ...)
 
-    # Test retrieving a specific chunk (same chunk as in your example)
+    # Test retrieving a specific chunk
     chunk_index = (5, 5, ...)
 
     # Get direct chunk data
