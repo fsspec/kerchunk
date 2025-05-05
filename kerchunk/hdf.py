@@ -186,7 +186,7 @@ class SingleHdf5ToZarr:
 
             # Fix some attribute values to avoid JSON encoding exceptions...
             if isinstance(v, bytes):
-                v = v.decode("utf-8") or " "
+                v = v.decode("utf-8", errors="replace") or " "
             elif isinstance(v, (np.ndarray, np.number, np.bool_)):
                 if v.dtype.kind == "S":
                     v = v.astype(str)
