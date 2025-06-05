@@ -120,6 +120,10 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
     d.attrs.update(attr)
 
 
+def contains_valid_level(message_keys: Set) -> bool:
+    return "level" in message_keys or "topLevel" in message_keys
+
+
 def scan_grib(
     url,
     common=None,
@@ -247,7 +251,7 @@ def scan_grib(
             _store_array(
                 store_dict, z, vals, varName, inline_threshold, offset, size, attrs
             )
-            if "typeOfLevel" in message_keys and "level" in message_keys:
+            if "typeOfLevel" in message_keys and contains_valid_level(message_keys):
                 name = m["typeOfLevel"]
                 coordinates.append(name)
                 # convert to numpy scalar, so that .tobytes can be used for inlining
