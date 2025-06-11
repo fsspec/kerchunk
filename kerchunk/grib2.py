@@ -121,6 +121,18 @@ def _store_array(store, z, data, var, inline_threshold, offset, size, attr):
 
 
 def contains_valid_level(message_keys: Set) -> bool:
+    """Check if the given set of message_keys contain a valid level value.
+    Some types of level, like depthBelowLandLayer for GEFS grib files,
+    represent slices of levels by "topLevel" and "bottomLevel" rather 
+    than a discrete level value described by "level".
+    see https://github.com/fsspec/kerchunk/issues/559
+    
+    Args:
+        message_keys: Set of keys to evaluate
+    
+    Returns:
+        True if message_keys contain a valid level value, False otherwise    
+    """
     return "level" in message_keys or "topLevel" in message_keys
 
 
@@ -251,7 +263,7 @@ def scan_grib(
             _store_array(
                 store_dict, z, vals, varName, inline_threshold, offset, size, attrs
             )
-            if "typeOfLevel" in message_keys and contains_valid_level(message_keys):
+            if "typeOfLevel" in message_keys and contains_valid_level(message_keys:
                 name = m["typeOfLevel"]
                 coordinates.append(name)
                 # convert to numpy scalar, so that .tobytes can be used for inlining
