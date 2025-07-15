@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python=3.12
   - dask
-  - zarr
+  - zarr>=3.0.1
   - xarray>=2024.10.0
   - h5netcdf
   - h5py
@@ -36,4 +36,3 @@ dependencies:
   - netCDF4
   - pip:
       - git+https://github.com/fsspec/filesystem_spec
-      - git+https://github.com/zarr-developers/zarr-python
