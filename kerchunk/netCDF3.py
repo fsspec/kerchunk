@@ -216,7 +216,7 @@ class NetCDF3ToZarr(netcdf_file):
                 ]
             arr.attrs.update(
                 {
-                    k: v.decode() if isinstance(v, bytes) else str(v)
+                    k: v.decode(erros="ignore") if isinstance(v, bytes) else str(v)
                     for k, v in var._attributes.items()
                     if k not in ["_FillValue", "missing_value"]
                 }
