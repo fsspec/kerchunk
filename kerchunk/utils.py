@@ -44,7 +44,7 @@ def refs_as_fs(
 
 
 def refs_as_store(
-    refs, read_only=False, fs=None, remote_protocol=None, remote_options=None
+    refs, read_only=False, fs=None, remote_protocol=None, remote_options=None, **kwargs
 ):
     """Convert a reference set to a zarr store"""
     remote_options = remote_options or {}
@@ -55,6 +55,7 @@ def refs_as_store(
         fs=fs,
         remote_protocol=remote_protocol,
         remote_options=remote_options,
+        **kwargs,
     )
     return fs_as_store(fss, read_only=read_only)
 
