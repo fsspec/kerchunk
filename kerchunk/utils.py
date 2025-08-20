@@ -28,6 +28,9 @@ def refs_as_fs(
     """Convert a reference set to an fsspec filesystem"""
     if fs is not None:
         fs.asynchronous = asynchronous
+    else:
+        remote_options = remote_options.copy() if remote_options else {}
+        remote_options["asynchronous"] = asynchronous
     fs = fsspec.filesystem(
         "reference",
         fo=refs,
@@ -41,7 +44,7 @@ def refs_as_fs(
 
 
 def refs_as_store(
-    refs, read_only=False, fs=None, remote_protocol=None, remote_options=None
+    refs, read_only=False, fs=None, remote_protocol=None, remote_options=None, **kwargs
 ):
     """Convert a reference set to a zarr store"""
     remote_options = remote_options or {}
@@ -52,6 +55,7 @@ def refs_as_store(
         fs=fs,
         remote_protocol=remote_protocol,
         remote_options=remote_options,
+        **kwargs,
     )
     return fs_as_store(fss, read_only=read_only)
 
@@ -302,7 +306,7 @@ def _inline_array(group, threshold, names, prefix=""):
             cond2 = prefix1 in names
             if cond1 or cond2:
                 original_attrs = dict(thing.attrs)
-                data = thing[:]
+                data = thing[...]
                 arr = group.create_array(
                     name=name,
                     dtype=thing.dtype,
@@ -311,7 +315,7 @@ def _inline_array(group, threshold, names, prefix=""):
                     fill_value=thing.fill_value,
                     overwrite=True,
                 )
-                arr[:] = data
+                arr[...] = data
                 arr.attrs.update(original_attrs)
 
 

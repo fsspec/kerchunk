@@ -23,3 +23,6 @@ at https://observablehq.com/@manzt/ome-tiff-as-filesystemreference.
 
     <script data-goatcounter="https://kerchunk.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
+
+GDAL (since 3.11) has also support for JSON and Parquet reference stores as
+described in https://gdal.org/en/stable/drivers/raster/zarr.html

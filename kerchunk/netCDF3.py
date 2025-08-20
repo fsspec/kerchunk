@@ -216,7 +216,7 @@ class NetCDF3ToZarr(netcdf_file):
                 ]
             arr.attrs.update(
                 {
-                    k: v.decode() if isinstance(v, bytes) else str(v)
+                    k: v.decode(errors="ignore") if isinstance(v, bytes) else str(v)
                     for k, v in var._attributes.items()
                     if k not in ["_FillValue", "missing_value"]
                 }
@@ -298,7 +298,7 @@ class NetCDF3ToZarr(netcdf_file):
             out = inline_array(
                 out,
                 self.threshold,
-                remote_options=dict(remote_options=self.storage_options),
+                remote_options=self.storage_options,
             )
         if isinstance(out, LazyReferenceMapper):
             out.flush()
