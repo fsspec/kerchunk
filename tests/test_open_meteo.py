@@ -48,10 +48,10 @@ def test_single_om_to_zarr():
     print("z.chunks", z.chunks)
 
     # Verify basic metadata matches original file
-    reader = omfiles.OmFilePyReader(test_file)
-    assert list(z.shape) == reader.shape, f"Shape mismatch: {z.shape} vs {reader.shape}"
+    reader = omfiles.OmFileReader(test_file)
+    assert z.shape == reader.shape, f"Shape mismatch: {z.shape} vs {reader.shape}"
     assert str(z.dtype) == str(reader.dtype), f"Dtype mismatch: {z.dtype} vs {reader.dtype}"
-    assert list(z.chunks) == reader.chunk_dimensions, f"Chunks mismatch: {z.chunks} vs {reader.chunk_dimensions}"
+    assert z.chunks == reader.chunks, f"Chunks mismatch: {z.chunks} vs {reader.chunks}"
 
     # TODO: Using the following chunk_index leads to a double free / corruption error!
     # Even with a concurrency of 1: `zarr.config.config["async"]["concurrency"] = 1`
@@ -127,8 +127,8 @@ def test_multizarr_to_zarr():
     z = group["data"]
 
     # Open both original files for comparison
-    reader1 = omfiles.OmFilePyReader(file1)
-    reader2 = omfiles.OmFilePyReader(file2)
+    reader1 = omfiles.OmFileReader(file1)
+    reader2 = omfiles.OmFileReader(file2)
 
     # Check that the combined shape is the sum along the time axis
     expected_shape = list(reader1.shape)
@@ -165,7 +165,7 @@ def test_multizarr_to_zarr():
 #         ds = xr.open_zarr(store, consolidated=False)
 
 #         # Basic validation
-#         reader = omfiles.OmFilePyReader(test_file)
+#         reader = omfiles.OmFileReader(test_file)
 #         assert ds.dims == dict(zip(["time", "y", "x"], reader.shape))
 
 #         # Get some data to verify decompression pipeline

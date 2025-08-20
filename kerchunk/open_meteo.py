@@ -23,6 +23,7 @@ from .utils import (
 
 try:
     import omfiles
+    import omfiles._numcodecs
 except ModuleNotFoundError:  # pragma: no cover
     raise ImportError(
         "omfiles is required for kerchunking Open-Meteo files. Please install with "
@@ -191,10 +192,10 @@ class SingleOmToZarr:
             fs, path = fsspec.core.url_to_fs(om_file, **(storage_options or {}))
             self.input_file = fs.open(path, "rb")
             url = om_file
-            self.reader = omfiles.OmFilePyReader(self.input_file)
+            self.reader = omfiles.OmFileReader(self.input_file)
         elif isinstance(om_file, io.IOBase):
             self.input_file = om_file
-            self.reader = omfiles.OmFilePyReader(self.input_file)
+            self.reader = omfiles.OmFileReader(self.input_file)
         else:
             raise ValueError("type of input `om_file` not recognized")
 
@@ -219,7 +220,7 @@ class SingleOmToZarr:
         # 1. Extract metadata about shape, dtype, chunks, etc.
         shape = self.reader.shape
         dtype = self.reader.dtype
-        chunks = self.reader.chunk_dimensions
+        chunks = self.reader.chunks
         scale_factor = self.reader.scale_factor
         add_offset = self.reader.add_offset
         lut = self.reader.get_complete_lut()

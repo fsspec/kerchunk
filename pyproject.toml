@@ -50,7 +50,7 @@ dev = [
     "scipy",
     "netcdf4",
     "pytest-subtests",
-    "omfiles @ git+https://github.com/open-meteo/python-omfiles.git@codecs"
+    "omfiles @ git+https://github.com/open-meteo/python-omfiles.git@get-complete-lut"
 ]
 
 [project.urls]
