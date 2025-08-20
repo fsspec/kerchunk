@@ -23,7 +23,6 @@ from .utils import (
 
 try:
     import omfiles
-    import omfiles._numcodecs
 except ModuleNotFoundError:  # pragma: no cover
     raise ImportError(
         "omfiles is required for kerchunking Open-Meteo files. Please install with "
@@ -183,11 +182,9 @@ class SingleOmToZarr:
         inline_threshold=500,
         storage_options=None,
         chunk_no=None,
-        domain=None,
-        reference_time=None,
-        time_step=3600,
+        domain=None
     ):
-        # Initialize a reader for your om file
+        # Initialize a reader for om file
         if isinstance(om_file, (pathlib.Path, str)):
             fs, path = fsspec.core.url_to_fs(om_file, **(storage_options or {}))
             self.input_file = fs.open(path, "rb")
@@ -204,7 +201,10 @@ class SingleOmToZarr:
         self.inline = inline_threshold
         self.store_dict = {}
         self.store = dict_to_store(self.store_dict)
-        self.name = "data" # FIXME: This should be the name from om-variable
+        # FIXME: This should be the name from om-variable, but currently variables don't need to be named in omfiles
+        # self.name = self.reader.name
+        # For now, hardcode the name to "data"
+        self.name = "data"
 
         if domain is not None and chunk_no is not None:
             start_step = chunk_number_to_start_time(domain=domain, chunk_no=chunk_no)
@@ -225,15 +225,19 @@ class SingleOmToZarr:
         add_offset = self.reader.add_offset
         lut = self.reader.get_complete_lut()
 
-        # Get dimension names if available, otherwise use defaults
-        # FIXME: Currently we don't have dimension names exposed by the reader (or even necessarily in the file)
-        dim_names = getattr(self.reader, "dimension_names", ["x", "y", "time"])
+        assert len(shape) == 3, "Only 3D arrays are currently supported"
+        assert len(chunks) == 3, "Only 3D arrays are currently supported"
+
+        # FIXME: Currently we don't have a real convention how to store dimension names in om files
+        # It can be easily achieved via the hierarchical structure, but just not finalized yet.
+        # For now, just hardcode dimension names
+        dim_names = ["x", "y", "time"]
 
         # Calculate number of chunks in each dimension
         chunks_per_dim = [math.ceil(s/c) for s, c in zip(shape, chunks)]
 
         # 2. Create Zarr array metadata (.zarray)
-        blocksize = chunks[0] * chunks[1] * chunks[2] if len(chunks) >= 3 else chunks[0] * chunks[1]
+        blocksize = chunks[0] * chunks[1] * chunks[2]
 
         zarray = {
             "zarr_format": 2,
@@ -263,31 +267,27 @@ class SingleOmToZarr:
         for chunk_idx in range(len(lut) - 1):
             # Calculate chunk coordinates (i,j,k) from linear index
             chunk_coords = self._get_chunk_coords(chunk_idx, chunks_per_dim)
+            chunk_key = self.name + "/" + ".".join(map(str, chunk_coords))
 
-            # Calculate chunk size.
-            # Loop index is defined so this is safe!
-            chunk_size = lut[chunk_idx + 1] - lut[chunk_idx]
-
-            # Add to references
-            key = self.name + "/" + ".".join(map(str, chunk_coords))
+            # Calculate chunk offset and chunk size
+            chunk_offset = lut[chunk_idx]
+            chunk_size = lut[chunk_idx + 1] - chunk_offset
 
             # Check if chunk is small enough to inline
             if self.inline > 0 and chunk_size < self.inline:
                 # Read the chunk data and inline it
-                self.input_file.seek(lut[chunk_idx])
+                self.input_file.seek(chunk_offset)
                 data = self.input_file.read(chunk_size)
-                try:
-                    # Try to decode as ASCII
-                    self.store_dict[key] = data.decode('ascii')
-                except UnicodeDecodeError:
-                    # If not ASCII, encode as base64
-                    self.store_dict[key] = b"base64:" + base64.b64encode(data)
+                # Encode as base64, similar to what is done in hdf.py
+                self.store_dict[chunk_key] = b"base64:" + base64.b64encode(data)
             else:
                 # Otherwise store as reference
-                self.store_dict[key] = [self.url, lut[chunk_idx], chunk_size]
+                self.store_dict[chunk_key] = [self.url, chunk_offset, chunk_size]
 
-        # 5. Create coordinate arrays. TODO: This needs to be improved
-        # Add coordinate arrays for ALL dimensions
+        # 5. Create coordinate arrays.
+        # TODO: This needs to be improved, because we need coordinates for all dimensions
+        # Grid definitions / coordinate arrays might be calculated in the python-omfiles directly in the future:
+        # https://github.com/open-meteo/python-omfiles/pull/32/files
         for i, dim_name in enumerate(dim_names):
             dim_size = shape[i]
             if dim_name == "time":
@@ -299,10 +299,8 @@ class SingleOmToZarr:
 
         # Convert to proper format for return
         if self.spec < 1:
-            print("self.spec < 1")
             return self.store
         else:
-            print("translate_refs_serializable")
             translate_refs_serializable(self.store_dict)
             store = _encode_for_JSON(self.store_dict)
             return {"version": 1, "refs": store}
@@ -319,7 +317,7 @@ class SingleOmToZarr:
 
             # Format the reference time as CF-compliant string
             if isinstance(ref_time, datetime.datetime):
-                # Calculate hours since epoch (1970-01-01)
+                # Calculate seconds since epoch (1970-01-01)
                 epoch = datetime.datetime(1970, 1, 1, 0, 0, 0)
                 seconds_since_epoch = int((ref_time - epoch).total_seconds())
 
@@ -366,12 +364,6 @@ class SingleOmToZarr:
 
         # Add time values inline (they're small)
         self.store_dict[f"{time_dim_name}/0"] = time_values.tobytes()
-
-        # Debug info
-        print(f"Created time coordinate '{time_dim_name}' with {time_dim} values")
-        print(f"Time units: {units}")
-        if time_dim > 0:
-            print(f"First timestamp: {time_values[0]} seconds since 1970-01-01, Last: {time_values[-1]}")
 
     def _get_chunk_coords(self, idx, chunks_per_dim):
         """Convert linear chunk index to multidimensional coordinates
