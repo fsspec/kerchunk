@@ -309,7 +309,7 @@ class SingleHdf5ToZarr:
                     kwargs["filters"] = self._decode_filters(h5obj)
                 dt = None
                 # Get storage info of this HDF5 dataset...
-                cinfo = self._storage_info(h5obj)
+                cinfo = self._storage_info_and_adj_filters(h5obj, kwargs["filters"])
 
                 if "data" in kwargs:
                     fill = None
@@ -610,16 +610,21 @@ class SingleHdf5ToZarr:
                     dims.append(f"phony_dim_{n}")
         return dims
 
-    def _storage_info(self, dset: h5py.Dataset) -> dict:
+    def _storage_info_and_adj_filters(self, dset: h5py.Dataset, filters: list) -> dict:
         """Get storage information of an HDF5 dataset in the HDF5 file.
 
         Storage information consists of file offset and size (length) for every
-        chunk of the HDF5 dataset.
+        chunk of the HDF5 dataset. HDF5 dataset also configs for each chunk
+        which filters are skipped by `filter_mask` (mostly in the case where a chunk is small),
+        hence a filter will be cleared if all the chunks does not apply it.
+        `RuntimeError` will be raised if chucks have heterogeneous `filter_mask`.
 
         Parameters
         ----------
         dset : h5py.Dataset
             HDF5 dataset for which to collect storage information.
+        filters: list
+            List of filters to apply to the HDF5 dataset. Will be modified in place in some filters not applied.
 
         Returns
         -------
@@ -653,11 +658,18 @@ class SingleHdf5ToZarr:
             # Go over all the dataset chunks...
             stinfo = dict()
             chunk_size = dset.chunks
+            filter_mask = None  # type: None | int
 
             def get_key(blob):
                 return tuple([a // b for a, b in zip(blob.chunk_offset, chunk_size)])
 
             def store_chunk_info(blob):
+                nonlocal filter_mask
+                if filter_mask is None:
+                    filter_mask = blob.filter_mask
+                elif filter_mask != blob.filter_mask:
+                    raise RuntimeError(f"Dataset {dset.name} has heterogeneous `filter_mask` - "
+                                       f"not supported by kerchunk.")
                 stinfo[get_key(blob)] = {"offset": blob.byte_offset, "size": blob.size}
 
             has_chunk_iter = callable(getattr(dsid, "chunk_iter", None))
@@ -668,6 +680,13 @@ class SingleHdf5ToZarr:
                 for index in range(num_chunks):
                     store_chunk_info(dsid.get_chunk_info(index))
 
+            # In most cases, the `filter_mask` should be zero, which means that all filters are applied.
+            # If a filter is skipped, the corresponding bit in the mask fill be set 1.
+            if filter_mask is not None and filter_mask != 0:
+                # use [2:] to remove the heading `0b` and [::-1] to reverse the order
+                bin_mask = bin(filter_mask)[2:][::-1]
+                filters_rest = [ifilter for ifilter, imask in zip(filters, bin_mask) if ifilter == '0']
+                filters[:] = filters_rest
             return stinfo
 
 

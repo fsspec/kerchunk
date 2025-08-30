@@ -393,3 +393,15 @@ def test_translate_links():
             for key in z[f"{dset}_{link}"].attrs.keys():
                 if key not in kerchunk.hdf._HIDDEN_ATTRS and key != "_ARRAY_DIMENSIONS":
                     assert z[f"{dset}_{link}"].attrs[key] == z[dset].attrs[key]
+
+
+def test_small_chunks():
+    from fsspec.implementations.reference import ReferenceFileSystem
+    suffixes = ['blosc', 'shuffle_zstd', 'zstd']
+    for suffix in suffixes:
+        fname = osp.join(here, f"hdf5_mini_{suffix}.h5")
+        with open(fname, "rb") as f:
+            ref = kerchunk.hdf.SingleHdf5ToZarr(f, None).translate()
+        store = ReferenceFileSystem(ref, target=fname).get_mapper()
+        data = zarr.group(store)['data'][:]
+        assert (data == np.arange(4, dtype=np.int32)).all()
