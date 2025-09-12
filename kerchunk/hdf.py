@@ -340,7 +340,7 @@ class SingleHdf5ToZarr:
                                             for v in val
                                         ]
                             kwargs["data"] = out
-                            kwargs["filters"] = [numcodecs.JSON()]
+                            kwargs["filters"] = [numcodecs.VLenUTF8()]
                             fill = None
                         elif self.vlen == "null":
                             dt = "O"
@@ -466,7 +466,7 @@ class SingleHdf5ToZarr:
                                 )
                             dt = "O"
                             kwargs["data"] = data2
-                            kwargs["filters"] = [numcodecs.JSON()]
+                            kwargs["filters"] = [numcodecs.VLenUTF8()]
                             fill = None
                         else:
                             raise NotImplementedError
@@ -481,6 +481,8 @@ class SingleHdf5ToZarr:
 
                 # Create a Zarr array equivalent to this HDF5 dataset.
                 data = kwargs.pop("data", None)
+                if (dt or h5obj.dtype) == object:
+                    dt = "string"
                 za = self._zroot.require_array(
                     name=h5obj.name.lstrip("/"),
                     shape=h5obj.shape,
