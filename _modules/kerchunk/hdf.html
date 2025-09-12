@@ -428,7 +428,7 @@
                                             <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span>
                                         <span class="p">]</span>
                             <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span>
-                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">JSON</span><span class="p">()]</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">VLenUTF8</span><span class="p">()]</span>
                             <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
                         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">vlen</span> <span class="o">==</span> <span class="s2">&quot;null&quot;</span><span class="p">:</span>
                             <span class="n">dt</span> <span class="o">=</span> <span class="s2">&quot;O&quot;</span>
@@ -554,7 +554,7 @@
                                 <span class="p">)</span>
                             <span class="n">dt</span> <span class="o">=</span> <span class="s2">&quot;O&quot;</span>
                             <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data2</span>
-                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">JSON</span><span class="p">()]</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">VLenUTF8</span><span class="p">()]</span>
                             <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
                         <span class="k">else</span><span class="p">:</span>
                             <span class="k">raise</span> <span class="ne">NotImplementedError</span>
@@ -569,6 +569,8 @@
 
                 <span class="c1"># Create a Zarr array equivalent to this HDF5 dataset.</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">dt</span> <span class="ow">or</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="nb">object</span><span class="p">:</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="s2">&quot;string&quot;</span>
                 <span class="n">za</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span><span class="o">.</span><span class="n">require_array</span><span class="p">(</span>
                     <span class="n">name</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">),</span>
                     <span class="n">shape</span><span class="o">=</span><span class="n">h5obj</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
