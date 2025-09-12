@@ -79,6 +79,10 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+These docs pages collect anonymous tracking data using goatcounter, and the
+dashboard is available to the public: https://kerchunk.goatcounter.com/ .
+
+
 .. raw:: html
 
     <script data-goatcounter="https://kerchunk.goatcounter.com/count"
