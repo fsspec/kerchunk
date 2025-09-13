@@ -2,14 +2,14 @@ import base64
 import io
 import logging
 import pathlib
-from typing import Union, BinaryIO
+from typing import Union, Any, Dict, List
 
 import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
 import numpy as np
 import zarr
 import numcodecs
-
+from numcodecs.abc import Codec
 from .codecs import FillStringsCodec
 from .utils import (
     _encode_for_JSON,
@@ -27,6 +27,12 @@ except ModuleNotFoundError:  # pragma: no cover
         "for more details."
     )
 
+try:
+    # Import `hdf5plugin` to config some globals for h5py.
+    import hdf5plugin
+except ModuleNotFoundError:
+    pass
+
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
     "REFERENCE_LIST",
@@ -38,6 +44,10 @@ _HIDDEN_ATTRS = {  # from h5netcdf.attrs
     "_nc3_strict",
     "_NCProperties",
 }
+
+
+class Hdf5FeatherNotSupported(RuntimeError):
+    pass
 
 
 class SingleHdf5ToZarr:
@@ -75,6 +85,9 @@ class SingleHdf5ToZarr:
         This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper
         to write out parquet as the references get filled, or some other dictionary-like class
         to customise how references get stored
+    unsupported_inline_threshold: int or None
+        Include chunks involving unsupported h5 features and smaller than this value directly
+        in the output. None will use "inline_threshold".
     """
 
     def __init__(
@@ -87,6 +100,7 @@ class SingleHdf5ToZarr:
         error="warn",
         vlen_encode="embed",
         out=None,
+        unsupported_inline_threshold=None,
     ):
 
         # Open HDF5 file in read mode...
@@ -116,6 +130,9 @@ class SingleHdf5ToZarr:
         self._zroot = zarr.group(store=self.store, zarr_format=2)
         self._uri = url
         self.error = error
+        if unsupported_inline_threshold is None:
+            unsupported_inline_threshold = inline_threshold or 100
+        self.unsupported_inline_threshold = unsupported_inline_threshold
         lggr.debug(f"HDF5 file URI: {self._uri}")
 
     def translate(self, preserve_linked_dsets=False):
@@ -144,7 +161,7 @@ class SingleHdf5ToZarr:
 
         if preserve_linked_dsets:
             if not has_visititems_links():
-                raise RuntimeError(
+                raise Hdf5FeatherNotSupported(
                     "'preserve_linked_dsets' kwarg requires h5py 3.11.0 or later "
                     f"is installed, found {h5py.__version__}"
                 )
@@ -219,11 +236,11 @@ class SingleHdf5ToZarr:
 
     def _decode_filters(self, h5obj: Union[h5py.Dataset, h5py.Group]):
         if h5obj.scaleoffset:
-            raise RuntimeError(
+            raise Hdf5FeatherNotSupported(
                 f"{h5obj.name} uses HDF5 scaleoffset filter - not supported by kerchunk"
             )
         if h5obj.compression in ("szip", "lzf"):
-            raise RuntimeError(
+            raise Hdf5FeatherNotSupported(
                 f"{h5obj.name} uses szip or lzf compression - not supported by kerchunk"
             )
         filters = []
@@ -261,18 +278,18 @@ class SingleHdf5ToZarr:
             elif str(filter_id) == "gzip":
                 filters.append(numcodecs.Zlib(level=properties))
             elif str(filter_id) == "32004":
-                raise RuntimeError(
+                raise Hdf5FeatherNotSupported(
                     f"{h5obj.name} uses lz4 compression - not supported by kerchunk"
                 )
             elif str(filter_id) == "32008":
-                raise RuntimeError(
+                raise Hdf5FeatherNotSupported(
                     f"{h5obj.name} uses bitshuffle compression - not supported by kerchunk"
                 )
             elif str(filter_id) == "shuffle":
                 # already handled before this loop
                 pass
             else:
-                raise RuntimeError(
+                raise Hdf5FeatherNotSupported(
                     f"{h5obj.name} uses filter id {filter_id} with properties {properties},"
                     f" not supported by kerchunk."
                 )
@@ -287,7 +304,7 @@ class SingleHdf5ToZarr:
     ):
         """Produce Zarr metadata for all groups and datasets in the HDF5 file."""
         try:  # method must not raise exception
-            kwargs = {"compressor": None}
+            kwargs: Dict[str, Any] = {"compressor": None}
 
             if isinstance(h5obj, (h5py.SoftLink, h5py.HardLink)):
                 h5obj = self._h5f[name]
@@ -303,13 +320,33 @@ class SingleHdf5ToZarr:
                 lggr.debug(f"HDF5 compression: {h5obj.compression}")
                 if h5obj.id.get_create_plist().get_layout() == h5py.h5d.COMPACT:
                     # Only do if h5obj.nbytes < self.inline??
-                    kwargs["data"] = h5obj[:]
+                    # kwargs["data"] = h5obj[:]
+                    if h5obj.nbytes < self.inline:
+                        kwargs["data"] = h5obj[:]
                     kwargs["filters"] = []
                 else:
-                    kwargs["filters"] = self._decode_filters(h5obj)
+                    try:
+                        kwargs["filters"] = self._decode_filters(h5obj)
+                    except Hdf5FeatherNotSupported:
+                        if h5obj.nbytes < self.unsupported_inline_threshold:
+                            kwargs["data"] = h5obj[:]
+                            kwargs["filters"] = []
+                        else:
+                            raise
                 dt = None
                 # Get storage info of this HDF5 dataset...
-                cinfo = self._storage_info_and_adj_filters(h5obj, kwargs["filters"])
+                if "data" in kwargs:
+                    cinfo = _NULL_CHUNK_INFO
+                else:
+                    try:
+                        cinfo = self._storage_info_and_adj_filters(h5obj, kwargs["filters"])
+                    except Hdf5FeatherNotSupported:
+                        if h5obj.nbytes < self.unsupported_inline_threshold:
+                            kwargs["data"] = h5obj[:]
+                            kwargs["filters"] = []
+                            cinfo = _NULL_CHUNK_INFO
+                        else:
+                            raise
 
                 if "data" in kwargs:
                     fill = None
@@ -501,14 +538,21 @@ class SingleHdf5ToZarr:
                     try:
                         za[:] = data
                     except (ValueError, TypeError):
-                        self.store_dict[f"{za.path}/0"] = kwargs["filters"][0].encode(
-                            data
-                        )
+                        store_key = f"{za.path}/{'.'.join('0'*h5obj.ndim)}"
+                        self.store_dict[store_key] = _filters_encode_data(data, kwargs["filters"])
                     return
 
                 # Store chunk location metadata...
                 if cinfo:
                     for k, v in cinfo.items():
+                        key = (
+                                str.removeprefix(h5obj.name, "/")
+                                + "/"
+                                + ".".join(map(str, k))
+                        )
+                        if "data" in v:
+                            self.store_dict[key] = v["data"]
+                            continue
                         if h5obj.fletcher32:
                             logging.info("Discarding fletcher32 checksum")
                             v["size"] -= 4
@@ -525,11 +569,12 @@ class SingleHdf5ToZarr:
                         ):
                             self.input_file.seek(v["offset"])
                             data = self.input_file.read(v["size"])
-                            try:
-                                # easiest way to test if data is ascii
-                                data.decode("ascii")
-                            except UnicodeDecodeError:
-                                data = b"base64:" + base64.b64encode(data)
+                            # Removed the encoding, as will finally be encoded_for_JSON
+                            # try:
+                            #     # easiest way to test if data is ascii
+                            #     data.decode("ascii")
+                            # except UnicodeDecodeError:
+                            #     data = b"base64:" + base64.b64encode(data)
 
                             self.store_dict[key] = data
                         else:
@@ -597,7 +642,7 @@ class SingleHdf5ToZarr:
                 elif h5py.h5ds.is_scale(dset.id):
                     dims.append(dset.name[1:])
                 elif num_scales > 1:
-                    raise RuntimeError(
+                    raise Hdf5FeatherNotSupported(
                         f"{dset.name}: {len(dset.dims[n])} "
                         f"dimension scales attached to dimension #{n}"
                     )
@@ -617,7 +662,7 @@ class SingleHdf5ToZarr:
         chunk of the HDF5 dataset. HDF5 dataset also configs for each chunk
         which filters are skipped by `filter_mask` (mostly in the case where a chunk is small),
         hence a filter will be cleared if all the chunks does not apply it.
-        `RuntimeError` will be raised if chucks have heterogeneous `filter_mask`.
+        `Hdf5FeatherNotSupported` will be raised if chucks have heterogeneous `filter_mask`.
 
         Parameters
         ----------
@@ -635,14 +680,14 @@ class SingleHdf5ToZarr:
         """
         # Empty (null) dataset...
         if dset.shape is None:
-            return dict()
+            return _NULL_CHUNK_INFO
 
         dsid = dset.id
         if dset.chunks is None:
             # Contiguous dataset...
             if dsid.get_offset() is None:
                 # No data ever written...
-                return dict()
+                return _NULL_CHUNK_INFO
             else:
                 key = (0,) * (len(dset.shape) or 1)
                 return {
@@ -653,7 +698,7 @@ class SingleHdf5ToZarr:
             num_chunks = dsid.get_num_chunks()
             if num_chunks == 0:
                 # No data ever written...
-                return dict()
+                return _NULL_CHUNK_INFO
 
             # Go over all the dataset chunks...
             stinfo = dict()
@@ -663,12 +708,33 @@ class SingleHdf5ToZarr:
             def get_key(blob):
                 return tuple([a // b for a, b in zip(blob.chunk_offset, chunk_size)])
 
+            def filter_filters_by_mask(filter_list: List[Codec], filter_mask_) -> List[Codec]:
+                # use [2:] to remove the heading `0b` and [::-1] to reverse the order
+                bin_mask = bin(filter_mask_)[2:][::-1]
+                filters_rest = [ifilter for ifilter, imask in zip(filter_list, bin_mask) if imask == '0']
+                return filters_rest
+
             def store_chunk_info(blob):
                 nonlocal filter_mask
                 if filter_mask is None:
                     filter_mask = blob.filter_mask
                 elif filter_mask != blob.filter_mask:
-                    raise RuntimeError(f"Dataset {dset.name} has heterogeneous `filter_mask` - "
+                    if blob.size < self.unsupported_inline_threshold:
+                        data_slc = tuple(slice(dim_offset, min(dim_offset+dim_chunk, dim_bound))
+                                           for dim_offset, dim_chunk, dim_bound in zip(
+                                                   blob.chunk_offset, chunk_size, dset.shape))
+                        data = dset[data_slc]
+                        if data.shape != chunk_size:
+                            bg = np.full(chunk_size, dset.fillvalue, dset.dtype, order='C')
+                            bg[tuple(slice(0, d) for d in data.shape)] = data
+                            data_flatten = bg.reshape(-1)
+                        else:
+                            data_flatten = data.reshape(-1)
+                        encoded = _filters_encode_data(data_flatten, filter_filters_by_mask(filters, filter_mask))
+                        stinfo[get_key(blob)] = {"data": encoded}
+                        return
+                    else:
+                        raise Hdf5FeatherNotSupported(f"Dataset {dset.name} has heterogeneous `filter_mask` - "
                                        f"not supported by kerchunk.")
                 stinfo[get_key(blob)] = {"offset": blob.byte_offset, "size": blob.size}
 
@@ -683,10 +749,7 @@ class SingleHdf5ToZarr:
             # In most cases, the `filter_mask` should be zero, which means that all filters are applied.
             # If a filter is skipped, the corresponding bit in the mask fill be set 1.
             if filter_mask is not None and filter_mask != 0:
-                # use [2:] to remove the heading `0b` and [::-1] to reverse the order
-                bin_mask = bin(filter_mask)[2:][::-1]
-                filters_rest = [ifilter for ifilter, imask in zip(filters, bin_mask) if ifilter == '0']
-                filters[:] = filters_rest
+                filters[:] = filter_filters_by_mask(filters, filter_mask)
             return stinfo
 
 
@@ -723,3 +786,12 @@ def _is_netcdf_variable(dataset: h5py.Dataset):
 
 def has_visititems_links():
     return hasattr(h5py.Group, "visititems_links")
+
+
+def _filters_encode_data(data, filters: List[Codec]):
+    for ifilter in filters:
+        data = ifilter.encode(data)
+    return bytes(data)
+
+
+_NULL_CHUNK_INFO = dict()

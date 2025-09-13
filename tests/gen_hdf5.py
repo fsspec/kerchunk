@@ -13,5 +13,6 @@ compressors = dict(
 
 for c in compressors:
     f = h5py.File(f"hdf5_compression_{c}.h5", "w")
-    f.create_dataset("data", data=numpy.arange(100), **compressors[c])
+    # Explicit set int64, to keep compatible with Numpy 1.x in Windows
+    f.create_dataset("data", data=numpy.arange(100, dtype=numpy.int64), **compressors[c])
     f.close()
