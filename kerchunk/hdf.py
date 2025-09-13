@@ -46,7 +46,7 @@ _HIDDEN_ATTRS = {  # from h5netcdf.attrs
 }
 
 
-class Hdf5FeatherNotSupported(RuntimeError):
+class Hdf5FeatureNotSupported(RuntimeError):
     pass
 
 
@@ -161,7 +161,7 @@ class SingleHdf5ToZarr:
 
         if preserve_linked_dsets:
             if not has_visititems_links():
-                raise Hdf5FeatherNotSupported(
+                raise Hdf5FeatureNotSupported(
                     "'preserve_linked_dsets' kwarg requires h5py 3.11.0 or later "
                     f"is installed, found {h5py.__version__}"
                 )
@@ -236,11 +236,11 @@ class SingleHdf5ToZarr:
 
     def _decode_filters(self, h5obj: Union[h5py.Dataset, h5py.Group]):
         if h5obj.scaleoffset:
-            raise Hdf5FeatherNotSupported(
+            raise Hdf5FeatureNotSupported(
                 f"{h5obj.name} uses HDF5 scaleoffset filter - not supported by kerchunk"
             )
         if h5obj.compression in ("szip", "lzf"):
-            raise Hdf5FeatherNotSupported(
+            raise Hdf5FeatureNotSupported(
                 f"{h5obj.name} uses szip or lzf compression - not supported by kerchunk"
             )
         filters = []
@@ -278,18 +278,18 @@ class SingleHdf5ToZarr:
             elif str(filter_id) == "gzip":
                 filters.append(numcodecs.Zlib(level=properties))
             elif str(filter_id) == "32004":
-                raise Hdf5FeatherNotSupported(
+                raise Hdf5FeatureNotSupported(
                     f"{h5obj.name} uses lz4 compression - not supported by kerchunk"
                 )
             elif str(filter_id) == "32008":
-                raise Hdf5FeatherNotSupported(
+                raise Hdf5FeatureNotSupported(
                     f"{h5obj.name} uses bitshuffle compression - not supported by kerchunk"
                 )
             elif str(filter_id) == "shuffle":
                 # already handled before this loop
                 pass
             else:
-                raise Hdf5FeatherNotSupported(
+                raise Hdf5FeatureNotSupported(
                     f"{h5obj.name} uses filter id {filter_id} with properties {properties},"
                     f" not supported by kerchunk."
                 )
@@ -327,7 +327,7 @@ class SingleHdf5ToZarr:
                 else:
                     try:
                         kwargs["filters"] = self._decode_filters(h5obj)
-                    except Hdf5FeatherNotSupported:
+                    except Hdf5FeatureNotSupported:
                         if h5obj.nbytes < self.unsupported_inline_threshold:
                             kwargs["data"] = h5obj[:]
                             kwargs["filters"] = []
@@ -340,7 +340,7 @@ class SingleHdf5ToZarr:
                 else:
                     try:
                         cinfo = self._storage_info_and_adj_filters(h5obj, kwargs["filters"])
-                    except Hdf5FeatherNotSupported:
+                    except Hdf5FeatureNotSupported:
                         if h5obj.nbytes < self.unsupported_inline_threshold:
                             kwargs["data"] = h5obj[:]
                             kwargs["filters"] = []
@@ -642,7 +642,7 @@ class SingleHdf5ToZarr:
                 elif h5py.h5ds.is_scale(dset.id):
                     dims.append(dset.name[1:])
                 elif num_scales > 1:
-                    raise Hdf5FeatherNotSupported(
+                    raise Hdf5FeatureNotSupported(
                         f"{dset.name}: {len(dset.dims[n])} "
                         f"dimension scales attached to dimension #{n}"
                     )
@@ -660,23 +660,25 @@ class SingleHdf5ToZarr:
 
         Storage information consists of file offset and size (length) for every
         chunk of the HDF5 dataset. HDF5 dataset also configs for each chunk
-        which filters are skipped by `filter_mask` (mostly in the case where a chunk is small),
-        hence a filter will be cleared if all the chunks does not apply it.
-        `Hdf5FeatherNotSupported` will be raised if chucks have heterogeneous `filter_mask`.
+        which filters are skipped by `filter_mask` (mostly in the case where a chunk is small
+        or when write directly with low-level api like `H5Dwrite_chunk`/`DatasetID.write_direct_chunk`),
+        hence a filter will be cleared if the first chunk does not apply it.
+        `Hdf5FeatherNotSupported` will be raised if chucks have heterogeneous `filter_mask` and alien chunks
+        cannot be inlined.
 
         Parameters
         ----------
         dset : h5py.Dataset
             HDF5 dataset for which to collect storage information.
         filters: list
-            List of filters to apply to the HDF5 dataset. Will be modified in place in some filters not applied.
+            List of filters to apply to the HDF5 dataset. Will be modified in place if some filters not applied.
 
         Returns
         -------
         dict
             HDF5 dataset storage information. Dict keys are chunk array offsets
             as tuples. Dict values are pairs with chunk file offset and size
-            integers.
+            integers, or data content if in need of inline for some reason.
         """
         # Empty (null) dataset...
         if dset.shape is None:
@@ -734,7 +736,7 @@ class SingleHdf5ToZarr:
                         stinfo[get_key(blob)] = {"data": encoded}
                         return
                     else:
-                        raise Hdf5FeatherNotSupported(f"Dataset {dset.name} has heterogeneous `filter_mask` - "
+                        raise Hdf5FeatureNotSupported(f"Dataset {dset.name} has heterogeneous `filter_mask` - "
                                        f"not supported by kerchunk.")
                 stinfo[get_key(blob)] = {"offset": blob.byte_offset, "size": blob.size}
 
