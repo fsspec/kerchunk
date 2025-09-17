@@ -71,6 +71,7 @@ so that blocks from one or more files can be arranged into aggregate datasets ac
    reference_aggregation
    contributing
    advanced
+   code-of-conduct
 
 Indices and tables
 ==================
