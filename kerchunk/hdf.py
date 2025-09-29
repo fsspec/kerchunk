@@ -27,7 +27,7 @@ except ModuleNotFoundError:  # pragma: no cover
     )
 
 try:
-    import hdf5plugin
+    import hdf5plugin  # noqa
 except ModuleNotFoundError:
     pass
 
@@ -90,7 +90,7 @@ class SingleHdf5ToZarr:
 
     def __init__(
         self,
-        h5f: "BinaryIO | str | h5py.File | h5py.Group",
+        h5f: "io.BinaryIO | str | h5py.File | h5py.Group",
         url: str = None,
         spec=1,
         inline_threshold=500,
