@@ -225,9 +225,7 @@ def test_string_pathlib():
 
 def test_string_null():
     fn = osp.join(here, "vlen.h5")
-    h = kerchunk.hdf.SingleHdf5ToZarr(
-        fn, fn, vlen_encode="null", inline_threshold=0, error="pdb"
-    )
+    h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="null", inline_threshold=0)
     out = h.translate()
     localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
     store = refs_as_store(out, fs=localfs)
@@ -331,7 +329,9 @@ def test_compress():
 
     files = glob.glob(osp.join(here, "hdf5_compression_*.h5"))
     for f in files:
-        h = kerchunk.hdf.SingleHdf5ToZarr(f, error="raise", unsupported_inline_threshold=800)
+        h = kerchunk.hdf.SingleHdf5ToZarr(
+            f, error="raise", unsupported_inline_threshold=800
+        )
         if "compression_lz4" in f or "compression_bitshuffle" in f:
             with pytest.raises(RuntimeError):
                 h.translate()
@@ -344,7 +344,9 @@ def test_compress():
 
     for f in files:
         # Small chunk of unsupported can be inlined now
-        h = kerchunk.hdf.SingleHdf5ToZarr(f, error="raise", unsupported_inline_threshold=801)
+        h = kerchunk.hdf.SingleHdf5ToZarr(
+            f, error="raise", unsupported_inline_threshold=801
+        )
         out = h.translate()
         localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
         store = refs_as_store(out, fs=localfs)
@@ -409,36 +411,40 @@ def test_translate_links():
 
 def test_small_chunks():
     from fsspec.implementations.reference import ReferenceFileSystem
-    suffixes = ['blosc', 'shuffle_zstd', 'zstd', 'lz4', 'shuffle_blosc']
+
+    suffixes = ["blosc", "shuffle_zstd", "zstd", "lz4", "shuffle_blosc"]
     for suffix in suffixes:
         fname = osp.join(here, f"hdf5_mini_{suffix}.h5")
         with open(fname, "rb") as f:
             ref = kerchunk.hdf.SingleHdf5ToZarr(f, None).translate()
         store = ReferenceFileSystem(ref, target=fname, asynchronous=True).get_mapper()
-        data = zarr.group(store)['data'][:]
+        data = zarr.group(store)["data"][:]
         assert (data == np.arange(6, dtype=np.int32).reshape((3, 2))).all()
 
-        if suffix == 'lz4':
+        if suffix == "lz4":
             with pytest.raises(RuntimeError):
                 with open(fname, "rb") as f:
-                    ref = kerchunk.hdf.SingleHdf5ToZarr(f, None,
-                                                        unsupported_inline_threshold=0,
-                                                        error="raise").translate()
+                    ref = kerchunk.hdf.SingleHdf5ToZarr(
+                        f, None, unsupported_inline_threshold=0, error="raise"
+                    ).translate()
             continue
         with open(fname, "rb") as f:
-            ref = kerchunk.hdf.SingleHdf5ToZarr(f, None, unsupported_inline_threshold=0).translate()
+            ref = kerchunk.hdf.SingleHdf5ToZarr(
+                f, None, unsupported_inline_threshold=0
+            ).translate()
         store2 = ReferenceFileSystem(ref, target=fname).get_mapper()
-        data2 = zarr.group(store2)['data'][:]
+        data2 = zarr.group(store2)["data"][:]
         assert (data2 == np.arange(6, dtype=np.int32).reshape((3, 2))).all()
 
 
 def test_malicious_chunks():
     from fsspec.implementations.reference import ReferenceFileSystem
-    suffixes = ['', '2']
+
+    suffixes = ["", "2"]
     for suffix in suffixes:
         fname = osp.join(here, f"hdf5_mali_chunk{suffix}.h5")
         with open(fname, "rb") as f:
             ref = kerchunk.hdf.SingleHdf5ToZarr(f, None).translate()
         store = ReferenceFileSystem(ref, target=fname, asynchronous=True).get_mapper()
-        data = zarr.group(store)['data'][:]
+        data = zarr.group(store)["data"][:]
         assert (data == np.arange(8, dtype=np.int32)).all()

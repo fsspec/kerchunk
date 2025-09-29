@@ -1,4 +1,3 @@
-import base64
 import io
 import logging
 import pathlib
@@ -28,7 +27,6 @@ except ModuleNotFoundError:  # pragma: no cover
     )
 
 try:
-    # Import `hdf5plugin` to config some globals for h5py.
     import hdf5plugin
 except ModuleNotFoundError:
     pass
@@ -339,7 +337,9 @@ class SingleHdf5ToZarr:
                     cinfo = _NULL_CHUNK_INFO
                 else:
                     try:
-                        cinfo = self._storage_info_and_adj_filters(h5obj, kwargs["filters"])
+                        cinfo = self._storage_info_and_adj_filters(
+                            h5obj, kwargs["filters"]
+                        )
                     except Hdf5FeatureNotSupported:
                         if h5obj.nbytes < self.unsupported_inline_threshold:
                             kwargs["data"] = h5obj[:]
@@ -540,17 +540,19 @@ class SingleHdf5ToZarr:
                     try:
                         za[:] = data
                     except (ValueError, TypeError):
-                        store_key = f"{za.path}/{'.'.join('0'*h5obj.ndim)}"
-                        self.store_dict[store_key] = _filters_encode_data(data, kwargs["filters"])
+                        store_key = f"{za.path}/{'.'.join('0' * h5obj.ndim)}"
+                        self.store_dict[store_key] = _filters_encode_data(
+                            data, kwargs["filters"]
+                        )
                     return
 
                 # Store chunk location metadata...
                 if cinfo:
                     for k, v in cinfo.items():
                         key = (
-                                str.removeprefix(h5obj.name, "/")
-                                + "/"
-                                + ".".join(map(str, k))
+                            str.removeprefix(h5obj.name, "/")
+                            + "/"
+                            + ".".join(map(str, k))
                         )
                         if "data" in v:
                             self.store_dict[key] = v["data"]
@@ -673,7 +675,8 @@ class SingleHdf5ToZarr:
         dset : h5py.Dataset
             HDF5 dataset for which to collect storage information.
         filters: list
-            List of filters to apply to the HDF5 dataset. Will be modified in place if some filters not applied.
+            List of filters to apply to the HDF5 dataset. Will be modified in place
+            if some filters not applied.
 
         Returns
         -------
@@ -712,10 +715,16 @@ class SingleHdf5ToZarr:
             def get_key(blob):
                 return tuple([a // b for a, b in zip(blob.chunk_offset, chunk_size)])
 
-            def filter_filters_by_mask(filter_list: List[Codec], filter_mask_) -> List[Codec]:
+            def filter_filters_by_mask(
+                filter_list: List[Codec], filter_mask_
+            ) -> List[Codec]:
                 # use [2:] to remove the heading `0b` and [::-1] to reverse the order
                 bin_mask = bin(filter_mask_)[2:][::-1]
-                filters_rest = [ifilter for ifilter, imask in zip(filter_list, bin_mask) if imask == '0']
+                filters_rest = [
+                    ifilter
+                    for ifilter, imask in zip(filter_list, bin_mask)
+                    if imask == "0"
+                ]
                 return filters_rest
 
             def store_chunk_info(blob):
@@ -724,22 +733,31 @@ class SingleHdf5ToZarr:
                     filter_mask = blob.filter_mask
                 elif filter_mask != blob.filter_mask:
                     if blob.size < self.unsupported_inline_threshold:
-                        data_slc = tuple(slice(dim_offset, min(dim_offset+dim_chunk, dim_bound))
-                                           for dim_offset, dim_chunk, dim_bound in zip(
-                                                   blob.chunk_offset, chunk_size, dset.shape))
+                        data_slc = tuple(
+                            slice(dim_offset, min(dim_offset + dim_chunk, dim_bound))
+                            for dim_offset, dim_chunk, dim_bound in zip(
+                                blob.chunk_offset, chunk_size, dset.shape
+                            )
+                        )
                         data = dset[data_slc]
                         if data.shape != chunk_size:
-                            bg = np.full(chunk_size, dset.fillvalue, dset.dtype, order='C')
+                            bg = np.full(
+                                chunk_size, dset.fillvalue, dset.dtype, order="C"
+                            )
                             bg[tuple(slice(0, d) for d in data.shape)] = data
                             data_flatten = bg.reshape(-1)
                         else:
                             data_flatten = data.reshape(-1)
-                        encoded = _filters_encode_data(data_flatten, filter_filters_by_mask(filters, filter_mask))
+                        encoded = _filters_encode_data(
+                            data_flatten, filter_filters_by_mask(filters, filter_mask)
+                        )
                         stinfo[get_key(blob)] = {"data": encoded}
                         return
                     else:
-                        raise Hdf5FeatureNotSupported(f"Dataset {dset.name} has heterogeneous `filter_mask` - "
-                                       f"not supported by kerchunk.")
+                        raise Hdf5FeatureNotSupported(
+                            f"Dataset {dset.name} has heterogeneous `filter_mask` - "
+                            f"not supported by kerchunk."
+                        )
                 stinfo[get_key(blob)] = {"offset": blob.byte_offset, "size": blob.size}
 
             has_chunk_iter = callable(getattr(dsid, "chunk_iter", None))

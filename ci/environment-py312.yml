@@ -9,6 +9,7 @@ dependencies:
   - xarray>=2024.10.0
   - h5netcdf
   - h5py
+  - hdf5plugin
   - pandas
   - cfgrib
   # Temporary workaround for #508
