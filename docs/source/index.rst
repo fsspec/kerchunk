@@ -71,6 +71,7 @@ so that blocks from one or more files can be arranged into aggregate datasets ac
    reference_aggregation
    contributing
    advanced
+   code-of-conduct
 
 Indices and tables
 ==================
@@ -78,6 +79,10 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+These docs pages collect anonymous tracking data using goatcounter, and the
+dashboard is available to the public: https://kerchunk.goatcounter.com/ .
+
 
 .. raw:: html
 

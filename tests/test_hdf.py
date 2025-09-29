@@ -195,7 +195,7 @@ txt = "the change of water into water vapour"
 
 def test_string_embed():
     fn = osp.join(here, "vlen.h5")
-    h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="embed", error="pdb")
+    h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="embed")
     out = h.translate()
 
     localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
@@ -203,7 +203,7 @@ def test_string_embed():
     # assert txt in fs.references["vlen_str/0"]
     store = fs_as_store(fs)
     z = zarr.open(store, zarr_format=2)
-    assert z["vlen_str"].dtype == "O"
+    assert "String" in str(z["vlen_str"])
     assert z["vlen_str"][0] == txt
     assert (z["vlen_str"][1:] == "").all()
 
@@ -218,14 +218,16 @@ def test_string_pathlib():
     fs = fsspec.filesystem("reference", fo=out)
     assert txt in fs.references["vlen_str/0"]
     z = zarr.open(fs_as_store(fs))
-    assert z["vlen_str"].dtype == "O"
+    assert "String" in str(z["vlen_str"])
     assert z["vlen_str"][0] == txt
     assert (z["vlen_str"][1:] == "").all()
 
 
 def test_string_null():
     fn = osp.join(here, "vlen.h5")
-    h = kerchunk.hdf.SingleHdf5ToZarr(fn, fn, vlen_encode="null", inline_threshold=0)
+    h = kerchunk.hdf.SingleHdf5ToZarr(
+        fn, fn, vlen_encode="null", inline_threshold=0, error="pdb"
+    )
     out = h.translate()
     localfs = AsyncFileSystemWrapper(fsspec.filesystem("file"))
     store = refs_as_store(out, fs=localfs)
