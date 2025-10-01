@@ -1,7 +1,7 @@
 import io
 import logging
 import pathlib
-from typing import Union, Any, Dict, List
+from typing import Union, Any, Dict, List, Tuple
 
 import fsspec.core
 from fsspec.implementations.reference import LazyReferenceMapper
@@ -29,7 +29,7 @@ except ModuleNotFoundError:  # pragma: no cover
 try:
     import hdf5plugin  # noqa
 except ModuleNotFoundError:
-    pass
+    hdf5plugin = None
 
 lggr = logging.getLogger("h5-to-zarr")
 _HIDDEN_ATTRS = {  # from h5netcdf.attrs
@@ -320,14 +320,14 @@ class SingleHdf5ToZarr:
                     # Only do if h5obj.nbytes < self.inline??
                     # kwargs["data"] = h5obj[:]
                     if h5obj.nbytes < self.inline:
-                        kwargs["data"] = read_warn(h5obj)
+                        kwargs["data"] = h5obj[:]
                     kwargs["filters"] = []
                 else:
                     try:
                         kwargs["filters"] = self._decode_filters(h5obj)
                     except Hdf5FeatureNotSupported:
                         if h5obj.nbytes < self.unsupported_inline_threshold:
-                            kwargs["data"] = read_warn(h5obj)
+                            kwargs["data"] = _read_unsupported_direct(h5obj)
                             kwargs["filters"] = []
                         else:
                             raise
@@ -342,7 +342,7 @@ class SingleHdf5ToZarr:
                         )
                     except Hdf5FeatureNotSupported:
                         if h5obj.nbytes < self.unsupported_inline_threshold:
-                            kwargs["data"] = read_warn(h5obj)
+                            kwargs["data"] = _read_unsupported_direct(h5obj)
                             kwargs["filters"] = []
                             cinfo = _NULL_CHUNK_INFO
                         else:
@@ -361,7 +361,7 @@ class SingleHdf5ToZarr:
                             elif h5obj.ndim == 0:
                                 out = np.array(h5obj).tolist().decode()
                             else:
-                                out = read_warn(h5obj)
+                                out = h5obj[:]
                                 out2 = out.ravel()
                                 for i, val in enumerate(out2):
                                     if isinstance(val, bytes):
@@ -391,7 +391,7 @@ class SingleHdf5ToZarr:
                             v = list(cinfo.values())[0]
                             data = _read_block(self.input_file, v["offset"], v["size"])
                             indexes = np.frombuffer(data, dtype="S16")
-                            labels = read_warn(h5obj)
+                            labels = h5obj[:]
                             mapping = {
                                 index.decode(): label.decode()
                                 for index, label in zip(indexes, labels)
@@ -423,7 +423,7 @@ class SingleHdf5ToZarr:
                                 for v in h5obj.dtype.names
                             ]
                             data = _read_block(self.input_file, v["offset"], v["size"])
-                            labels = read_warn(h5obj)
+                            labels = h5obj[:]
                             arr = np.frombuffer(data, dtype=dt)
                             mapping = {}
                             for field in labels.dtype.names:
@@ -488,7 +488,7 @@ class SingleHdf5ToZarr:
                             ]
                         elif self.vlen == "embed":
                             # embed fails due to https://github.com/zarr-developers/numcodecs/issues/333
-                            data = read_warn(h5obj).tolist()
+                            data = h5obj[:].tolist()
                             data2 = []
                             for d in data:
                                 data2.append(
@@ -739,7 +739,7 @@ class SingleHdf5ToZarr:
                                 blob.chunk_offset, chunk_size, dset.shape
                             )
                         )
-                        data = dset[data_slc]
+                        data = _read_unsupported_direct(dset, data_slc)
                         if data.shape != chunk_size:
                             bg = np.full(
                                 chunk_size, dset.fillvalue, dset.dtype, order="C"
@@ -775,14 +775,18 @@ class SingleHdf5ToZarr:
             return stinfo
 
 
-def read_warn(dset):
+def _read_unsupported_direct(dset, slc: Union[slice, Tuple[slice, ...]] = slice(None)):
     try:
-        return dset[:]
-    except ModuleNotFoundError as e:
-        if "hdf5plugin" in str(e):
+        return dset[slc]
+    # As what I googled, you might get OSError/ValueError/RuntimeError
+    # when a filter in need was not registered. I met an `OSError` with
+    # bizarre error message in my test without `hdf5plugin` imported.
+    # Just simply catch all exceptions, as we will rethrow it anyway.
+    except Exception as e:
+        if hdf5plugin:
             import warnings
-
-            warnings.warn("Attempt to use hdf5plugin, which is not installed")
+            warnings.warn("Attempt to directly read h5-dataset via `h5py` failed. It is recommended to "
+                          "install `hdf5plugin` so that we can register the needed filters, and then try again. ")
         raise
 
 
