@@ -82,18 +82,17 @@
            <div itemprop="articleBody">
              
   <h1>Source code for kerchunk.hdf</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">base64</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">BinaryIO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">fsspec.core</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fsspec.implementations.reference</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyReferenceMapper</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">zarr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numcodecs</span>
-
+<span class="kn">from</span><span class="w"> </span><span class="nn">numcodecs.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Codec</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.codecs</span><span class="w"> </span><span class="kn">import</span> <span class="n">FillStringsCodec</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_encode_for_JSON</span><span class="p">,</span>
@@ -111,6 +110,11 @@
         <span class="s2">&quot;for more details.&quot;</span>
     <span class="p">)</span>
 
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">hdf5plugin</span>  <span class="c1"># noqa</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="n">hdf5plugin</span> <span class="o">=</span> <span class="kc">None</span>
+
 <span class="n">lggr</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;h5-to-zarr&quot;</span><span class="p">)</span>
 <span class="n">_HIDDEN_ATTRS</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># from h5netcdf.attrs</span>
     <span class="s2">&quot;REFERENCE_LIST&quot;</span><span class="p">,</span>
@@ -122,6 +126,10 @@
     <span class="s2">&quot;_nc3_strict&quot;</span><span class="p">,</span>
     <span class="s2">&quot;_NCProperties&quot;</span><span class="p">,</span>
 <span class="p">}</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Hdf5FeatureNotSupported</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+    <span class="k">pass</span>
 
 
 <div class="viewcode-block" id="SingleHdf5ToZarr">
@@ -161,11 +169,14 @@
 <span class="sd">        This allows you to supply an fsspec.implementations.reference.LazyReferenceMapper</span>
 <span class="sd">        to write out parquet as the references get filled, or some other dictionary-like class</span>
 <span class="sd">        to customise how references get stored</span>
+<span class="sd">    unsupported_inline_threshold: int or None</span>
+<span class="sd">        Include chunks involving unsupported h5 features and smaller than this value directly</span>
+<span class="sd">        in the output. None will use &quot;inline_threshold&quot;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">h5f</span><span class="p">:</span> <span class="s2">&quot;BinaryIO | str | h5py.File | h5py.Group&quot;</span><span class="p">,</span>
+        <span class="n">h5f</span><span class="p">:</span> <span class="s2">&quot;io.BinaryIO | str | h5py.File | h5py.Group&quot;</span><span class="p">,</span>
         <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spec</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
@@ -173,6 +184,7 @@
         <span class="n">error</span><span class="o">=</span><span class="s2">&quot;warn&quot;</span><span class="p">,</span>
         <span class="n">vlen_encode</span><span class="o">=</span><span class="s2">&quot;embed&quot;</span><span class="p">,</span>
         <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">unsupported_inline_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="c1"># Open HDF5 file in read mode...</span>
@@ -202,6 +214,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_zroot</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="p">,</span> <span class="n">zarr_format</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_uri</span> <span class="o">=</span> <span class="n">url</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="n">error</span>
+        <span class="k">if</span> <span class="n">unsupported_inline_threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">unsupported_inline_threshold</span> <span class="o">=</span> <span class="n">inline_threshold</span> <span class="ow">or</span> <span class="mi">100</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unsupported_inline_threshold</span> <span class="o">=</span> <span class="n">unsupported_inline_threshold</span>
         <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HDF5 file URI: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_uri</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SingleHdf5ToZarr.translate">
@@ -232,7 +247,7 @@
 
         <span class="k">if</span> <span class="n">preserve_linked_dsets</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">has_visititems_links</span><span class="p">():</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">(</span>
                     <span class="s2">&quot;&#39;preserve_linked_dsets&#39; kwarg requires h5py 3.11.0 or later &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;is installed, found </span><span class="si">{</span><span class="n">h5py</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
@@ -308,11 +323,11 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_decode_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h5obj</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">]):</span>
         <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">scaleoffset</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> uses HDF5 scaleoffset filter - not supported by kerchunk&quot;</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;szip&quot;</span><span class="p">,</span> <span class="s2">&quot;lzf&quot;</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> uses szip or lzf compression - not supported by kerchunk&quot;</span>
             <span class="p">)</span>
         <span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
@@ -350,18 +365,18 @@
             <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">filter_id</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;gzip&quot;</span><span class="p">:</span>
                 <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numcodecs</span><span class="o">.</span><span class="n">Zlib</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">properties</span><span class="p">))</span>
             <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">filter_id</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;32004&quot;</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> uses lz4 compression - not supported by kerchunk&quot;</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">filter_id</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;32008&quot;</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> uses bitshuffle compression - not supported by kerchunk&quot;</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">filter_id</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;shuffle&quot;</span><span class="p">:</span>
                 <span class="c1"># already handled before this loop</span>
                 <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> uses filter id </span><span class="si">{</span><span class="n">filter_id</span><span class="si">}</span><span class="s2"> with properties </span><span class="si">{</span><span class="n">properties</span><span class="si">}</span><span class="s2">,&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot; not supported by kerchunk.&quot;</span>
                 <span class="p">)</span>
@@ -376,7 +391,7 @@
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Produce Zarr metadata for all groups and datasets in the HDF5 file.&quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>  <span class="c1"># method must not raise exception</span>
-            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;compressor&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+            <span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;compressor&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">h5obj</span><span class="p">,</span> <span class="p">(</span><span class="n">h5py</span><span class="o">.</span><span class="n">SoftLink</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">HardLink</span><span class="p">)):</span>
                 <span class="n">h5obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_h5f</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
@@ -392,13 +407,35 @@
                 <span class="n">lggr</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HDF5 compression: </span><span class="si">{</span><span class="n">h5obj</span><span class="o">.</span><span class="n">compression</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">get_create_plist</span><span class="p">()</span><span class="o">.</span><span class="n">get_layout</span><span class="p">()</span> <span class="o">==</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5d</span><span class="o">.</span><span class="n">COMPACT</span><span class="p">:</span>
                     <span class="c1"># Only do if h5obj.nbytes &lt; self.inline??</span>
-                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
+                    <span class="c1"># kwargs[&quot;data&quot;] = h5obj[:]</span>
+                    <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">inline</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5obj</span><span class="p">[:]</span>
                     <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_filters</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_filters</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsupported_inline_threshold</span><span class="p">:</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_read_unsupported_direct</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span>
                 <span class="n">dt</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="c1"># Get storage info of this HDF5 dataset...</span>
-                <span class="n">cinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_info</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">cinfo</span> <span class="o">=</span> <span class="n">_NULL_CHUNK_INFO</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">cinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_storage_info_and_adj_filters</span><span class="p">(</span>
+                            <span class="n">h5obj</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="k">except</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">nbytes</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsupported_inline_threshold</span><span class="p">:</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_read_unsupported_direct</span><span class="p">(</span><span class="n">h5obj</span><span class="p">)</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                            <span class="n">cinfo</span> <span class="o">=</span> <span class="n">_NULL_CHUNK_INFO</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span>
 
                 <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                     <span class="n">fill</span> <span class="o">=</span> <span class="kc">None</span>
@@ -592,14 +629,23 @@
                     <span class="k">try</span><span class="p">:</span>
                         <span class="n">za</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span>
                     <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">store_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">za</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">/0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-                            <span class="n">data</span>
+                        <span class="n">store_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">za</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">h5obj</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">store_dict</span><span class="p">[</span><span class="n">store_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_filters_encode_data</span><span class="p">(</span>
+                            <span class="n">data</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;filters&quot;</span><span class="p">]</span>
                         <span class="p">)</span>
                     <span class="k">return</span>
 
                 <span class="c1"># Store chunk location metadata...</span>
                 <span class="k">if</span> <span class="n">cinfo</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cinfo</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="nb">str</span><span class="o">.</span><span class="n">removeprefix</span><span class="p">(</span><span class="n">h5obj</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;/&quot;</span><span class="p">)</span>
+                            <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+                            <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="s2">&quot;data&quot;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">store_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span>
+                            <span class="k">continue</span>
                         <span class="k">if</span> <span class="n">h5obj</span><span class="o">.</span><span class="n">fletcher32</span><span class="p">:</span>
                             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Discarding fletcher32 checksum&quot;</span><span class="p">)</span>
                             <span class="n">v</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">4</span>
@@ -616,11 +662,12 @@
                         <span class="p">):</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">input_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;offset&quot;</span><span class="p">])</span>
                             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;size&quot;</span><span class="p">])</span>
-                            <span class="k">try</span><span class="p">:</span>
-                                <span class="c1"># easiest way to test if data is ascii</span>
-                                <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
-                            <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
-                                <span class="n">data</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                            <span class="c1"># Removed the encoding, as will finally be encoded_for_JSON</span>
+                            <span class="c1"># try:</span>
+                            <span class="c1">#     # easiest way to test if data is ascii</span>
+                            <span class="c1">#     data.decode(&quot;ascii&quot;)</span>
+                            <span class="c1"># except UnicodeDecodeError:</span>
+                            <span class="c1">#     data = b&quot;base64:&quot; + base64.b64encode(data)</span>
 
                             <span class="bp">self</span><span class="o">.</span><span class="n">store_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
                         <span class="k">else</span><span class="p">:</span>
@@ -688,7 +735,7 @@
                 <span class="k">elif</span> <span class="n">h5py</span><span class="o">.</span><span class="n">h5ds</span><span class="o">.</span><span class="n">is_scale</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
                     <span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
                 <span class="k">elif</span> <span class="n">num_scales</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="k">raise</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dset</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="n">n</span><span class="p">])</span><span class="si">}</span><span class="s2"> &quot;</span>
                         <span class="sa">f</span><span class="s2">&quot;dimension scales attached to dimension #</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span>
                     <span class="p">)</span>
@@ -701,34 +748,42 @@
                     <span class="n">dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;phony_dim_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">dims</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_storage_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dset</span><span class="p">:</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_storage_info_and_adj_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dset</span><span class="p">:</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get storage information of an HDF5 dataset in the HDF5 file.</span>
 
 <span class="sd">        Storage information consists of file offset and size (length) for every</span>
-<span class="sd">        chunk of the HDF5 dataset.</span>
+<span class="sd">        chunk of the HDF5 dataset. HDF5 dataset also configs for each chunk</span>
+<span class="sd">        which filters are skipped by `filter_mask` (mostly in the case where a chunk is small</span>
+<span class="sd">        or when write directly with low-level api like `H5Dwrite_chunk`/`DatasetID.write_direct_chunk`),</span>
+<span class="sd">        hence a filter will be cleared if the first chunk does not apply it.</span>
+<span class="sd">        `Hdf5FeatherNotSupported` will be raised if chucks have heterogeneous `filter_mask` and alien chunks</span>
+<span class="sd">        cannot be inlined.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        dset : h5py.Dataset</span>
 <span class="sd">            HDF5 dataset for which to collect storage information.</span>
+<span class="sd">        filters: list</span>
+<span class="sd">            List of filters to apply to the HDF5 dataset. Will be modified in place</span>
+<span class="sd">            if some filters not applied.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        dict</span>
 <span class="sd">            HDF5 dataset storage information. Dict keys are chunk array offsets</span>
 <span class="sd">            as tuples. Dict values are pairs with chunk file offset and size</span>
-<span class="sd">            integers.</span>
+<span class="sd">            integers, or data content if in need of inline for some reason.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Empty (null) dataset...</span>
         <span class="k">if</span> <span class="n">dset</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">_NULL_CHUNK_INFO</span>
 
         <span class="n">dsid</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">id</span>
         <span class="k">if</span> <span class="n">dset</span><span class="o">.</span><span class="n">chunks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Contiguous dataset...</span>
             <span class="k">if</span> <span class="n">dsid</span><span class="o">.</span><span class="n">get_offset</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># No data ever written...</span>
-                <span class="k">return</span> <span class="nb">dict</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">_NULL_CHUNK_INFO</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span>
                 <span class="k">return</span> <span class="p">{</span>
@@ -739,16 +794,59 @@
             <span class="n">num_chunks</span> <span class="o">=</span> <span class="n">dsid</span><span class="o">.</span><span class="n">get_num_chunks</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">num_chunks</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="c1"># No data ever written...</span>
-                <span class="k">return</span> <span class="nb">dict</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">_NULL_CHUNK_INFO</span>
 
             <span class="c1"># Go over all the dataset chunks...</span>
             <span class="n">stinfo</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
             <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">chunks</span>
+            <span class="n">filter_mask</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: None | int</span>
 
             <span class="k">def</span><span class="w"> </span><span class="nf">get_key</span><span class="p">(</span><span class="n">blob</span><span class="p">):</span>
                 <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">a</span> <span class="o">//</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">blob</span><span class="o">.</span><span class="n">chunk_offset</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">)])</span>
 
+            <span class="k">def</span><span class="w"> </span><span class="nf">filter_filters_by_mask</span><span class="p">(</span>
+                <span class="n">filter_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Codec</span><span class="p">],</span> <span class="n">filter_mask_</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Codec</span><span class="p">]:</span>
+                <span class="c1"># use [2:] to remove the heading `0b` and [::-1] to reverse the order</span>
+                <span class="n">bin_mask</span> <span class="o">=</span> <span class="nb">bin</span><span class="p">(</span><span class="n">filter_mask_</span><span class="p">)[</span><span class="mi">2</span><span class="p">:][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">filters_rest</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">ifilter</span>
+                    <span class="k">for</span> <span class="n">ifilter</span><span class="p">,</span> <span class="n">imask</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">filter_list</span><span class="p">,</span> <span class="n">bin_mask</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">imask</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span>
+                <span class="p">]</span>
+                <span class="k">return</span> <span class="n">filters_rest</span>
+
             <span class="k">def</span><span class="w"> </span><span class="nf">store_chunk_info</span><span class="p">(</span><span class="n">blob</span><span class="p">):</span>
+                <span class="k">nonlocal</span> <span class="n">filter_mask</span>
+                <span class="k">if</span> <span class="n">filter_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">filter_mask</span> <span class="o">=</span> <span class="n">blob</span><span class="o">.</span><span class="n">filter_mask</span>
+                <span class="k">elif</span> <span class="n">filter_mask</span> <span class="o">!=</span> <span class="n">blob</span><span class="o">.</span><span class="n">filter_mask</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">unsupported_inline_threshold</span><span class="p">:</span>
+                        <span class="n">data_slc</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+                            <span class="nb">slice</span><span class="p">(</span><span class="n">dim_offset</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">dim_offset</span> <span class="o">+</span> <span class="n">dim_chunk</span><span class="p">,</span> <span class="n">dim_bound</span><span class="p">))</span>
+                            <span class="k">for</span> <span class="n">dim_offset</span><span class="p">,</span> <span class="n">dim_chunk</span><span class="p">,</span> <span class="n">dim_bound</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                                <span class="n">blob</span><span class="o">.</span><span class="n">chunk_offset</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="n">dset</span><span class="o">.</span><span class="n">shape</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="n">_read_unsupported_direct</span><span class="p">(</span><span class="n">dset</span><span class="p">,</span> <span class="n">data_slc</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">chunk_size</span><span class="p">:</span>
+                            <span class="n">bg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                                <span class="n">chunk_size</span><span class="p">,</span> <span class="n">dset</span><span class="o">.</span><span class="n">fillvalue</span><span class="p">,</span> <span class="n">dset</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span>
+                            <span class="p">)</span>
+                            <span class="n">bg</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)]</span> <span class="o">=</span> <span class="n">data</span>
+                            <span class="n">data_flatten</span> <span class="o">=</span> <span class="n">bg</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">data_flatten</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">encoded</span> <span class="o">=</span> <span class="n">_filters_encode_data</span><span class="p">(</span>
+                            <span class="n">data_flatten</span><span class="p">,</span> <span class="n">filter_filters_by_mask</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="n">filter_mask</span><span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="n">stinfo</span><span class="p">[</span><span class="n">get_key</span><span class="p">(</span><span class="n">blob</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">encoded</span><span class="p">}</span>
+                        <span class="k">return</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">Hdf5FeatureNotSupported</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Dataset </span><span class="si">{</span><span class="n">dset</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> has heterogeneous `filter_mask` - &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;not supported by kerchunk.&quot;</span>
+                        <span class="p">)</span>
                 <span class="n">stinfo</span><span class="p">[</span><span class="n">get_key</span><span class="p">(</span><span class="n">blob</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="n">blob</span><span class="o">.</span><span class="n">byte_offset</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="n">blob</span><span class="o">.</span><span class="n">size</span><span class="p">}</span>
 
             <span class="n">has_chunk_iter</span> <span class="o">=</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">dsid</span><span class="p">,</span> <span class="s2">&quot;chunk_iter&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
@@ -759,8 +857,30 @@
                 <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_chunks</span><span class="p">):</span>
                     <span class="n">store_chunk_info</span><span class="p">(</span><span class="n">dsid</span><span class="o">.</span><span class="n">get_chunk_info</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>
 
+            <span class="c1"># In most cases, the `filter_mask` should be zero, which means that all filters are applied.</span>
+            <span class="c1"># If a filter is skipped, the corresponding bit in the mask fill be set 1.</span>
+            <span class="k">if</span> <span class="n">filter_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">filter_mask</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">filters</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">filter_filters_by_mask</span><span class="p">(</span><span class="n">filters</span><span class="p">,</span> <span class="n">filter_mask</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">stinfo</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_read_unsupported_direct</span><span class="p">(</span><span class="n">dset</span><span class="p">,</span> <span class="n">slc</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">slice</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">slice</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dset</span><span class="p">[</span><span class="n">slc</span><span class="p">]</span>
+    <span class="c1"># As what I googled, you might get OSError/ValueError/RuntimeError</span>
+    <span class="c1"># when a filter in need was not registered. I met an `OSError` with</span>
+    <span class="c1"># bizarre error message in my test without `hdf5plugin` imported.</span>
+    <span class="c1"># Just simply catch all exceptions, as we will rethrow it anyway.</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">hdf5plugin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Attempt to directly read h5-dataset via `h5py` failed. It is recommended to &quot;</span>
+                <span class="s2">&quot;install `hdf5plugin` so that we can register extra filters, and then try again.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">raise</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_simple_type</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -796,6 +916,15 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">has_visititems_links</span><span class="p">():</span>
     <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">,</span> <span class="s2">&quot;visititems_links&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_filters_encode_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Codec</span><span class="p">]):</span>
+    <span class="k">for</span> <span class="n">ifilter</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">ifilter</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="n">_NULL_CHUNK_INFO</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 </pre></div>
 
            </div>
