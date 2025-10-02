@@ -782,11 +782,14 @@ def _read_unsupported_direct(dset, slc: Union[slice, Tuple[slice, ...]] = slice(
     # when a filter in need was not registered. I met an `OSError` with
     # bizarre error message in my test without `hdf5plugin` imported.
     # Just simply catch all exceptions, as we will rethrow it anyway.
-    except Exception as e:
-        if hdf5plugin:
+    except Exception:
+        if hdf5plugin is None:
             import warnings
-            warnings.warn("Attempt to directly read h5-dataset via `h5py` failed. It is recommended to "
-                          "install `hdf5plugin` so that we can register the needed filters, and then try again. ")
+
+            warnings.warn(
+                "Attempt to directly read h5-dataset via `h5py` failed. It is recommended to "
+                "install `hdf5plugin` so that we can register extra filters, and then try again."
+            )
         raise
 
 
