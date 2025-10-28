@@ -133,6 +133,10 @@ class SingleHdf5ToZarr:
         self.unsupported_inline_threshold = unsupported_inline_threshold
         lggr.debug(f"HDF5 file URI: {self._uri}")
 
+    def close(self):
+        self._h5f.close()
+        self.input_file.close()
+
     def translate(self, preserve_linked_dsets=False):
         """Translate content of one HDF5 file into Zarr storage format.
 
