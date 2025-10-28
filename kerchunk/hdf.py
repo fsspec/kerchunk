@@ -1,6 +1,7 @@
 import io
 import logging
 import pathlib
+from contextlib import ExitStack
 from typing import Union, Any, Dict, List, Tuple
 
 import fsspec.core
@@ -103,19 +104,20 @@ class SingleHdf5ToZarr:
 
         # Open HDF5 file in read mode...
         lggr.debug(f"HDF5 file: {h5f}")
+        self._closers = ExitStack()
         if isinstance(h5f, (pathlib.Path, str)):
             fs, path = fsspec.core.url_to_fs(h5f, **(storage_options or {}))
-            self.input_file = fs.open(path, "rb")
+            self.input_file = self._closers.enter_context(fs.open(path, "rb"))
             url = h5f
-            self._h5f = h5py.File(self.input_file, mode="r")
+            self._h5f = self._closers.enter_context(h5py.File(self.input_file, mode="r"))
         elif isinstance(h5f, io.IOBase):
             self.input_file = h5f
-            self._h5f = h5py.File(self.input_file, mode="r")
+            self._h5f = self._closers.enter_context(h5py.File(self.input_file, mode="r"))
         elif isinstance(h5f, (h5py.File, h5py.Group)):
             # assume h5py object (File or group/dataset)
             self._h5f = h5f
             fs, path = fsspec.core.url_to_fs(url, **(storage_options or {}))
-            self.input_file = fs.open(path, "rb")
+            self.input_file = self._closers.enter_context(fs.open(path, "rb"))
         else:
             raise ValueError("type of input `h5f` not recognised")
         self.spec = spec
@@ -134,8 +136,7 @@ class SingleHdf5ToZarr:
         lggr.debug(f"HDF5 file URI: {self._uri}")
 
     def close(self):
-        self._h5f.close()
-        self.input_file.close()
+        self._closers.close()
 
     def translate(self, preserve_linked_dsets=False):
         """Translate content of one HDF5 file into Zarr storage format.
