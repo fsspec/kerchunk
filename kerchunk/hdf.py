@@ -109,10 +109,14 @@ class SingleHdf5ToZarr:
             fs, path = fsspec.core.url_to_fs(h5f, **(storage_options or {}))
             self.input_file = self._closers.enter_context(fs.open(path, "rb"))
             url = h5f
-            self._h5f = self._closers.enter_context(h5py.File(self.input_file, mode="r"))
+            self._h5f = self._closers.enter_context(
+                h5py.File(self.input_file, mode="r")
+            )
         elif isinstance(h5f, io.IOBase):
             self.input_file = h5f
-            self._h5f = self._closers.enter_context(h5py.File(self.input_file, mode="r"))
+            self._h5f = self._closers.enter_context(
+                h5py.File(self.input_file, mode="r")
+            )
         elif isinstance(h5f, (h5py.File, h5py.Group)):
             # assume h5py object (File or group/dataset)
             self._h5f = h5f
