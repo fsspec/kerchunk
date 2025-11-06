@@ -190,6 +190,8 @@
 <dd><p>Translate the content of one HDF5 file into Zarr metadata.</p>
 <p>HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array
 chunks remain in the HDF5 file.</p>
+<p>It is a good idea to call <cite>.close()</cite> on this instance after use, to free up
+underlying resources in the file and hdf objects.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
@@ -231,6 +233,13 @@ in the output. None will use “inline_threshold”.</p>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr.translate" title="kerchunk.hdf.SingleHdf5ToZarr.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>([preserve_linked_dsets])</p></td>
 <td><p>Translate content of one HDF5 file into Zarr storage format.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>close</strong></p></td>
+<td></td>
 </tr>
 </tbody>
 </table>
