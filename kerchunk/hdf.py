@@ -55,6 +55,9 @@ class SingleHdf5ToZarr:
     HDF5 groups become Zarr groups. HDF5 datasets become Zarr arrays. Zarr array
     chunks remain in the HDF5 file.
 
+    It is a good idea to call `.close()` on this instance after use, to free up
+    underlying resources in the file and hdf objects.
+
     Parameters
     ----------
     h5f : file-like or str
