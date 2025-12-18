@@ -59,7 +59,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr.translate"><code class="docutils literal notranslate"><span class="pre">SingleHdf5ToZarr.translate()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#kerchunk.grib2.scan_grib"><code class="docutils literal notranslate"><span class="pre">scan_grib()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#kerchunk.fits.process_file"><code class="docutils literal notranslate"><span class="pre">process_file()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr"><code class="docutils literal notranslate"><span class="pre">tiff_to_zarr()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr"><code class="docutils literal notranslate"><span class="pre">NetCDF3ToZarr</span></code></a><ul>
@@ -167,19 +166,16 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf.SingleHdf5ToZarr" title="kerchunk.hdf.SingleHdf5ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.hdf.SingleHdf5ToZarr</span></code></a>(h5f[, url, ...])</p></td>
 <td><p>Translate the content of one HDF5 file into Zarr metadata.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.grib2.scan_grib" title="kerchunk.grib2.scan_grib"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.grib2.scan_grib</span></code></a>(url[, common, ...])</p></td>
-<td><p>Generate references for a GRIB2 file</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.fits.process_file" title="kerchunk.fits.process_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.fits.process_file</span></code></a>(url[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.fits.process_file" title="kerchunk.fits.process_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.fits.process_file</span></code></a>(url[, ...])</p></td>
 <td><p>Create JSON references for a single FITS file as a zarr group</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr" title="kerchunk.tiff.tiff_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></a>(urlpath[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.tiff.tiff_to_zarr" title="kerchunk.tiff.tiff_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.tiff.tiff_to_zarr</span></code></a>(urlpath[, ...])</p></td>
 <td><p>Wraps TIFFFile's fsspec writer to extract metadata as attributes</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="kerchunk.netCDF3.NetCDF3ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></a>(filename[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.netCDF3.NetCDF3ToZarr" title="kerchunk.netCDF3.NetCDF3ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.netCDF3.NetCDF3ToZarr</span></code></a>(filename[, ...])</p></td>
 <td><p>Generate references for a netCDF3 file</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#kerchunk.hdf4.HDF4ToZarr" title="kerchunk.hdf4.HDF4ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.hdf4.HDF4ToZarr</span></code></a>(path[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#kerchunk.hdf4.HDF4ToZarr" title="kerchunk.hdf4.HDF4ToZarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kerchunk.hdf4.HDF4ToZarr</span></code></a>(path[, ...])</p></td>
 <td><p>Experimental: interface to HDF4 archival files</p></td>
 </tr>
 </tbody>
@@ -268,37 +264,6 @@ Will not translate external links or links to <cite>h5py.Group</cite> objects.</
 </dl>
 </dd></dl>
 
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="kerchunk.grib2.scan_grib">
-<span class="sig-prename descclassname"><span class="pre">kerchunk.grib2.</span></span><span class="sig-name descname"><span class="pre">scan_grib</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">common</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inline_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/kerchunk/grib2.html#scan_grib"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#kerchunk.grib2.scan_grib" title="Link to this definition"></a></dt>
-<dd><p>Generate references for a GRIB2 file</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><strong>url: str</strong></dt><dd><p>File location</p>
-</dd>
-<dt><strong>common_vars: (depr, do not use)</strong></dt><dd></dd>
-<dt><strong>storage_options: dict</strong></dt><dd><p>For accessing the data, passed to filesystem</p>
-</dd>
-<dt><strong>inline_threshold: int</strong></dt><dd><p>If given, store array data smaller than this value directly in the output</p>
-</dd>
-<dt><strong>skip: int</strong></dt><dd><p>If non-zero, stop processing the file after this many messages</p>
-</dd>
-<dt><strong>filter: dict</strong></dt><dd><p>keyword filtering. For each key, only messages where the key exists and has
-the exact value or is in the given set, are processed.
-E.g., the cf-style filter <code class="docutils literal notranslate"><span class="pre">{'typeOfLevel':</span> <span class="pre">'heightAboveGround',</span> <span class="pre">'level':</span> <span class="pre">2}</span></code>
-only keeps messages where heightAboveGround==2.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt>list(dict): references dicts in Version 1 format, one per message in the file</dt><dd></dd>
-</dl>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py function">
