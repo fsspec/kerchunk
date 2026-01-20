@@ -217,6 +217,8 @@ def encode_fill_value(v: Any, dtype: np.dtype, compressor: Any = None) -> Any:
     # early out
     if v is None:
         return v
+    v = np.asanyarray(v, dtype=dtype)
+    v = v.squeeze()
     if dtype.kind == "V" and dtype.hasobject:
         if compressor is None:
             raise ValueError("missing compressor for object array")
