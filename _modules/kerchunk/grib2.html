@@ -204,6 +204,22 @@
     <span class="n">d</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">contains_valid_level</span><span class="p">(</span><span class="n">message_keys</span><span class="p">:</span> <span class="n">Set</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the given set of message_keys contain a valid level value.</span>
+<span class="sd">    Some types of level, like depthBelowLandLayer for GEFS grib files,</span>
+<span class="sd">    represent slices of levels by &quot;topLevel&quot; and &quot;bottomLevel&quot; rather</span>
+<span class="sd">    than a discrete level value described by &quot;level&quot;.</span>
+<span class="sd">    see https://github.com/fsspec/kerchunk/issues/559</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        message_keys: Set of keys to evaluate</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        True if message_keys contain a valid level value, False otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span> <span class="ow">or</span> <span class="s2">&quot;topLevel&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span>
+
+
 <div class="viewcode-block" id="scan_grib">
 <a class="viewcode-back" href="../../reference.html#kerchunk.grib2.scan_grib">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">scan_grib</span><span class="p">(</span>
@@ -333,7 +349,7 @@
             <span class="n">_store_array</span><span class="p">(</span>
                 <span class="n">store_dict</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attrs</span>
             <span class="p">)</span>
-            <span class="k">if</span> <span class="s2">&quot;typeOfLevel&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span> <span class="ow">and</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;typeOfLevel&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span> <span class="ow">and</span> <span class="n">contains_valid_level</span><span class="p">(</span><span class="n">message_keys</span><span class="p">):</span>
                 <span class="n">name</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">]</span>
                 <span class="n">coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
                 <span class="c1"># convert to numpy scalar, so that .tobytes can be used for inlining</span>
