@@ -217,14 +217,14 @@ def encode_fill_value(v: Any, dtype: np.dtype, compressor: Any = None) -> Any:
     # early out
     if v is None:
         return v
-    
+
     # Assure that v is a numpy array of the appropriate dtype
     v = np.asanyarray(v, dtype=dtype)
     # If v is 1D and only has 1 element, squeeze it to 0-D ndarray.
     # When v is not 0-D, calling int/float/bool on v will fail
     # We still need an ndarray in case dtype is a date
     v = v.squeeze()
-    
+
     if dtype.kind == "V" and dtype.hasobject:
         if compressor is None:
             raise ValueError("missing compressor for object array")
