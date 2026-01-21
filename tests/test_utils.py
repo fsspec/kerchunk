@@ -176,3 +176,10 @@ def test_deflate_zip_archive(m):
 
     fs = fsspec.filesystem("reference", fo=refs2)
     assert dec.decode(fs.cat("b")) == data
+
+
+def test_encode_fill_value():
+    assert kerchunk.utils.encode_fill_value(np.array([9999]), np.dtype("int")) == 9999
+    assert kerchunk.utils.encode_fill_value(np.array(9999), np.dtype("int")) == 9999
+    assert kerchunk.utils.encode_fill_value([9999], np.dtype("int")) == 9999
+    assert kerchunk.utils.encode_fill_value(9999, np.dtype("int")) == 9999
