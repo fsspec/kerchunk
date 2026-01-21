@@ -310,6 +310,14 @@
     <span class="c1"># early out</span>
     <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">v</span>
+
+    <span class="c1"># Assure that v is a numpy array of the appropriate dtype</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="c1"># If v is 1D and only has 1 element, squeeze it to 0-D ndarray.</span>
+    <span class="c1"># When v is not 0-D, calling int/float/bool on v will fail</span>
+    <span class="c1"># We still need an ndarray in case dtype is a date</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+
     <span class="k">if</span> <span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">&quot;V&quot;</span> <span class="ow">and</span> <span class="n">dtype</span><span class="o">.</span><span class="n">hasobject</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">compressor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;missing compressor for object array&quot;</span><span class="p">)</span>
