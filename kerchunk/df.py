@@ -6,6 +6,7 @@ import pandas as pd
 import fsspec
 import zarr
 
+from typing import Any, Dict
 
 # example from preffs's README'
 df = pd.DataFrame(
@@ -108,6 +109,7 @@ def refs_to_dataframe(
     storage_options=None,
     record_size=100_000,
     categorical_threshold=10,
+    lazy_reference_mapper_kwargs: Dict[str, Any] = {},
 ):
     """Write references as a parquet files store.
 
@@ -136,6 +138,8 @@ def refs_to_dataframe(
         Encode urls as pandas.Categorical to reduce memory footprint if the ratio
         of the number of unique urls to total number of refs for each variable
         is greater than or equal to this number. (default 10)
+    lazy_reference_mapper_kwargs : Dict[str, Any]
+        Optional kwargs to pass into LazyReferenceMapper
     """
     from fsspec.implementations.reference import LazyReferenceMapper
 
@@ -158,6 +162,7 @@ def refs_to_dataframe(
         root=url,
         fs=fs,
         categorical_threshold=categorical_threshold,
+        **lazy_reference_mapper_kwargs,
     )
 
     for k in sorted(refs):
