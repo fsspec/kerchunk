@@ -569,10 +569,24 @@ def templateize(strings, min_length=10, template_name="u"):
     return template, strings
 
 
+def _serializable(value):
+    """Replace zarr buffers with bytes, however deeply they are nested."""
+    if isinstance(value, zarr.core.buffer.cpu.Buffer):
+        return value.to_bytes()
+    if isinstance(value, dict):
+        return {k: _serializable(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_serializable(v) for v in value]
+    return value
+
+
 def translate_refs_serializable(refs: dict):
     """Translate a reference set to a serializable form, given that zarr
     v3 memory stores store data in buffers by default. This modifies the
     input dictionary in place, and returns a reference to it.
+
+    Buffers can also hide inside nested values, so the conversion walks
+    them instead of only looking at the top level.
 
     It also fixes keys that have a leading slash, which is not appropriate for
     zarr v3 keys
@@ -587,14 +601,11 @@ def translate_refs_serializable(refs: dict):
     dict
         A serializable form of the reference set
     """
-    keys_to_remove = []
-    new_keys = {}
-    for k, v in refs.items():
+    for k in list(refs):
+        v = refs[k]
         if isinstance(v, zarr.core.buffer.cpu.Buffer):
-            key = k.removeprefix("/")
-            new_keys[key] = v.to_bytes()
-            keys_to_remove.append(k)
-    for k in keys_to_remove:
-        del refs[k]
-    refs.update(new_keys)
+            del refs[k]
+            refs[k.removeprefix("/")] = v.to_bytes()
+        else:
+            refs[k] = _serializable(v)
     return refs

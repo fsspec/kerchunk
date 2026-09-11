@@ -183,3 +183,22 @@ def test_encode_fill_value():
     assert kerchunk.utils.encode_fill_value(np.array(9999), np.dtype("int")) == 9999
     assert kerchunk.utils.encode_fill_value([9999], np.dtype("int")) == 9999
     assert kerchunk.utils.encode_fill_value(9999, np.dtype("int")) == 9999
+
+
+def test_translate_refs_serializable_nested_buffers():
+    from zarr.core.buffer.core import default_buffer_prototype
+
+    buffer = default_buffer_prototype().buffer.from_bytes(b"{}")
+    refs = {
+        "/a/.zarray": buffer,
+        "b": {"data": buffer},
+        "c": [buffer, "text"],
+    }
+
+    out = kerchunk.utils.translate_refs_serializable(refs)
+
+    # the top-level buffer also loses its leading slash
+    assert out["a/.zarray"] == b"{}"
+    assert "/a/.zarray" not in out
+    assert out["b"] == {"data": b"{}"}
+    assert out["c"] == [b"{}", "text"]
