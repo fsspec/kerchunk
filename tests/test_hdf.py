@@ -448,3 +448,31 @@ def test_malicious_chunks():
         store = ReferenceFileSystem(ref, target=fname, asynchronous=True).get_mapper()
         data = zarr.group(store)["data"][:]
         assert (data == np.arange(8, dtype=np.int32)).all()
+
+
+def test_timeout_is_not_quashed(tmp_path, monkeypatch):
+    """A stalled store must abort the translation, not be warned away."""
+    import h5py
+    import zarr.core.sync
+
+    path = tmp_path / "timeout.h5"
+    with h5py.File(path, "w") as f:
+        f.attrs["title"] = "root"
+        f.create_dataset("a", data=np.arange(10))
+
+    real_sync = zarr.core.sync.SyncMixin._sync
+    calls = {"n": 0}
+
+    def stalling_sync(self, coroutine, *args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] > 1:  # call 1 transfers the root attributes
+            coroutine.close()
+            raise TimeoutError("store sync bridge stalled")
+        return real_sync(self, coroutine, *args, **kwargs)
+
+    with fsspec.open(path, "rb") as f:
+        chunks = SingleHdf5ToZarr(f, url=str(path), error="warn")
+        monkeypatch.setattr(zarr.core.sync.SyncMixin, "_sync", stalling_sync)
+        calls["n"] = 0
+        with pytest.raises(TimeoutError):
+            chunks.translate()
