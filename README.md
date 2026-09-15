@@ -7,6 +7,15 @@ Cloud-friendly access to archival data
 [![Pypi](https://img.shields.io/pypi/v/kerchunk.svg)](https://pypi.python.org/pypi/kerchunk/)
 [![Conda-forge](https://img.shields.io/conda/vn/conda-forge/kerchunk.svg)](https://anaconda.org/conda-forge/kerchunk)
 
+> **Note:** Kerchunk is in maintenance mode. No new features are planned, though bug
+> fixes will continue to be accepted. For new projects, we recommend
+> [VirtualiZarr](https://virtualizarr.readthedocs.io/) for creating virtual Zarr
+> datasets, together with [Icechunk](https://icechunk.io/) as the storage engine.
+> See the FAQ for a
+> [comparison of libraries](https://virtualizarr.readthedocs.io/en/stable/explanation/faq.html#how-do-the-virtualizarr-and-kerchunk-libraries-compare),
+> [comparison of supported storage formats](https://virtualizarr.readthedocs.io/en/stable/explanation/faq.html#which-format-should-i-save-my-virtual-references-as),
+> and for how to [migrate existing Kerchunk references](https://virtualizarr.readthedocs.io/en/stable/explanation/faq.html#i-have-already-kerchunked-my-data-do-i-have-to-redo-that).
+
 Kerchunk is a library that provides a unified way to represent a variety of chunked, compressed
 data formats (e.g. NetCDF, HDF5, GRIB),
 allowing efficient access to the data from traditional file systems or cloud object storage.
