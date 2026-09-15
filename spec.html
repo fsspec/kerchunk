@@ -8,15 +8,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>References specification &mdash; kerchunk  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/maintenance_banner.css?v=f3239f3f" />
 
   
     <link rel="shortcut icon" href="_static/kerchunk.ico"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/maintenance_banner.js?v=a8b6b9eb"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -97,8 +99,8 @@
 <h2>Version 0<a class="headerlink" href="#version-0" title="Link to this heading"></a></h2>
 <p>Prototype spec for the structure required by ReferenceFileSystem:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;key0&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;protocol://target_url&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">"key0"</span><span class="p">:</span><span class="w"> </span><span class="s2">"data"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"key1"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"protocol://target_url"</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -109,21 +111,21 @@
 </ul>
 <p>For example, Zarr data in this proposed spec might be represented as:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;.zgroup&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\n    \&quot;zarr_format\&quot;: 2\n}&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;.zattrs&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\n    \&quot;Conventions\&quot;: \&quot;UGRID-0.9.0\n\&quot;}&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;x/.zattrs&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\n    \&quot;_ARRAY_DIMENSIONS\&quot;: [\n        \&quot;node\&quot;\n ...&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;x/.zarray&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\n    \&quot;chunks\&quot;: [\n        9228245\n    ],\n    \&quot;compressor\&quot;: null,\n    \&quot;dtype\&quot;: \&quot;&lt;f8\&quot;,\n  ...&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;x/0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;s3://bucket/path/file.nc&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">294094376</span><span class="p">,</span><span class="w"> </span><span class="mi">73825960</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">".zgroup"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{\n    \"zarr_format\": 2\n}"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">".zattrs"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{\n    \"Conventions\": \"UGRID-0.9.0\n\"}"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"x/.zattrs"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{\n    \"_ARRAY_DIMENSIONS\": [\n        \"node\"\n ..."</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"x/.zarray"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{\n    \"chunks\": [\n        9228245\n    ],\n    \"compressor\": null,\n    \"dtype\": \"&lt;f8\",\n  ..."</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"x/0"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"s3://bucket/path/file.nc"</span><span class="p">,</span><span class="w"> </span><span class="mi">294094376</span><span class="p">,</span><span class="w"> </span><span class="mi">73825960</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <p>Data can also be written as a JSON object instead of a string, in which case the value is interpreted as a JSON file. For example, the above could equivalently be written as:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;.zgroup&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;zarr_format&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;.zattrs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;Conventions&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UGRID-0.9.0\n&quot;</span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;x/.zattrs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]},</span>
-<span class="w">  </span><span class="nt">&quot;x/.zarray&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;chunks&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">9228245</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;compressor&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;dtype&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;f8&quot;</span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;x/0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;s3://bucket/path/file.nc&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">294094376</span><span class="p">,</span><span class="w"> </span><span class="mi">73825960</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">".zgroup"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"zarr_format"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">".zattrs"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Conventions"</span><span class="p">:</span><span class="w"> </span><span class="s2">"UGRID-0.9.0\n"</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"x/.zattrs"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"_ARRAY_DIMENSIONS"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"node"</span><span class="p">]},</span>
+<span class="w">  </span><span class="nt">"x/.zarray"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"chunks"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">9228245</span><span class="p">],</span><span class="w"> </span><span class="nt">"compressor"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="nt">"dtype"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;f8"</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"x/0"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"s3://bucket/path/file.nc"</span><span class="p">,</span><span class="w"> </span><span class="mi">294094376</span><span class="p">,</span><span class="w"> </span><span class="mi">73825960</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -135,24 +137,24 @@ be considered attributes, and “refs” as the data that ought to dominate the 
 Version 0, is compatible with the “refs” entry, but here we add features. It will also be possible to <em>expand</em>
 this new enhanced spec into Version 0 format.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-  <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">,</span> <span class="n">must</span> <span class="n">be</span> <span class="n">equal</span> <span class="n">to</span><span class="p">)</span> <span class="mi">1</span><span class="p">,</span>
-  <span class="s2">&quot;templates&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">zero</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">arbitrary</span> <span class="n">keys</span><span class="p">)</span> <span class="p">{</span>
-    <span class="s2">&quot;template_name&quot;</span><span class="p">:</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span>
+  <span class="s2">"version"</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">,</span> <span class="n">must</span> <span class="n">be</span> <span class="n">equal</span> <span class="n">to</span><span class="p">)</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="s2">"templates"</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">zero</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">arbitrary</span> <span class="n">keys</span><span class="p">)</span> <span class="p">{</span>
+    <span class="s2">"template_name"</span><span class="p">:</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span>
   <span class="p">},</span>
-  <span class="s2">&quot;gen&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">zero</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">items</span><span class="p">)</span> <span class="p">[</span>
-    <span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">,</span>
-    <span class="s2">&quot;url&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">,</span>
-    <span class="s2">&quot;offset&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">required</span> <span class="k">with</span> <span class="s2">&quot;length&quot;</span><span class="p">)</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">,</span>
-    <span class="s2">&quot;length&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">required</span> <span class="k">with</span> <span class="s2">&quot;offset&quot;</span><span class="p">)</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">,</span>
-    <span class="s2">&quot;dimensions&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">,</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">arbitrary</span> <span class="n">keys</span><span class="p">)</span> <span class="p">{</span>
-      <span class="s2">&quot;variable_name&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span>
-        <span class="p">{</span><span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">)</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;stop&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">)</span> <span class="nb">int</span><span class="p">}</span>
+  <span class="s2">"gen"</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">zero</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">items</span><span class="p">)</span> <span class="p">[</span>
+    <span class="s2">"key"</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">,</span>
+    <span class="s2">"url"</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">,</span>
+    <span class="s2">"offset"</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">required</span> <span class="k">with</span> <span class="s2">"length"</span><span class="p">)</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">,</span>
+    <span class="s2">"length"</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">required</span> <span class="k">with</span> <span class="s2">"offset"</span><span class="p">)</span> <span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">,</span>
+    <span class="s2">"dimensions"</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">,</span> <span class="n">one</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">arbitrary</span> <span class="n">keys</span><span class="p">)</span> <span class="p">{</span>
+      <span class="s2">"variable_name"</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span>
+        <span class="p">{</span><span class="s2">"start"</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">)</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">"stop"</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span> <span class="nb">int</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">)</span> <span class="nb">int</span><span class="p">}</span>
         <span class="n">OR</span>
         <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="p">}</span>
   <span class="p">],</span>
-  <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">zero</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">arbitrary</span> <span class="n">keys</span><span class="p">)</span> <span class="p">{</span>
-    <span class="s2">&quot;key_name&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span> <span class="nb">str</span> <span class="n">OR</span> <span class="p">[</span><span class="n">url</span><span class="p">(</span><span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">)]</span> <span class="n">OR</span> <span class="p">[</span><span class="n">url</span><span class="p">(</span><span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">),</span> <span class="n">offset</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span> <span class="n">length</span><span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+  <span class="s2">"refs"</span><span class="p">:</span> <span class="p">(</span><span class="n">optional</span><span class="p">,</span> <span class="n">zero</span> <span class="ow">or</span> <span class="n">more</span> <span class="n">arbitrary</span> <span class="n">keys</span><span class="p">)</span> <span class="p">{</span>
+    <span class="s2">"key_name"</span><span class="p">:</span> <span class="p">(</span><span class="n">required</span><span class="p">)</span> <span class="nb">str</span> <span class="n">OR</span> <span class="p">[</span><span class="n">url</span><span class="p">(</span><span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">)]</span> <span class="n">OR</span> <span class="p">[</span><span class="n">url</span><span class="p">(</span><span class="n">jinja</span><span class="o">-</span><span class="nb">str</span><span class="p">),</span> <span class="n">offset</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span> <span class="n">length</span><span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -177,28 +179,28 @@ a binary section of a url</p></li>
 </ul>
 <p>Here is an example</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;templates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;u&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;server.domain/path&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;f&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{{c}}&quot;</span>
+<span class="w">    </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"templates"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"u"</span><span class="p">:</span><span class="w"> </span><span class="s2">"server.domain/path"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"f"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{c}}"</span>
 <span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;gen&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nt">"gen"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gen_key{{i}}&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://{{u}}_{{i}}&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{{(i + 1) * 1000}}&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;length&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1000&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;dimensions&quot;</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">"key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gen_key{{i}}"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://{{u}}_{{i}}"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"offset"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{(i + 1) * 1000}}"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"length"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1000"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"dimensions"</span><span class="p">:</span>
 <span class="w">              </span><span class="p">{</span>
-<span class="w">                </span><span class="nt">&quot;i&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;stop&quot;</span><span class="p">:</span><span class="w">  </span><span class="mi">5</span><span class="p">}</span>
+<span class="w">                </span><span class="nt">"i"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"stop"</span><span class="p">:</span><span class="w">  </span><span class="mi">5</span><span class="p">}</span>
 <span class="w">              </span><span class="p">}</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;refs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nt">&quot;key0&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
-<span class="w">      </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://target_url&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
-<span class="w">      </span><span class="nt">&quot;key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://{{u}}&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
-<span class="w">      </span><span class="nt">&quot;key3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://{{f(c=&#39;text&#39;)}}&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">]</span>
+<span class="w">    </span><span class="nt">"refs"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"key0"</span><span class="p">:</span><span class="w"> </span><span class="s2">"data"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"key1"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://target_url"</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">"key2"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://{{u}}"</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">"key3"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://{{f(c='text')}}"</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -207,15 +209,15 @@ a binary section of a url</p></li>
 is more than one variable, a cartesian product is formed.</p>
 <p>This example evaluates to the Version 0 equivalent</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;key0&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://target_url&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;key3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://text&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;gen_key0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_0&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;gen_key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_1&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">2000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;gen_key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_2&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;gen_key3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_3&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">4000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">&quot;gen_key4&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;http://server.domain/path_4&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">"key0"</span><span class="p">:</span><span class="w"> </span><span class="s2">"data"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"key1"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://target_url"</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"key2"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://server.domain/path"</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"key3"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://text"</span><span class="p">,</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"gen_key0"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://server.domain/path_0"</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"gen_key1"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://server.domain/path_1"</span><span class="p">,</span><span class="w"> </span><span class="mi">2000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"gen_key2"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://server.domain/path_2"</span><span class="p">,</span><span class="w"> </span><span class="mi">3000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"gen_key3"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://server.domain/path_3"</span><span class="p">,</span><span class="w"> </span><span class="mi">4000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"gen_key4"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"http://server.domain/path_4"</span><span class="p">,</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -237,12 +239,12 @@ working on a zarr dataset. This is because the references are split into files, 
 an array’s shape/chunk information is used to figure out which reference file
 to load.</p>
 <p>The following code</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">lz</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">implementations</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">LazyReferenceMapper</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">&quot;ref.parquet&quot;</span><span class="p">)</span>
-<span class="n">z</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">lz</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
-<span class="n">d</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">lz</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">implementations</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">LazyReferenceMapper</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s2">"ref.parquet"</span><span class="p">)</span>
+<span class="n">z</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">lz</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"w"</span><span class="p">)</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,))</span>
 <span class="n">d</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">g2</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;deep&quot;</span><span class="p">)</span>
-<span class="n">d</span> <span class="o">=</span> <span class="n">g2</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,))</span>
+<span class="n">g2</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">"deep"</span><span class="p">)</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">g2</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,))</span>
 <span class="n">d</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">1</span>
 </pre></div>
 </div>

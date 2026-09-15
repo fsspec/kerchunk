@@ -8,15 +8,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Advanced Topics &mdash; kerchunk  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/maintenance_banner.css?v=f3239f3f" />
 
   
     <link rel="shortcut icon" href="_static/kerchunk.ico"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/maintenance_banner.js?v=a8b6b9eb"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -116,7 +118,7 @@ storage options and any parameters needed for the transformer are in place.</p>
 <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">outputfile</span><span class="p">,</span> <span class="n">storage_options_in</span><span class="o">=</span><span class="p">{},</span> <span class="n">storage_options_out</span><span class="o">=</span><span class="p">{}):</span>
     <span class="n">transformer</span> <span class="o">=</span> <span class="n">kerchunk</span><span class="o">.</span><span class="n">hdf</span><span class="o">.</span><span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options_in</span><span class="p">)</span>
     <span class="n">refs</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
-    <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outputfile</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wt&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options_out</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outputfile</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"wt"</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options_out</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="n">ujson</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">refs</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
 
 <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="n">dask</span><span class="o">.</span><span class="n">delayed</span><span class="p">(</span><span class="n">process</span><span class="p">)(</span><span class="n">u</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span>
@@ -149,7 +151,7 @@ batch stage, and any “postprocessing” only <em>after</em> the final combine.
 into an archive, ZIP or TAR. If those files are of formats supported by
 <code class="docutils literal notranslate"><span class="pre">kerchunk</span></code>, they can be directly scanned with something like</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">transformer</span> <span class="o">=</span> <span class="n">kerchunk</span><span class="o">.</span><span class="n">netCDF3</span><span class="o">.</span><span class="n">NetCDF3ToZarr</span><span class="p">(</span>
-    <span class="s2">&quot;tar://myfile.nc::file://archive.tar&quot;</span><span class="p">,</span>
+    <span class="s2">"tar://myfile.nc::file://archive.tar"</span><span class="p">,</span>
     <span class="n">inline_threshold</span><span class="o">=</span><span class="mi">0</span>
 <span class="p">)</span>
 <span class="n">out</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
@@ -231,31 +233,31 @@ one go and may be faster, if you have a Dask cluster available.</p>
 <span class="n">files</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">location_of_data</span><span class="p">)</span>
 
 <span class="c1"># Create LazyReferenceMapper to pass to MultiZarrToZarr</span>
-<span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">)</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">"file"</span><span class="p">)</span>
 
-<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">&quot;combined.parq&quot;</span><span class="p">)</span>
-<span class="n">out</span> <span class="o">=</span> <span class="n">LazyReferenceMapper</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">record_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="s2">&quot;combined.parq&quot;</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
+<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">"combined.parq"</span><span class="p">)</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">LazyReferenceMapper</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">record_size</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">root</span><span class="o">=</span><span class="s2">"combined.parq"</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">)</span>
 
 <span class="c1"># Create references from input files</span>
 <span class="n">single_ref_sets</span> <span class="o">=</span> <span class="p">[</span><span class="n">hdf</span><span class="o">.</span><span class="n">SingleHdf5ToZarr</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
 
 <span class="n">out_dict</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span>
  <span class="n">single_ref_sets</span><span class="p">,</span>
- <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span>
- <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span>
- <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+ <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">"s3"</span><span class="p">,</span>
+ <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">"time"</span><span class="p">],</span>
+ <span class="n">remote_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"anon"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
  <span class="n">out</span><span class="o">=</span><span class="n">out</span>
  <span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
 
 <span class="n">out</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
-<span class="n">df</span><span class="o">.</span><span class="n">refs_to_dataframe</span><span class="p">(</span><span class="n">out_dict</span><span class="p">,</span> <span class="s2">&quot;combined.parq&quot;</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">refs_to_dataframe</span><span class="p">(</span><span class="n">out_dict</span><span class="p">,</span> <span class="s2">"combined.parq"</span><span class="p">)</span>
 
 <span class="n">fs</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">implementations</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">ReferenceFileSystem</span><span class="p">(</span>
-    <span class="s2">&quot;combined.parq&quot;</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">target_protocol</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="s2">"combined.parq"</span><span class="p">,</span> <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">"s3"</span><span class="p">,</span> <span class="n">target_protocol</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
-    <span class="n">fs</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(),</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span>
-    <span class="n">backend_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;consolidated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+    <span class="n">fs</span><span class="o">.</span><span class="n">get_mapper</span><span class="p">(),</span> <span class="n">engine</span><span class="o">=</span><span class="s2">"zarr"</span><span class="p">,</span>
+    <span class="n">backend_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"consolidated"</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
 <span class="p">)</span>
 </pre></div>
 </div>

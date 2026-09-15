@@ -7,15 +7,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>kerchunk.grib2 &mdash; kerchunk  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/maintenance_banner.css?v=f3239f3f" />
 
   
     <link rel="shortcut icon" href="../../_static/kerchunk.ico"/>
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/maintenance_banner.js?v=a8b6b9eb"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -120,27 +122,27 @@
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">cfgrib</span>
 <span class="k">except</span> <span class="ne">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
-    <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cfgrib&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"cfgrib"</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-            <span class="s2">&quot;cfgrib is needed to kerchunk GRIB2 files. Please install it with &quot;</span>
-            <span class="s2">&quot;`conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib &quot;</span>
-            <span class="s2">&quot;for more details.&quot;</span>
+            <span class="s2">"cfgrib is needed to kerchunk GRIB2 files. Please install it with "</span>
+            <span class="s2">"`conda install -c conda-forge cfgrib`. See https://github.com/ecmwf/cfgrib "</span>
+            <span class="s2">"for more details."</span>
         <span class="p">)</span>
 
 
 <span class="c1"># cfgrib copies over certain GRIB attributes</span>
 <span class="c1"># but renames them to CF-compliant values</span>
 <span class="n">ATTRS_TO_COPY_OVER</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;long_name&quot;</span><span class="p">:</span> <span class="s2">&quot;GRIB_name&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;GRIB_units&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;standard_name&quot;</span><span class="p">:</span> <span class="s2">&quot;GRIB_cfName&quot;</span><span class="p">,</span>
+    <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"GRIB_name"</span><span class="p">,</span>
+    <span class="s2">"units"</span><span class="p">:</span> <span class="s2">"GRIB_units"</span><span class="p">,</span>
+    <span class="s2">"standard_name"</span><span class="p">:</span> <span class="s2">"GRIB_cfName"</span><span class="p">,</span>
 <span class="p">}</span>
 
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;grib2-to-zarr&quot;</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"grib2-to-zarr"</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_split_file</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">io</span><span class="o">.</span><span class="n">FileIO</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"size"</span><span class="p">):</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">size</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -148,14 +150,14 @@
     <span class="n">part</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">while</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;extract part </span><span class="si">{</span><span class="n">part</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"extract part </span><span class="si">{</span><span class="n">part</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">head</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
-        <span class="k">if</span> <span class="sa">b</span><span class="s2">&quot;GRIB&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">head</span><span class="p">:</span>
+        <span class="k">if</span> <span class="sa">b</span><span class="s2">"GRIB"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">head</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
             <span class="k">continue</span>
-        <span class="n">ind</span> <span class="o">=</span> <span class="n">head</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;GRIB&quot;</span><span class="p">)</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">head</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="sa">b</span><span class="s2">"GRIB"</span><span class="p">)</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">head</span><span class="p">)</span> <span class="o">+</span> <span class="n">ind</span>
-        <span class="n">part_size</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="n">ind</span> <span class="o">+</span> <span class="mi">12</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="mi">16</span><span class="p">],</span> <span class="s2">&quot;big&quot;</span><span class="p">)</span>
+        <span class="n">part_size</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="n">ind</span> <span class="o">+</span> <span class="mi">12</span> <span class="p">:</span> <span class="n">ind</span> <span class="o">+</span> <span class="mi">16</span><span class="p">],</span> <span class="s2">"big"</span><span class="p">)</span>
         <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
         <span class="k">yield</span> <span class="n">start</span><span class="p">,</span> <span class="n">part_size</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">part_size</span><span class="p">)</span>
         <span class="n">part</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -170,45 +172,45 @@
 
     <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="ow">or</span> <span class="p">())</span>
     <span class="k">if</span> <span class="n">nbytes</span> <span class="o">&lt;</span> <span class="n">inline_threshold</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Store </span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2"> inline&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Store </span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2"> inline"</span><span class="p">)</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_array</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="n">var</span><span class="p">,</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
             <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">fill_value</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;missingValue&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">fill_value</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"missingValue"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">compressor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;tobytes&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">"tobytes"</span><span class="p">):</span>
             <span class="n">b</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">b</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">build_array</span><span class="p">()</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># easiest way to test if data is ascii</span>
-            <span class="n">b</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
-            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="n">store</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">/0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">"base64:"</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">store</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">/0"</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Store </span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2"> reference&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Store </span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2"> reference"</span><span class="p">)</span>
         <span class="n">d</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">create_array</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="n">var</span><span class="p">,</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
             <span class="n">chunks</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">fill_value</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;missingValue&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">fill_value</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"missingValue"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">filters</span><span class="o">=</span><span class="p">[</span><span class="n">GRIBCodec</span><span class="p">(</span><span class="n">var</span><span class="o">=</span><span class="n">var</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">))],</span>
             <span class="n">compressor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">store</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">/&quot;</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;0&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">))]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;{{u}}&quot;</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">]</span>
+        <span class="n">store</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">/"</span> <span class="o">+</span> <span class="s2">"."</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">"0"</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">))]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"{{u}}"</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">]</span>
     <span class="n">d</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">contains_valid_level</span><span class="p">(</span><span class="n">message_keys</span><span class="p">:</span> <span class="n">Set</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the given set of message_keys contain a valid level value.</span>
+<span class="w">    </span><span class="sd">"""Check if the given set of message_keys contain a valid level value.</span>
 <span class="sd">    Some types of level, like depthBelowLandLayer for GEFS grib files,</span>
-<span class="sd">    represent slices of levels by &quot;topLevel&quot; and &quot;bottomLevel&quot; rather</span>
-<span class="sd">    than a discrete level value described by &quot;level&quot;.</span>
+<span class="sd">    represent slices of levels by "topLevel" and "bottomLevel" rather</span>
+<span class="sd">    than a discrete level value described by "level".</span>
 <span class="sd">    see https://github.com/fsspec/kerchunk/issues/559</span>
 
 <span class="sd">    Args:</span>
@@ -216,8 +218,8 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        True if message_keys contain a valid level value, False otherwise</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s2">&quot;level&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span> <span class="ow">or</span> <span class="s2">&quot;topLevel&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="s2">"level"</span> <span class="ow">in</span> <span class="n">message_keys</span> <span class="ow">or</span> <span class="s2">"topLevel"</span> <span class="ow">in</span> <span class="n">message_keys</span>
 
 
 <div class="viewcode-block" id="scan_grib">
@@ -230,7 +232,7 @@
     <span class="n">skip</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="nb">filter</span><span class="o">=</span><span class="p">{},</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Generate references for a GRIB2 file</span>
 
 <span class="sd">    Parameters</span>
@@ -248,27 +250,27 @@
 <span class="sd">    filter: dict</span>
 <span class="sd">        keyword filtering. For each key, only messages where the key exists and has</span>
 <span class="sd">        the exact value or is in the given set, are processed.</span>
-<span class="sd">        E.g., the cf-style filter ``{&#39;typeOfLevel&#39;: &#39;heightAboveGround&#39;, &#39;level&#39;: 2}``</span>
+<span class="sd">        E.g., the cf-style filter ``{'typeOfLevel': 'heightAboveGround', 'level': 2}``</span>
 <span class="sd">        only keeps messages where heightAboveGround==2.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 
 <span class="sd">    list(dict): references dicts in Version 1 format, one per message in the file</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">eccodes</span>
 
     <span class="n">storage_options</span> <span class="o">=</span> <span class="n">storage_options</span> <span class="ow">or</span> <span class="p">{}</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Open </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Open </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="c1"># This is hardcoded a lot in cfgrib!</span>
-    <span class="c1"># valid_time is added if &quot;time&quot; and &quot;step&quot; are present in time_dims</span>
+    <span class="c1"># valid_time is added if "time" and "step" are present in time_dims</span>
     <span class="c1"># These are present by default</span>
-    <span class="c1"># TIME_DIMS = [&quot;step&quot;, &quot;time&quot;, &quot;valid_time&quot;]</span>
+    <span class="c1"># TIME_DIMS = ["step", "time", "valid_time"]</span>
 
     <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">,</span> <span class="o">**</span><span class="n">storage_options</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"File </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">_split_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="n">skip</span><span class="p">):</span>
             <span class="n">store_dict</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="n">store</span> <span class="o">=</span> <span class="n">dict_to_store</span><span class="p">(</span><span class="n">store_dict</span><span class="p">)</span>
@@ -279,23 +281,23 @@
             <span class="c1"># It would be nice to just have a list of valid keys</span>
             <span class="c1"># There does not seem to be a nice API for this</span>
             <span class="c1"># 1. message_grib_keys returns keys coded in the message</span>
-            <span class="c1"># 2. There exist &quot;computed&quot; keys, that are functions applied on the data</span>
+            <span class="c1"># 2. There exist "computed" keys, that are functions applied on the data</span>
             <span class="c1"># 3. There are also aliases!</span>
-            <span class="c1">#    e.g. &quot;number&quot; is an alias of &quot;perturbationNumber&quot;, and cfgrib uses this alias</span>
-            <span class="c1"># So we stick to checking membership in &#39;m&#39;, which ends up doing</span>
+            <span class="c1">#    e.g. "number" is an alias of "perturbationNumber", and cfgrib uses this alias</span>
+            <span class="c1"># So we stick to checking membership in 'm', which ends up doing</span>
             <span class="c1"># a lot of reads.</span>
             <span class="n">message_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">message_grib_keys</span><span class="p">())</span>
             <span class="c1"># The choices here copy cfgrib :(</span>
             <span class="c1"># message_keys.update(cfgrib.dataset.INDEX_KEYS)</span>
             <span class="c1"># message_keys.update(TIME_DIMS)</span>
-            <span class="c1"># print(&quot;totalNumber&quot; in cfgrib.dataset.INDEX_KEYS)</span>
-            <span class="c1"># Adding computed keys adds a lot that isn&#39;t added by cfgrib</span>
+            <span class="c1"># print("totalNumber" in cfgrib.dataset.INDEX_KEYS)</span>
+            <span class="c1"># Adding computed keys adds a lot that isn't added by cfgrib</span>
             <span class="c1"># message_keys.extend(m.computed_keys)</span>
 
-            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;Ny&quot;</span><span class="p">],</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;Nx&quot;</span><span class="p">])</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">"Ny"</span><span class="p">],</span> <span class="n">m</span><span class="p">[</span><span class="s2">"Nx"</span><span class="p">])</span>
             <span class="c1"># thank you, gribscan</span>
-            <span class="n">native_type</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_native_type</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">codes_id</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">)</span>
-            <span class="n">data_size</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_size</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">codes_id</span><span class="p">,</span> <span class="s2">&quot;values&quot;</span><span class="p">)</span>
+            <span class="n">native_type</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_native_type</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">codes_id</span><span class="p">,</span> <span class="s2">"values"</span><span class="p">)</span>
+            <span class="n">data_size</span> <span class="o">=</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">codes_get_size</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">codes_id</span><span class="p">,</span> <span class="s2">"values"</span><span class="p">)</span>
             <span class="n">coordinates</span> <span class="o">=</span> <span class="p">[]</span>
 
             <span class="n">good</span> <span class="o">=</span> <span class="kc">True</span>
@@ -312,18 +314,18 @@
 
             <span class="n">z</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open_group</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">zarr_format</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">global_attrs</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="sa">f</span><span class="s2">&quot;GRIB_</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="sa">f</span><span class="s2">"GRIB_</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GLOBAL_ATTRIBUTES_KEYS</span>
                 <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">m</span>
             <span class="p">}</span>
-            <span class="k">if</span> <span class="s2">&quot;GRIB_centreDescription&quot;</span> <span class="ow">in</span> <span class="n">global_attrs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">"GRIB_centreDescription"</span> <span class="ow">in</span> <span class="n">global_attrs</span><span class="p">:</span>
                 <span class="c1"># follow CF compliant renaming from cfgrib</span>
-                <span class="n">global_attrs</span><span class="p">[</span><span class="s2">&quot;institution&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">global_attrs</span><span class="p">[</span><span class="s2">&quot;GRIB_centreDescription&quot;</span><span class="p">]</span>
+                <span class="n">global_attrs</span><span class="p">[</span><span class="s2">"institution"</span><span class="p">]</span> <span class="o">=</span> <span class="n">global_attrs</span><span class="p">[</span><span class="s2">"GRIB_centreDescription"</span><span class="p">]</span>
             <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">global_attrs</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">data_size</span> <span class="o">&lt;</span> <span class="n">inline_threshold</span><span class="p">:</span>
                 <span class="c1"># read the data</span>
-                <span class="n">vals</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">vals</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">"values"</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># dummy array to match the required interface</span>
                 <span class="n">vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">native_type</span><span class="p">)</span>
@@ -331,10 +333,10 @@
 
             <span class="n">attrs</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="c1"># Follow cfgrib convention and rename key</span>
-                <span class="sa">f</span><span class="s2">&quot;GRIB_</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="sa">f</span><span class="s2">"GRIB_</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">DATA_ATTRIBUTES_KEYS</span>
                 <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">EXTRA_DATA_ATTRIBUTES_KEYS</span>
-                <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPE_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">],</span> <span class="p">[])</span>
+                <span class="o">+</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPE_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">"gridType"</span><span class="p">],</span> <span class="p">[])</span>
                 <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">m</span>
             <span class="p">}</span>
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ATTRS_TO_COPY_OVER</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -343,45 +345,45 @@
 
             <span class="c1"># try to use cfVarName if available,</span>
             <span class="c1"># otherwise use the grib shortName</span>
-            <span class="n">varName</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;cfVarName&quot;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">varName</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;undef&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">):</span>
-                <span class="n">varName</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;shortName&quot;</span><span class="p">]</span>
+            <span class="n">varName</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">"cfVarName"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">varName</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"undef"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">):</span>
+                <span class="n">varName</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">"shortName"</span><span class="p">]</span>
             <span class="n">_store_array</span><span class="p">(</span>
                 <span class="n">store_dict</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="n">varName</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attrs</span>
             <span class="p">)</span>
-            <span class="k">if</span> <span class="s2">&quot;typeOfLevel&quot;</span> <span class="ow">in</span> <span class="n">message_keys</span> <span class="ow">and</span> <span class="n">contains_valid_level</span><span class="p">(</span><span class="n">message_keys</span><span class="p">):</span>
-                <span class="n">name</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s2">"typeOfLevel"</span> <span class="ow">in</span> <span class="n">message_keys</span> <span class="ow">and</span> <span class="n">contains_valid_level</span><span class="p">(</span><span class="n">message_keys</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">"typeOfLevel"</span><span class="p">]</span>
                 <span class="n">coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
                 <span class="c1"># convert to numpy scalar, so that .tobytes can be used for inlining</span>
                 <span class="c1"># dtype=float is hardcoded in cfgrib</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;level&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)[()]</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">"level"</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)[()]</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">attrs</span> <span class="o">=</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">COORD_ATTRS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
                 <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find coord </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> in dataset&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Couldn't find coord </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> in dataset"</span><span class="p">)</span>
                     <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
-                <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">attrs</span><span class="p">[</span><span class="s2">"_ARRAY_DIMENSIONS"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">_store_array</span><span class="p">(</span>
                     <span class="n">store_dict</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">inline_threshold</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">attrs</span>
                 <span class="p">)</span>
             <span class="n">dims</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_2D_NON_DIMENSION_COORDS</span>
-                <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">]</span>
+                <span class="p">[</span><span class="s2">"y"</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">"gridType"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_2D_NON_DIMENSION_COORDS</span>
+                <span class="k">else</span> <span class="p">[</span><span class="s2">"latitude"</span><span class="p">,</span> <span class="s2">"longitude"</span><span class="p">]</span>
             <span class="p">)</span>
-            <span class="n">z</span><span class="p">[</span><span class="n">varName</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dims</span>
+            <span class="n">z</span><span class="p">[</span><span class="n">varName</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"_ARRAY_DIMENSIONS"</span><span class="p">]</span> <span class="o">=</span> <span class="n">dims</span>
 
             <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">COORD_ATTRS</span><span class="p">:</span>
                 <span class="n">coord2</span> <span class="o">=</span> <span class="p">{</span>
-                    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;latitudes&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;longitudes&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="s2">&quot;step:int&quot;</span><span class="p">,</span>
+                    <span class="s2">"latitude"</span><span class="p">:</span> <span class="s2">"latitudes"</span><span class="p">,</span>
+                    <span class="s2">"longitude"</span><span class="p">:</span> <span class="s2">"longitudes"</span><span class="p">,</span>
+                    <span class="s2">"step"</span><span class="p">:</span> <span class="s2">"step:int"</span><span class="p">,</span>
                 <span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">coord</span><span class="p">)</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">x</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">coord2</span><span class="p">)</span>
                 <span class="k">except</span> <span class="n">eccodes</span><span class="o">.</span><span class="n">WrongStepUnitError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                        <span class="s2">&quot;Ignoring coordinate &#39;</span><span class="si">%s</span><span class="s2">&#39; for varname &#39;</span><span class="si">%s</span><span class="s2">&#39;, raises: eccodes.WrongStepUnitError(</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span>
+                        <span class="s2">"Ignoring coordinate '</span><span class="si">%s</span><span class="s2">' for varname '</span><span class="si">%s</span><span class="s2">', raises: eccodes.WrongStepUnitError(</span><span class="si">%s</span><span class="s2">)"</span><span class="p">,</span>
                         <span class="n">coord2</span><span class="p">,</span>
                         <span class="n">varName</span><span class="p">,</span>
                         <span class="n">e</span><span class="p">,</span>
@@ -394,16 +396,16 @@
                 <span class="n">inline_extra</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">data_size</span><span class="p">:</span>
                     <span class="k">if</span> <span class="p">(</span>
-                        <span class="n">m</span><span class="p">[</span><span class="s2">&quot;gridType&quot;</span><span class="p">]</span>
+                        <span class="n">m</span><span class="p">[</span><span class="s2">"gridType"</span><span class="p">]</span>
                         <span class="ow">in</span> <span class="n">cfgrib</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">GRID_TYPES_2D_NON_DIMENSION_COORDS</span>
                     <span class="p">):</span>
-                        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">]</span>
+                        <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"y"</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">]</span>
                         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">coord</span><span class="p">]</span>
-                        <span class="k">if</span> <span class="n">coord</span> <span class="o">==</span> <span class="s2">&quot;latitude&quot;</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">coord</span> <span class="o">==</span> <span class="s2">"latitude"</span><span class="p">:</span>
                             <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-                        <span class="k">elif</span> <span class="n">coord</span> <span class="o">==</span> <span class="s2">&quot;longitude&quot;</span><span class="p">:</span>
+                        <span class="k">elif</span> <span class="n">coord</span> <span class="o">==</span> <span class="s2">"longitude"</span><span class="p">:</span>
                             <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">shape</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
                         <span class="c1"># force inlining of x/y/latitude/longitude coordinates.</span>
                         <span class="c1"># since these are derived from analytic formulae</span>
@@ -428,19 +430,19 @@
                     <span class="n">size</span><span class="p">,</span>
                     <span class="n">attrs</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">z</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;_ARRAY_DIMENSIONS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dims</span>
+                <span class="n">z</span><span class="p">[</span><span class="n">coord</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"_ARRAY_DIMENSIONS"</span><span class="p">]</span> <span class="o">=</span> <span class="n">dims</span>
             <span class="k">if</span> <span class="n">coordinates</span><span class="p">:</span>
-                <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
+                <span class="n">z</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"coordinates"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
 
             <span class="n">translate_refs_serializable</span><span class="p">(</span><span class="n">store_dict</span><span class="p">)</span>
             <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">{</span>
-                    <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-                    <span class="s2">&quot;refs&quot;</span><span class="p">:</span> <span class="n">_encode_for_JSON</span><span class="p">(</span><span class="n">store_dict</span><span class="p">),</span>
-                    <span class="s2">&quot;templates&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span>
+                    <span class="s2">"version"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s2">"refs"</span><span class="p">:</span> <span class="n">_encode_for_JSON</span><span class="p">(</span><span class="n">store_dict</span><span class="p">),</span>
+                    <span class="s2">"templates"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"u"</span><span class="p">:</span> <span class="n">url</span><span class="p">},</span>
                 <span class="p">}</span>
             <span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Done&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"Done"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span></div>
 
 
@@ -449,40 +451,40 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">example_combine</span><span class="p">(</span>
-    <span class="nb">filter</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">:</span> <span class="s2">&quot;heightAboveGround&quot;</span><span class="p">,</span> <span class="s2">&quot;level&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+    <span class="nb">filter</span><span class="o">=</span><span class="p">{</span><span class="s2">"typeOfLevel"</span><span class="p">:</span> <span class="s2">"heightAboveGround"</span><span class="p">,</span> <span class="s2">"level"</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
 <span class="p">):</span>  <span class="c1"># pragma: no cover</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create combined dataset of weather measurements at 2m height</span>
+<span class="w">    </span><span class="sd">"""Create combined dataset of weather measurements at 2m height</span>
 
 <span class="sd">    Ten consecutive timepoints from ten 120MB files on s3.</span>
 <span class="sd">    Example usage:</span>
 
 <span class="sd">    &gt;&gt;&gt; tot = example_combine()</span>
-<span class="sd">    &gt;&gt;&gt; ds = xr.open_dataset(&quot;reference://&quot;, engine=&quot;zarr&quot;, backend_kwargs={</span>
-<span class="sd">    ...        &quot;consolidated&quot;: False,</span>
-<span class="sd">    ...        &quot;storage_options&quot;: {&quot;fo&quot;: tot, &quot;remote_options&quot;: {&quot;anon&quot;: True}}})</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    &gt;&gt;&gt; ds = xr.open_dataset("reference://", engine="zarr", backend_kwargs={</span>
+<span class="sd">    ...        "consolidated": False,</span>
+<span class="sd">    ...        "storage_options": {"fo": tot, "remote_options": {"anon": True}}})</span>
+<span class="sd">    """</span>
     <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t22z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t23z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t00z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t01z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t02z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t03z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t04z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t05z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t06z.wrfsfcf01.grib2&quot;</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t22z.wrfsfcf01.grib2"</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190101/conus/hrrr.t23z.wrfsfcf01.grib2"</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t00z.wrfsfcf01.grib2"</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t01z.wrfsfcf01.grib2"</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t02z.wrfsfcf01.grib2"</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t03z.wrfsfcf01.grib2"</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t04z.wrfsfcf01.grib2"</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t05z.wrfsfcf01.grib2"</span><span class="p">,</span>
+        <span class="s2">"s3://noaa-hrrr-bdp-pds/hrrr.20190102/conus/hrrr.t06z.wrfsfcf01.grib2"</span><span class="p">,</span>
     <span class="p">]</span>
-    <span class="n">so</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;anon&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;default_cache_type&quot;</span><span class="p">:</span> <span class="s2">&quot;readahead&quot;</span><span class="p">}</span>
+    <span class="n">so</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"anon"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"default_cache_type"</span><span class="p">:</span> <span class="s2">"readahead"</span><span class="p">}</span>
 
     <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">scan_grib</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">storage_options</span><span class="o">=</span><span class="n">so</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
     <span class="n">out</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[])</span>
     <span class="n">mzz</span> <span class="o">=</span> <span class="n">MultiZarrToZarr</span><span class="p">(</span>
         <span class="n">out</span><span class="p">,</span>
-        <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span>
-        <span class="n">preprocess</span><span class="o">=</span><span class="n">drop</span><span class="p">((</span><span class="s2">&quot;valid_time&quot;</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">)),</span>
+        <span class="n">remote_protocol</span><span class="o">=</span><span class="s2">"s3"</span><span class="p">,</span>
+        <span class="n">preprocess</span><span class="o">=</span><span class="n">drop</span><span class="p">((</span><span class="s2">"valid_time"</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">)),</span>
         <span class="n">remote_options</span><span class="o">=</span><span class="n">so</span><span class="p">,</span>
-        <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;var&quot;</span><span class="p">],</span>
-        <span class="n">identical_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;heightAboveGround&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">],</span>
+        <span class="n">concat_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">"time"</span><span class="p">,</span> <span class="s2">"var"</span><span class="p">],</span>
+        <span class="n">identical_dims</span><span class="o">=</span><span class="p">[</span><span class="s2">"heightAboveGround"</span><span class="p">,</span> <span class="s2">"latitude"</span><span class="p">,</span> <span class="s2">"longitude"</span><span class="p">],</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
 
@@ -491,7 +493,7 @@
     <span class="n">message_groups</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">],</span>
     <span class="n">remote_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Build a hierarchical data model from a set of scanned grib messages.</span>
 
 <span class="sd">    The iterable input groups should be a collection of results from scan_grib. Multiple grib files can</span>
@@ -499,7 +501,7 @@
 <span class="sd">    The time (reference_time) and step coordinates will be used as concat_dims in the MultiZarrToZarr</span>
 <span class="sd">    aggregation. Each variable name will become a group with nested subgroups representing the grib</span>
 <span class="sd">    step type and grib level. The resulting hierarchy can be opened as a zarr_group or a xarray datatree.</span>
-<span class="sd">    Grib message variable names that decode as &quot;unknown&quot; are dropped</span>
+<span class="sd">    Grib message variable names that decode as "unknown" are dropped</span>
 <span class="sd">    Grib typeOfLevel attributes that decode as unknown are treated as a single group</span>
 <span class="sd">    Grib steps that are missing due to WrongStepUnitError are patched with NaT</span>
 <span class="sd">    The input message_groups should not be modified by this method</span>
@@ -515,9 +517,9 @@
 <span class="sd">    -------</span>
 <span class="sd">    dict: A new zarr store like dictionary for use as a reference filesystem mapper with zarr</span>
 <span class="sd">    or xarray datatree</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Hard code the filters in the correct order for the group hierarchy</span>
-    <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;stepType&quot;</span><span class="p">,</span> <span class="s2">&quot;typeOfLevel&quot;</span><span class="p">]</span>
+    <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"stepType"</span><span class="p">,</span> <span class="s2">"typeOfLevel"</span><span class="p">]</span>
 
     <span class="c1"># TODO allow passing a LazyReferenceMapper as output?</span>
     <span class="n">zarr_store_dict</span> <span class="o">=</span> <span class="p">{}</span>
@@ -529,48 +531,48 @@
 
     <span class="n">unknown_counter</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">msg_ind</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">message_groups</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">group</span><span class="p">[</span><span class="s2">"version"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
 
-        <span class="n">gattrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">][</span><span class="s2">&quot;.zattrs&quot;</span><span class="p">])</span>
-        <span class="n">coordinates</span> <span class="o">=</span> <span class="n">gattrs</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+        <span class="n">gattrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">][</span><span class="s2">".zattrs"</span><span class="p">])</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="n">gattrs</span><span class="p">[</span><span class="s2">"coordinates"</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">" "</span><span class="p">)</span>
 
         <span class="c1"># Find the data variable</span>
         <span class="n">vname</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.zattrs&quot;</span><span class="p">,</span> <span class="s2">&quot;.zgroup&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">coordinates</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">".zattrs"</span><span class="p">,</span> <span class="s2">".zgroup"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">coordinates</span><span class="p">:</span>
                 <span class="n">vname</span> <span class="o">=</span> <span class="n">name</span>
                 <span class="k">break</span>
 
         <span class="k">if</span> <span class="n">vname</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Can not find a data var for msg# </span><span class="si">{</span><span class="n">msg_ind</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;refs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"Can not find a data var for msg# </span><span class="si">{</span><span class="n">msg_ind</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">group</span><span class="p">[</span><span class="s1">'refs'</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">vname</span> <span class="o">==</span> <span class="s2">&quot;unknown&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">vname</span> <span class="o">==</span> <span class="s2">"unknown"</span><span class="p">:</span>
             <span class="c1"># To resolve unknown variables add custom grib tables.</span>
             <span class="c1"># https://confluence.ecmwf.int/display/UDOC/Creating+your+own+local+definitions+-+ecCodes+GRIB+FAQ</span>
             <span class="c1"># If you process the groups from a single file in order, you can use the msg# to compare with the</span>
             <span class="c1"># IDX file. The idx files message index is 1 based where the grib_tree message count is zero based</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;Dropping unknown variable in msg# </span><span class="si">%d</span><span class="s2">. Compare with the grib idx file to help identify it&quot;</span>
-                <span class="s2">&quot; and build an ecCodes local grib definitions file to fix it.&quot;</span><span class="p">,</span>
+                <span class="s2">"Dropping unknown variable in msg# </span><span class="si">%d</span><span class="s2">. Compare with the grib idx file to help identify it"</span>
+                <span class="s2">" and build an ecCodes local grib definitions file to fix it."</span><span class="p">,</span>
                 <span class="n">msg_ind</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">unknown_counter</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="k">continue</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Processing vname: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">vname</span><span class="p">)</span>
-        <span class="n">dattrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">][</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vname</span><span class="si">}</span><span class="s2">/.zattrs&quot;</span><span class="p">])</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">"Processing vname: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">vname</span><span class="p">)</span>
+        <span class="n">dattrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">][</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">vname</span><span class="si">}</span><span class="s2">/.zattrs"</span><span class="p">])</span>
         <span class="c1"># filter order matters - it determines the hierarchy</span>
         <span class="n">gfilters</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">:</span>
-            <span class="n">attr_val</span> <span class="o">=</span> <span class="n">dattrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GRIB_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">attr_val</span> <span class="o">=</span> <span class="n">dattrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"GRIB_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">attr_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="k">if</span> <span class="n">attr_val</span> <span class="o">==</span> <span class="s2">&quot;unknown&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">attr_val</span> <span class="o">==</span> <span class="s2">"unknown"</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="s2">&quot;Found &#39;unknown&#39; attribute value for key </span><span class="si">%s</span><span class="s2"> in var </span><span class="si">%s</span><span class="s2"> of msg# </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="s2">"Found 'unknown' attribute value for key </span><span class="si">%s</span><span class="s2"> in var </span><span class="si">%s</span><span class="s2"> of msg# </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
                     <span class="n">key</span><span class="p">,</span>
                     <span class="n">vname</span><span class="p">,</span>
                     <span class="n">msg_ind</span><span class="p">,</span>
@@ -580,8 +582,8 @@
             <span class="n">gfilters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr_val</span>
 
         <span class="n">zgroup</span> <span class="o">=</span> <span class="n">zroot</span><span class="o">.</span><span class="n">require_group</span><span class="p">(</span><span class="n">vname</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
-            <span class="n">zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dattrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;GRIB_name&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">"name"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">dattrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"GRIB_name"</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">gfilters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">value</span><span class="p">:</span>  <span class="c1"># Ignore empty string and None</span>
@@ -591,30 +593,30 @@
                 <span class="n">zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
         <span class="c1"># Set the coordinates attribute for the group</span>
-        <span class="n">zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
+        <span class="n">zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"coordinates"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
         <span class="c1"># add to the list of groups to multi-zarr</span>
         <span class="n">aggregations</span><span class="p">[</span><span class="n">zgroup</span><span class="o">.</span><span class="n">path</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
 
         <span class="c1"># keep track of the level coordinate variables and their values</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="n">gfilters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;typeOfLevel&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="n">gfilters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"typeOfLevel"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"0"</span><span class="p">):</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
                     <span class="n">entry</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
                 <span class="n">aggregation_dims</span><span class="p">[</span><span class="n">zgroup</span><span class="o">.</span><span class="n">path</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
 
-    <span class="n">concat_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">]</span>
-    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">]</span>
+    <span class="n">concat_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"time"</span><span class="p">,</span> <span class="s2">"step"</span><span class="p">]</span>
+    <span class="n">identical_dims</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"longitude"</span><span class="p">,</span> <span class="s2">"latitude"</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">aggregations</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
         <span class="c1"># Parallelize this step!</span>
         <span class="n">catdims</span> <span class="o">=</span> <span class="n">concat_dims</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">idims</span> <span class="o">=</span> <span class="n">identical_dims</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="n">level_dimension_value_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">aggregation_dims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="p">()))</span>
-        <span class="n">level_group_name</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">level_group_name</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">level_dimension_value_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                <span class="s2">&quot;Path </span><span class="si">% ha</span><span class="s2">s no value coordinate value associated with the level name </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="s2">"Path </span><span class="si">% ha</span><span class="s2">s no value coordinate value associated with the level name </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
                 <span class="n">path</span><span class="p">,</span>
                 <span class="n">level_group_name</span><span class="p">,</span>
             <span class="p">)</span>
@@ -625,7 +627,7 @@
             <span class="n">catdims</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">level_group_name</span><span class="p">)</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> calling MultiZarrToZarr with idims </span><span class="si">%s</span><span class="s2"> and catdims </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">"</span><span class="si">%s</span><span class="s2"> calling MultiZarrToZarr with idims </span><span class="si">%s</span><span class="s2"> and catdims </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span>
             <span class="n">path</span><span class="p">,</span>
             <span class="n">idims</span><span class="p">,</span>
             <span class="n">catdims</span><span class="p">,</span>
@@ -639,13 +641,13 @@
         <span class="p">)</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">mzz</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
 
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.zattrs&quot;</span><span class="p">,</span> <span class="s2">&quot;.zgroup&quot;</span><span class="p">]:</span>
-                <span class="n">zarr_store</span><span class="o">.</span><span class="n">_store_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">".zattrs"</span><span class="p">,</span> <span class="s2">".zgroup"</span><span class="p">]:</span>
+                <span class="n">zarr_store</span><span class="o">.</span><span class="n">_store_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
     <span class="c1"># Force all stored values to decode as string, not bytes. String should be correct.</span>
     <span class="c1"># ujson will reject bytes values by default.</span>
-    <span class="c1"># Using &#39;reject_bytes=False&#39; one write would fail an equality check on read.</span>
+    <span class="c1"># Using 'reject_bytes=False' one write would fail an equality check on read.</span>
     <span class="n">zarr_dict</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">key</span><span class="p">:</span> <span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">else</span> <span class="n">val</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">zarr_store</span><span class="o">.</span><span class="n">_store_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -658,8 +660,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">correct_hrrr_subhf_step</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Overrides the definition of the &quot;step&quot; variable.</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Overrides the definition of the "step" variable.</span>
 
 <span class="sd">    Sets the value equal to the `valid_time - time`</span>
 <span class="sd">    in hours as a floating point value. This fixes issues with the HRRR SubHF grib2 step as read by</span>
@@ -675,56 +677,56 @@
 <span class="sd">    -------</span>
 <span class="sd">    dict: A new zarr store like dictionary for use as a reference filesystem mapper with zarr</span>
 <span class="sd">    or xarray datatree</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">group</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
-    <span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">][</span><span class="s2">&quot;step/.zarray&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s1">&#39;{&quot;chunks&quot;:[],&quot;compressor&quot;:null,&quot;dtype&quot;:&quot;&lt;f8&quot;,&quot;fill_value&quot;:&quot;NaN&quot;,&quot;filters&quot;:null,&quot;order&quot;:&quot;C&quot;,&#39;</span>
-        <span class="s1">&#39;&quot;shape&quot;:[],&quot;zarr_format&quot;:2}&#39;</span>
+    <span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">][</span><span class="s2">"step/.zarray"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">'{"chunks":[],"compressor":null,"dtype":"&lt;f8","fill_value":"NaN","filters":null,"order":"C",'</span>
+        <span class="s1">'"shape":[],"zarr_format":2}'</span>
     <span class="p">)</span>
-    <span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">][</span><span class="s2">&quot;step/.zattrs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s1">&#39;{&quot;_ARRAY_DIMENSIONS&quot;:[],&quot;long_name&quot;:&quot;time since forecast_reference_time&quot;,&#39;</span>
-        <span class="s1">&#39;&quot;standard_name&quot;:&quot;forecast_period&quot;,&quot;units&quot;:&quot;hours&quot;}&#39;</span>
+    <span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">][</span><span class="s2">"step/.zattrs"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">'{"_ARRAY_DIMENSIONS":[],"long_name":"time since forecast_reference_time",'</span>
+        <span class="s1">'"standard_name":"forecast_period","units":"hours"}'</span>
     <span class="p">)</span>
 
     <span class="c1"># add step to coords</span>
-    <span class="n">attrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">][</span><span class="s2">&quot;.zattrs&quot;</span><span class="p">])</span>
-    <span class="k">if</span> <span class="s2">&quot;step&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]:</span>
-        <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;coordinates&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="s2">&quot; step&quot;</span>
-    <span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">][</span><span class="s2">&quot;.zattrs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">][</span><span class="s2">".zattrs"</span><span class="p">])</span>
+    <span class="k">if</span> <span class="s2">"step"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">[</span><span class="s2">"coordinates"</span><span class="p">]:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"coordinates"</span><span class="p">]</span> <span class="o">+=</span> <span class="s2">" step"</span>
+    <span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">][</span><span class="s2">".zattrs"</span><span class="p">]</span> <span class="o">=</span> <span class="n">ujson</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
 
-    <span class="n">fo</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">&quot;reference&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">group</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+    <span class="n">fo</span> <span class="o">=</span> <span class="n">fsspec</span><span class="o">.</span><span class="n">filesystem</span><span class="p">(</span><span class="s2">"reference"</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">group</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"r"</span><span class="p">)</span>
     <span class="n">fstore</span> <span class="o">=</span> <span class="n">fs_as_store</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">xd</span> <span class="o">=</span> <span class="n">xarray</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">fstore</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;zarr&quot;</span><span class="p">,</span> <span class="n">consolidated</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">xd</span> <span class="o">=</span> <span class="n">xarray</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">fstore</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">"zarr"</span><span class="p">,</span> <span class="n">consolidated</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="n">correct_step</span> <span class="o">=</span> <span class="n">xd</span><span class="o">.</span><span class="n">valid_time</span><span class="o">.</span><span class="n">values</span> <span class="o">-</span> <span class="n">xd</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span>
 
     <span class="k">assert</span> <span class="n">correct_step</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">()</span>
-    <span class="n">step_float</span> <span class="o">=</span> <span class="n">correct_step</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;timedelta64[s]&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="mf">3600.0</span>
+    <span class="n">step_float</span> <span class="o">=</span> <span class="n">correct_step</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"timedelta64[s]"</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"float"</span><span class="p">)</span> <span class="o">/</span> <span class="mf">3600.0</span>
     <span class="n">step_bytes</span> <span class="o">=</span> <span class="n">step_float</span><span class="o">.</span><span class="n">tobytes</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">enocded_val</span> <span class="o">=</span> <span class="n">step_bytes</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+        <span class="n">enocded_val</span> <span class="o">=</span> <span class="n">step_bytes</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
-        <span class="n">enocded_val</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;base64:&quot;</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">step_bytes</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+        <span class="n">enocded_val</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s2">"base64:"</span> <span class="o">+</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">step_bytes</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"ascii"</span><span class="p">)</span>
 
-    <span class="n">group</span><span class="p">[</span><span class="s2">&quot;refs&quot;</span><span class="p">][</span><span class="s2">&quot;step/0&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">enocded_val</span>
+    <span class="n">group</span><span class="p">[</span><span class="s2">"refs"</span><span class="p">][</span><span class="s2">"step/0"</span><span class="p">]</span> <span class="o">=</span> <span class="n">enocded_val</span>
 
     <span class="k">return</span> <span class="n">group</span>
 
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;scan_grib&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;grib_tree&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;correct_hrrr_subhf_step&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;example_combine&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;parse_grib_idx&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;build_idx_grib_mapping&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;map_from_index&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;strip_datavar_chunks&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;reinflate_grib_store&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;extract_datatree_chunk_index&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;AggregationType&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;read_store&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;write_store&quot;</span><span class="p">,</span>
+    <span class="s2">"scan_grib"</span><span class="p">,</span>
+    <span class="s2">"grib_tree"</span><span class="p">,</span>
+    <span class="s2">"correct_hrrr_subhf_step"</span><span class="p">,</span>
+    <span class="s2">"example_combine"</span><span class="p">,</span>
+    <span class="s2">"parse_grib_idx"</span><span class="p">,</span>
+    <span class="s2">"build_idx_grib_mapping"</span><span class="p">,</span>
+    <span class="s2">"map_from_index"</span><span class="p">,</span>
+    <span class="s2">"strip_datavar_chunks"</span><span class="p">,</span>
+    <span class="s2">"reinflate_grib_store"</span><span class="p">,</span>
+    <span class="s2">"extract_datatree_chunk_index"</span><span class="p">,</span>
+    <span class="s2">"AggregationType"</span><span class="p">,</span>
+    <span class="s2">"read_store"</span><span class="p">,</span>
+    <span class="s2">"write_store"</span><span class="p">,</span>
 <span class="p">]</span>
 </pre></div>
 

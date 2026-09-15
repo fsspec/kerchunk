@@ -8,15 +8,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aggregation special cases &mdash; kerchunk  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/maintenance_banner.css?v=f3239f3f" />
 
   
     <link rel="shortcut icon" href="_static/kerchunk.ico"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/maintenance_banner.js?v=a8b6b9eb"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -256,20 +258,20 @@ from the <a class="reference external" href="https://xarray-datatree.readthedocs
 part(desired variables) or the whole of the aggregation, using the k_index. Below is a
 tree model made from an aggregation of GRIB files produced from <strong>GEFS</strong> model hosted
 in AWS S3 bucket.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>DataTree<span class="o">(</span><span class="s1">&#39;None&#39;</span>,<span class="w"> </span><span class="nv">parent</span><span class="o">=</span>None<span class="o">)</span>
-├──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;prmsl&#39;</span><span class="o">)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>DataTree<span class="o">(</span><span class="s1">'None'</span>,<span class="w"> </span><span class="nv">parent</span><span class="o">=</span>None<span class="o">)</span>
+├──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">'prmsl'</span><span class="o">)</span>
 │<span class="w">   </span>│<span class="w">   </span>Dimensions:<span class="w">  </span><span class="o">()</span>
 │<span class="w">   </span>│<span class="w">   </span>Data<span class="w"> </span>variables:
 │<span class="w">   </span>│<span class="w">       </span>*empty*
 │<span class="w">   </span>│<span class="w">   </span>Attributes:
 │<span class="w">   </span>│<span class="w">       </span>name:<span class="w">     </span>Pressure<span class="w"> </span>reduced<span class="w"> </span>to<span class="w"> </span>MSL
-│<span class="w">   </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;instant&#39;</span><span class="o">)</span>
+│<span class="w">   </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">'instant'</span><span class="o">)</span>
 │<span class="w">       </span>│<span class="w">   </span>Dimensions:<span class="w">  </span><span class="o">()</span>
 │<span class="w">       </span>│<span class="w">   </span>Data<span class="w"> </span>variables:
 │<span class="w">       </span>│<span class="w">       </span>*empty*
 │<span class="w">       </span>│<span class="w">   </span>Attributes:
 │<span class="w">       </span>│<span class="w">       </span>stepType:<span class="w">  </span>instant
-│<span class="w">       </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;meanSea&#39;</span><span class="o">)</span>
+│<span class="w">       </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">'meanSea'</span><span class="o">)</span>
 │<span class="w">               </span>Dimensions:<span class="w">     </span><span class="o">(</span>latitude:<span class="w"> </span><span class="m">181</span>,<span class="w"> </span>longitude:<span class="w"> </span><span class="m">360</span>,<span class="w"> </span>time:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>step:<span class="w"> </span><span class="m">1</span>,
 │<span class="w">                                </span>model_horizons:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>valid_times:<span class="w"> </span><span class="m">237</span><span class="o">)</span>
 │<span class="w">               </span>Coordinates:
@@ -285,19 +287,19 @@ in AWS S3 bucket.</p>
 │<span class="w">                   </span>prmsl<span class="w">       </span><span class="o">(</span>model_horizons,<span class="w"> </span>valid_times,<span class="w"> </span>latitude,<span class="w"> </span>longitude<span class="o">)</span><span class="w"> </span>float64<span class="w"> </span>124MB<span class="w"> </span>...
 │<span class="w">               </span>Attributes:
 │<span class="w">                   </span>typeOfLevel:<span class="w">  </span>meanSea
-└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;ulwrf&#39;</span><span class="o">)</span>
+└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">'ulwrf'</span><span class="o">)</span>
 <span class="w">    </span>│<span class="w">   </span>Dimensions:<span class="w">  </span><span class="o">()</span>
 <span class="w">    </span>│<span class="w">   </span>Data<span class="w"> </span>variables:
 <span class="w">    </span>│<span class="w">       </span>*empty*
 <span class="w">    </span>│<span class="w">   </span>Attributes:
 <span class="w">    </span>│<span class="w">       </span>name:<span class="w">     </span>Upward<span class="w"> </span>long-wave<span class="w"> </span>radiation<span class="w"> </span>flux
-<span class="w">    </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;avg&#39;</span><span class="o">)</span>
+<span class="w">    </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">'avg'</span><span class="o">)</span>
 <span class="w">        </span>│<span class="w">   </span>Dimensions:<span class="w">  </span><span class="o">()</span>
 <span class="w">        </span>│<span class="w">   </span>Data<span class="w"> </span>variables:
 <span class="w">        </span>│<span class="w">       </span>*empty*
 <span class="w">        </span>│<span class="w">   </span>Attributes:
 <span class="w">        </span>│<span class="w">       </span>stepType:<span class="w">  </span>avg
-<span class="w">        </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">&#39;nominalTop&#39;</span><span class="o">)</span>
+<span class="w">        </span>└──<span class="w"> </span>DataTree<span class="o">(</span><span class="s1">'nominalTop'</span><span class="o">)</span>
 <span class="w">                </span>Dimensions:<span class="w">     </span><span class="o">(</span>latitude:<span class="w"> </span><span class="m">181</span>,<span class="w"> </span>longitude:<span class="w"> </span><span class="m">360</span>,<span class="w"> </span>time:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>step:<span class="w"> </span><span class="m">1</span>,
 <span class="w">                                    </span>model_horizons:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>valid_times:<span class="w"> </span><span class="m">237</span><span class="o">)</span>
 <span class="w">                </span>Coordinates:
