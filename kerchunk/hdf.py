@@ -604,6 +604,13 @@ class SingleHdf5ToZarr:
                 lggr.debug(f"HDF5 group: {h5obj.name}")
                 zgrp = self._zroot.require_group(h5obj.name.lstrip("/"))
                 self._transfer_attrs(h5obj, zgrp)
+        except TimeoutError:
+            # A timeout is not a property of this node: it means the store's
+            # sync bridge (or the transport behind it) stalled, and every
+            # later call will stall the same way.  Quashing it here would
+            # turn one bounded failure into a hang, so let it abort the
+            # translation regardless of the error mode.
+            raise
         except Exception as e:
             import traceback
 
