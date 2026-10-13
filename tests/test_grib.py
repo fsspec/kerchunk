@@ -451,3 +451,37 @@ def test_extract_methods_grib_parameter(zarr_tree_and_datatree_instance):
 
     # checking if level in each series data
     assert all(list(map(lambda data: "level" in data.keys(), grib_metadata)))
+
+
+def test_scan_grib1(tmp_path):
+    # scan_grib must index GRIB1, not just GRIB2 (the decode path is edition-agnostic)
+    p = os.path.join(str(tmp_path), "sample.grib1")
+    gid = eccodes.codes_grib_new_from_samples("regular_ll_sfc_grib1")
+    assert eccodes.codes_get(gid, "editionNumber") == 1
+    with open(p, "wb") as f:
+        eccodes.codes_write(gid, f)
+    eccodes.codes_release(gid)
+
+    refs = scan_grib(p)
+    assert len(refs) >= 1
+    ds = xr.open_dataset(
+        fsspec.filesystem("reference", fo=refs[0]).get_mapper(""),
+        engine="zarr",
+        backend_kwargs={"consolidated": False},
+    )
+    assert len(ds.data_vars) >= 1
+    var = next(iter(ds.data_vars))
+    assert np.isfinite(np.asarray(ds[var].values)).any()
+
+
+def test_scan_grib1_and_grib2(tmp_path):
+    # a file holding both editions yields both messages
+    p = os.path.join(str(tmp_path), "mixed.grib")
+    g1 = eccodes.codes_grib_new_from_samples("regular_ll_sfc_grib1")
+    g2 = eccodes.codes_grib_new_from_samples("regular_ll_sfc_grib2")
+    with open(p, "wb") as f:
+        eccodes.codes_write(g1, f)
+        eccodes.codes_write(g2, f)
+    eccodes.codes_release(g1)
+    eccodes.codes_release(g2)
+    assert len(scan_grib(p)) >= 2

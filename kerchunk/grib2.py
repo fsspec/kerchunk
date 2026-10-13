@@ -66,12 +66,23 @@ def _split_file(f: io.FileIO, skip=0):
     while f.tell() < size:
         logger.debug(f"extract part {part + 1}")
         head = f.read(1024)
-        if b"GRIB" not in head:
-            f.seek(-4, 1)
+        ind = head.find(b"GRIB")
+        if ind == -1:
+            if len(head) < 1024:        # final partial read -> no more messages
+                break
+            f.seek(-4, 1)               # 'GRIB' may straddle the 1024-byte boundary
             continue
-        ind = head.index(b"GRIB")
         start = f.tell() - len(head) + ind
-        part_size = int.from_bytes(head[ind + 12 : ind + 16], "big")
+        edition = head[ind + 7]
+        if edition == 1:
+            # GRIB1: 24-bit total length at bytes 4-6. ECMWF "large message" extension:
+            # if the top bit is set, the real length is (len & 0x7fffff) * 120 bytes.
+            part_size = int.from_bytes(head[ind + 4 : ind + 7], "big")
+            if part_size & 0x800000:
+                part_size = (part_size & 0x7FFFFF) * 120
+        else:
+            # GRIB2: 64-bit total length at bytes 8-15.
+            part_size = int.from_bytes(head[ind + 8 : ind + 16], "big")
         f.seek(start)
         yield start, part_size, f.read(part_size)
         part += 1
