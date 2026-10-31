@@ -1,11 +1,13 @@
 import asyncio
 import collections.abc
+import io
 import logging
 import re
 from typing import List
 import warnings
 
 import fsspec
+import fsspec.compression
 import fsspec.utils
 import numpy as np
 import numcodecs
@@ -16,6 +18,14 @@ from zarr.core.buffer.core import default_buffer_prototype
 from kerchunk.utils import consolidate, fs_as_store
 
 logger = logging.getLogger("kerchunk.combine")
+
+
+def _load_json(data, compression=None):
+    """Decode JSON references from raw bytes, decompressing them first if needed"""
+    if compression:
+        with fsspec.compression.compr[compression](io.BytesIO(data), mode="rb") as f:
+            data = f.read()
+    return ujson.loads(data)
 
 
 def drop(fields):
@@ -271,24 +281,22 @@ class MultiZarrToZarr:
                 for path in self.path:
                     self._paths.append(path.get("templates", {}).get("u", None))
             else:
-                self._paths = []
-                for of in fsspec.open_files(self.path, **self.target_options):
-                    self._paths.append(of.full_name)
-                fs = fsspec.core.url_to_fs(
-                    self.path[0], asynchronous=True, **self.target_options
-                )[0]
+                ofs = fsspec.open_files(self.path, **self.target_options)
+                self._paths = [of.full_name for of in ofs]
                 try:
-                    # JSON path
-                    fo_list = fs.cat(self.path)
-                    fo_list = [ujson.loads(v) for v in fo_list.values()]
-                except (IOError, TypeError, ValueError):
+                    # JSON path: fetch all reference files in one batch and
+                    # decode them in the same order as the inputs
+                    raw = ofs.fs.cat([of.path for of in ofs])
+                    fo_list = [_load_json(raw[of.path], of.compression) for of in ofs]
+                except (IOError, KeyError, TypeError, ValueError):
                     # tries again sequentially in comprehension below
-                    fo_list = self.path
+                    fo_list = self._paths
 
             self._fss = [
                 fsspec.filesystem(
                     "reference",
                     fo=fo,
+                    target_options=self.target_options if isinstance(fo, str) else None,
                     remote_protocol=self.remote_protocol,
                     remote_options=self.remote_options,
                 )

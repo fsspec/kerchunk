@@ -3,6 +3,7 @@ import fsspec.utils
 import numpy as np
 import dask.array as da
 import pytest
+import ujson
 import xarray as xr
 import zarr.storage
 
@@ -862,3 +863,75 @@ def test_chunk_error(refs):
     with pytest.raises(ValueError) as e:
         mzz.translate()
     assert "chunk size mismatch" in str(e.value)
+
+
+def _write_refs(path, refs, compression=None):
+    with fsspec.open(str(path), "wt", compression=compression) as f:
+        f.write(ujson.dumps(refs))
+
+
+@pytest.mark.parametrize("compression", [None, "gzip"])
+def test_paths_target_options(refs, tmp_path, compression):
+    paths = []
+    for name in ["single1", "single2"]:
+        path = tmp_path / f"{name}.json"
+        _write_refs(path, refs[name], compression=compression)
+        paths.append(str(path))
+    mzz = MultiZarrToZarr(
+        paths,
+        target_options={"compression": compression},
+        remote_protocol="memory",
+        concat_dims=["time"],
+    )
+    out = mzz.translate()
+    assert out["refs"]["data/0.0.0"] == ["memory:///single1.zarr/data/0.0.0"]
+    assert out["refs"]["data/1.0.0"] == ["memory:///single2.zarr/data/0.0.0"]
+
+
+def test_paths_keep_input_order(refs, tmp_path):
+    # the file names sort the other way round from the order of the inputs
+    _write_refs(tmp_path / "b.json", refs["single1"])
+    _write_refs(tmp_path / "a.json", refs["single2"])
+    mzz = MultiZarrToZarr(
+        [str(tmp_path / "b.json"), str(tmp_path / "a.json")],
+        remote_protocol="memory",
+        concat_dims=["time"],
+        coo_map={"time": "INDEX"},
+    )
+    out = mzz.translate()
+    assert out["refs"]["data/0.0.0"] == ["memory:///single1.zarr/data/0.0.0"]
+    assert out["refs"]["data/1.0.0"] == ["memory:///single2.zarr/data/0.0.0"]
+
+
+@pytest.fixture
+def http_dir(tmp_path):
+    pytest.importorskip("aiohttp")
+    import functools
+    import http.server
+    import threading
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+    handler = functools.partial(Handler, directory=str(tmp_path))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield tmp_path, f"http://127.0.0.1:{server.server_address[1]}"
+    server.shutdown()
+    server.server_close()
+
+
+def test_paths_async_filesystem(refs, http_dir):
+    root, url = http_dir
+    for name in ["single1", "single2"]:
+        _write_refs(root / f"{name}.json", refs[name])
+    mzz = MultiZarrToZarr(
+        [f"{url}/single1.json", f"{url}/single2.json"],
+        remote_protocol="memory",
+        concat_dims=["time"],
+    )
+    out = mzz.translate()
+    assert out["refs"]["data/0.0.0"] == ["memory:///single1.zarr/data/0.0.0"]
+    assert out["refs"]["data/1.0.0"] == ["memory:///single2.zarr/data/0.0.0"]
