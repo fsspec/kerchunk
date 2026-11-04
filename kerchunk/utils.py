@@ -360,7 +360,17 @@ def inline_array(store, threshold=1000, names=None, remote_options=None):
 
 def subchunk(store, variable, factor):
     """
-    Split uncompressed chunks into integer subchunks on the largest axis
+    Split uncompressed chunks into integer subchunks along the leading axes
+
+    Each input chunk becomes exactly ``factor`` output chunks, each of which is a
+    contiguous byte range of the original. The split is therefore applied along
+    the leading (slowest-varying) axes only, skipping any axis whose chunk length
+    is 1. If ``factor`` divides the first such axis, only that axis is split. If
+    ``factor`` is instead a multiple of it, that axis is split into chunks of
+    length 1 and the remaining factor is applied to the next axis in the same way,
+    for example chunks ``(2, 12)`` with ``factor=4`` become ``(1, 6)``. Any other
+    factor raises ``ValueError``; in particular an axis that is not divisible by
+    the remaining factor can never be split, even if a later axis is.
 
     Parameters
     ----------
@@ -369,8 +379,8 @@ def subchunk(store, variable, factor):
     variable: str
         the named zarr variable (give as /-separated path if deep)
     factor: int
-        the number of chunks each input chunk turns into. Must be an exact divisor
-        of the original largest dimension length.
+        the number of chunks each input chunk turns into; see above for which
+        values are possible
 
     Returns
     -------
@@ -382,29 +392,32 @@ def subchunk(store, variable, factor):
     meta = ujson.loads(fs.cat(meta_file))
     if meta["compressor"] is not None:
         raise ValueError("Can only subchunk an uncompressed array")
+    if factor < 1:
+        raise ValueError("Subchunk factor must be a positive integer")
     chunks_orig = meta["chunks"]
-    chunk_new = []
-    # plan
-    multi = None
+    chunk_new = list(chunks_orig)
+    # plan: consume leading axes until the whole factor is accounted for
+    remaining = factor
     for ind, this_chunk in enumerate(chunks_orig):
-        if this_chunk == 1:
-            chunk_new.append(1)
-            continue
-        elif this_chunk % factor == 0:
-            chunk_new.extend([this_chunk // factor] + chunks_orig[ind + 1 :])
+        if remaining == 1:
             break
-        elif factor % this_chunk == 0:
-            # if factor // chunks_orig[0] > 1:
-            chunk_new.append(1)
-            if multi is None:
-                multi = this_chunk
-            factor //= this_chunk
+        elif this_chunk % remaining == 0:
+            chunk_new[ind] = this_chunk // remaining
+            remaining = 1
+        elif remaining % this_chunk == 0:
+            chunk_new[ind] = 1
+            remaining //= this_chunk
         else:
-            raise ValueError("Must subchunk by exact integer factor")
-
-    if multi:
-        # TODO: this reloads the referenceFS; *maybe* reuses it
-        return subchunk(store, variable, multi)
+            break
+    if remaining != 1:
+        raise ValueError(
+            f"Cannot split chunks {chunks_orig} into {factor} contiguous "
+            "sub-chunks: the factor must divide the leading non-unit chunk "
+            "axis, or be the product of whole leading axes and a divisor "
+            "of the axis that follows them"
+        )
+    # number of sub-chunks along each axis; their product is factor
+    splits = [orig // new for orig, new in zip(chunks_orig, chunk_new)]
 
     # execute
     meta["chunks"] = chunk_new
@@ -427,12 +440,14 @@ def subchunk(store, variable, factor):
                 (url,) = v
                 offset = 0
                 size = fs.info(k)["size"]
-            for subpart in range(factor):
-                new_index = (
-                    chunk_index[:ind]
-                    + [chunk_index[ind] * factor + subpart]
-                    + chunk_index[ind + 1 :]
-                )
+            # sub-chunks are enumerated in C order, which is also their byte order
+            # within the original chunk, because every axis before the last one
+            # that is split has a new chunk length of 1
+            subparts = itertools.product(*(range(s) for s in splits))
+            for subpart, sub_index in enumerate(subparts):
+                new_index = [
+                    i * s + sub for i, s, sub in zip(chunk_index, splits, sub_index)
+                ]
                 newpart = sep.join(str(_) for _ in new_index)
                 newv = [url, offset + subpart * size // factor, size // factor]
                 store[f"{variable}/{newpart}"] = newv
