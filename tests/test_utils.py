@@ -97,24 +97,51 @@ def test_json():
     assert out == expected
 
 
-@pytest.mark.parametrize("chunks", [[10, 10], [5, 10]])
-def test_subchunk_exact(m, chunks):
+def _subchunk_refs(shape, chunks):
     g = zarr.open_group("memory://test.zarr", mode="w", zarr_format=2)
-    data = np.arange(100).reshape(10, 10)
+    data = np.arange(np.prod(shape)).reshape(shape)
     arr = g.create_array(
         "data", dtype=data.dtype, shape=data.shape, chunks=chunks, compressor=None
     )
     arr[:] = data
     ref = kerchunk.zarr.single_zarr("memory://test.zarr")["refs"]
+    return ref, data
 
-    extra = [] if chunks[0] == 10 else ["data/1.0"]
+
+def _chunk_keys(ref):
+    return sorted(
+        k for k in ref if k.startswith("data/") and not k.startswith("data/.z")
+    )
+
+
+@pytest.mark.parametrize(
+    "chunks, factor, expected",
+    [
+        ([10, 10], 5, [2, 10]),
+        ([5, 10], 5, [1, 10]),
+        # factor larger than the leading axis: it is split into ones and the
+        # rest of the factor applies to the next axis
+        ([2, 10], 4, [1, 5]),
+        ([10, 10], 20, [1, 5]),
+        ([5, 10], 25, [1, 2]),
+        ([10, 10], 100, [1, 1]),
+    ],
+)
+def test_subchunk_exact(m, chunks, factor, expected):
+    ref, data = _subchunk_refs((10, 10), chunks)
+
     ref2 = list(_ for _ in ref if not _.endswith("zattrs"))  # ignore empty attrs
-    assert ref2 == [".zgroup", "data/.zarray", "data/0.0"] + extra
+    assert ref2 == [".zgroup", "data/.zarray"] + [
+        f"data/{_}.0" for _ in range(10 // chunks[0])
+    ]
 
-    out = kerchunk.utils.subchunk(ref, "data", 5)
-    nchunk = 10 // chunks[0] * 5
-    out2 = list(_ for _ in out if not _.endswith("zattrs"))
-    assert out2 == [".zgroup", "data/.zarray"] + [f"data/{_}.0" for _ in range(nchunk)]
+    out = kerchunk.utils.subchunk(ref, "data", factor)
+    assert json.loads(out["data/.zarray"])["chunks"] == expected
+    nchunk = [10 // _ for _ in expected]
+    assert _chunk_keys(out) == sorted(
+        f"data/{i}.{j}" for i in range(nchunk[0]) for j in range(nchunk[1])
+    )
+    assert len(_chunk_keys(out)) == factor * len(_chunk_keys(ref))
 
     store = kerchunk.utils.refs_as_store(out, remote_protocol="memory")
     g2 = zarr.open_group(store, mode="r", zarr_format=2)
@@ -123,6 +150,42 @@ def test_subchunk_exact(m, chunks):
     #     "reference://", storage_options={"fo": out, "remote_protocol": "memory"}, zarr_format=2
     # )
     assert (g2["data"][:] == data).all()
+
+
+@pytest.mark.parametrize(
+    "factor, expected",
+    [(2, [1, 3, 8]), (6, [1, 1, 8]), (12, [1, 1, 4]), (48, [1, 1, 1])],
+)
+def test_subchunk_multiple_axes(m, factor, expected):
+    ref, data = _subchunk_refs((4, 3, 8), [2, 3, 8])
+    assert len(_chunk_keys(ref)) == 2
+
+    out = kerchunk.utils.subchunk(ref, "data", factor)
+    assert json.loads(out["data/.zarray"])["chunks"] == expected
+    assert len(_chunk_keys(out)) == 2 * factor
+
+    store = kerchunk.utils.refs_as_store(out, remote_protocol="memory")
+    g2 = zarr.open_group(store, mode="r", zarr_format=2)
+    assert (g2["data"][:] == data).all()
+
+
+@pytest.mark.parametrize(
+    "chunks, factor",
+    [
+        # 2 does not divide the leading axis, even though it divides the next
+        ([5, 10], 2),
+        # 4 = 2 * 2, but 2 neither divides nor is a multiple of the next axis
+        ([2, 3, 8], 4),
+        # more sub-chunks than there are elements in a chunk
+        ([2, 10], 40),
+        ([1, 1], 2),
+        ([10, 10], 0),
+    ],
+)
+def test_subchunk_impossible(m, chunks, factor):
+    ref, _ = _subchunk_refs((10, 10) if len(chunks) == 2 else (4, 3, 8), chunks)
+    with pytest.raises(ValueError):
+        kerchunk.utils.subchunk(ref, "data", factor)
 
 
 @pytest.mark.parametrize("archive", ["zip", "tar"])
