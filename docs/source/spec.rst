@@ -4,6 +4,13 @@ References specification
 The content of a reference set should match the given description here.
 ``fsspec``'s ``ReferenceFileSystem`` expects this kind of input.
 
+A version 0 reference set is a flat mapping from virtual paths to references.
+Version 1 puts the mapping under ``refs`` and declares ``"version": 1`` at the
+top level. For example, ``{"key0": "data"}`` and
+``{"version": 1, "refs": {"key0": "data"}}`` both expose the same virtual
+file through the reference filesystem. Pass the whole mapping to the reader:
+it accepts both formats and resolves any version 1 templates or generators.
+
 Version 0
 ---------
 
